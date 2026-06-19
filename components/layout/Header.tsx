@@ -11,24 +11,54 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { BackIcon, HeartIcon } from '@/components/ui/icons';
+import { getMyProfile, type UserProfile } from '@/services/profile';
+import { signOut } from '@/services/auth';
 
 type MenuItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   subtitle?: string;
   onPress: () => void;
-  danger?: boolean;
 };
 
-export function Header({ title = 'Preggers', back = false, showAvatar = true }: { title?: string; back?: boolean; showAvatar?: boolean }) {
+export function Header({
+  title = 'Preggers',
+  back = false,
+  showAvatar = true,
+}: {
+  title?: string;
+  back?: boolean;
+  showAvatar?: boolean;
+}) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(-12)).current;
   const scale = useRef(new Animated.Value(0.96)).current;
+
+  useEffect(() => {
+    if (!showAvatar) return;
+
+    let active = true;
+
+    getMyProfile()
+      .then((nextProfile) => {
+        if (active) setProfile(nextProfile);
+      })
+      .catch(() => {
+        if (active) setProfile(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [showAvatar]);
 
   useEffect(() => {
     if (!menuVisible) return;
@@ -60,6 +90,10 @@ export function Header({ title = 'Preggers', back = false, showAvatar = true }: 
     ]).start();
   }, [menuVisible, opacity, scale, translateY]);
 
+  const displayName = profile?.full_name || 'Sarah Miller';
+  const firstName = displayName.split(' ')[0] || 'Sarah';
+  const week = profile?.pregnancy_week ?? 24;
+
   const closeMenu = (afterClose?: () => void) => {
     Animated.parallel([
       Animated.timing(opacity, {
@@ -85,12 +119,44 @@ export function Header({ title = 'Preggers', back = false, showAvatar = true }: 
 
   const navigate = (path: string) => closeMenu(() => router.push(path as never));
 
+  const confirmLogout = () => {
+    closeMenu(() => {
+      Alert.alert('Log out?', 'You can sign back in anytime using your account.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/auth/log-in');
+            } catch {
+              Alert.alert('Logout failed', 'Please try again.');
+            }
+          },
+        },
+      ]);
+    });
+  };
+
   const menuItems: MenuItem[] = [
     {
       icon: 'person-outline',
       label: 'View profile',
       subtitle: 'Pregnancy details and progress',
       onPress: () => navigate('/(tabs)/profile'),
+    },
+    {
+      icon: 'camera-outline',
+      label: 'Change profile photo',
+      subtitle: 'Upload a real profile picture',
+      onPress: () =>
+        closeMenu(() =>
+          Alert.alert(
+            'Coming next',
+            'Next step, we will add image picker and Supabase Storage so you can upload a real profile picture.',
+          ),
+        ),
     },
     {
       icon: 'calendar-outline',
@@ -135,19 +201,6 @@ export function Header({ title = 'Preggers', back = false, showAvatar = true }: 
         ),
     },
   ];
-
-  const confirmLogout = () => {
-    closeMenu(() => {
-      Alert.alert('Log out?', 'You can sign back in anytime using your account.', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log out',
-          style: 'destructive',
-          onPress: () => router.replace('/auth/log-in'),
-        },
-      ]);
-    });
-  };
 
   return (
     <>
@@ -217,10 +270,12 @@ export function Header({ title = 'Preggers', back = false, showAvatar = true }: 
                 style={styles.menuAvatar}
                 resizeMode="cover"
               />
+
               <View style={styles.accountText}>
-                <Text style={styles.accountName}>Sarah Miller</Text>
-                <Text style={styles.accountMeta}>24 weeks pregnant</Text>
+                <Text style={styles.accountName}>{displayName}</Text>
+                <Text style={styles.accountMeta}>{week} weeks pregnant</Text>
               </View>
+
               <AnimatedPressable
                 style={styles.closeButton}
                 onPress={() => closeMenu()}
@@ -234,12 +289,14 @@ export function Header({ title = 'Preggers', back = false, showAvatar = true }: 
               <View style={styles.progressIcon}>
                 <Ionicons name="heart" size={16} color="#8C4A65" />
               </View>
+
               <View style={styles.progressTextWrap}>
-                <Text style={styles.progressTitle}>Week 24 progress</Text>
+                <Text style={styles.progressTitle}>Week {week} progress</Text>
                 <View style={styles.progressTrack}>
                   <View style={styles.progressFill} />
                 </View>
               </View>
+
               <Text style={styles.progressValue}>62%</Text>
             </View>
 
@@ -249,12 +306,12 @@ export function Header({ title = 'Preggers', back = false, showAvatar = true }: 
                   <View style={styles.menuIcon}>
                     <Ionicons name={item.icon} size={21} color="#765963" />
                   </View>
+
                   <View style={styles.menuTextWrap}>
-                    <Text style={[styles.menuLabel, item.danger && styles.dangerText]}>
-                      {item.label}
-                    </Text>
+                    <Text style={styles.menuLabel}>{item.label}</Text>
                     {item.subtitle ? <Text style={styles.menuSubtitle}>{item.subtitle}</Text> : null}
                   </View>
+
                   <Ionicons name="chevron-forward" size={18} color="#B49FA5" />
                 </AnimatedPressable>
               ))}
@@ -262,7 +319,7 @@ export function Header({ title = 'Preggers', back = false, showAvatar = true }: 
 
             <AnimatedPressable onPress={confirmLogout} style={styles.logoutButton}>
               <Ionicons name="log-out-outline" size={20} color="#B23A48" />
-              <Text style={styles.logoutText}>Log out Sarah</Text>
+              <Text style={styles.logoutText}>Log out {firstName}</Text>
             </AnimatedPressable>
           </Animated.View>
         </View>
@@ -280,8 +337,15 @@ const styles = StyleSheet.create({
     zIndex: 100,
     elevation: 12,
   },
-  logo: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  brand: { ...type.brand, color: colors.plum },
+  logo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  brand: {
+    ...type.brand,
+    color: colors.plum,
+  },
   circle: {
     width: 44,
     height: 44,
@@ -309,7 +373,10 @@ const styles = StyleSheet.create({
     zIndex: 50,
     elevation: 8,
   },
-  avatarSpacer: { width: 56, height: 56 },
+  avatarSpacer: {
+    width: 56,
+    height: 56,
+  },
   avatarPressed: {
     opacity: 0.72,
     transform: [{ scale: 0.94 }],
@@ -340,7 +407,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFF8F6',
   },
-  modalRoot: { flex: 1 },
+  modalRoot: {
+    flex: 1,
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(36, 22, 28, 0.38)',
@@ -384,9 +453,19 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#F3CFD2',
   },
-  accountText: { flex: 1 },
-  accountName: { ...type.bodyStrong, fontSize: 18, color: '#2E2025' },
-  accountMeta: { ...type.small, color: '#7B6970', marginTop: 2 },
+  accountText: {
+    flex: 1,
+  },
+  accountName: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    color: '#2E2025',
+  },
+  accountMeta: {
+    ...type.small,
+    color: '#7B6970',
+    marginTop: 2,
+  },
   closeButton: {
     width: 36,
     height: 36,
@@ -412,8 +491,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressTextWrap: { flex: 1 },
-  progressTitle: { ...type.small, color: '#57434A', fontWeight: '700' },
+  progressTextWrap: {
+    flex: 1,
+  },
+  progressTitle: {
+    ...type.small,
+    color: '#57434A',
+    fontWeight: '700',
+  },
   progressTrack: {
     height: 5,
     borderRadius: 3,
@@ -427,8 +512,13 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#8C6370',
   },
-  progressValue: { ...type.bodyStrong, color: '#6B4E58' },
-  menuList: { marginTop: 10 },
+  progressValue: {
+    ...type.bodyStrong,
+    color: '#6B4E58',
+  },
+  menuList: {
+    marginTop: 10,
+  },
   menuRow: {
     minHeight: 58,
     flexDirection: 'row',
@@ -446,10 +536,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuTextWrap: { flex: 1 },
-  menuLabel: { ...type.bodyStrong, color: '#33272B' },
-  menuSubtitle: { ...type.tiny, color: '#8B7B80', marginTop: 1 },
-  dangerText: { color: '#B23A48' },
+  menuTextWrap: {
+    flex: 1,
+  },
+  menuLabel: {
+    ...type.bodyStrong,
+    color: '#33272B',
+  },
+  menuSubtitle: {
+    ...type.tiny,
+    color: '#8B7B80',
+    marginTop: 1,
+  },
   logoutButton: {
     marginTop: 14,
     minHeight: 48,
@@ -460,5 +558,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  logoutText: { ...type.bodyStrong, color: '#B23A48' },
+  logoutText: {
+    ...type.bodyStrong,
+    color: '#B23A48',
+  },
 });
