@@ -1,5 +1,13 @@
-import React, { useState } from 'react';
-import { Alert, Image, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Image,
+  ImageSourcePropType,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -10,6 +18,9 @@ import { AppSwitch } from '@/components/ui/AppSwitch';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 import { signOut } from '@/services/auth';
+import { getMyProfile, type UserProfile } from '@/services/profile';
+
+const fallbackAvatar = require('../../assets/images/profile-avatar.jpg');
 
 function Row({
   icon,
@@ -42,9 +53,57 @@ function Row({
   );
 }
 
+function formatDueDate(value?: string | null) {
+  if (!value) return 'Not set';
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) return 'Not set';
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export default function ProfileScreen() {
   const [notifications, setNotifications] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
   const scheme = useColorScheme() ?? 'light';
+
+  useEffect(() => {
+    let active = true;
+
+    getMyProfile()
+      .then((nextProfile) => {
+        if (active) setProfile(nextProfile);
+      })
+      .catch(() => {
+        if (active) {
+          Alert.alert('Profile unavailable', 'We could not load your profile right now.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingProfile(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const displayName = profile?.full_name || 'Sarah Miller';
+  const firstName = displayName.split(' ')[0] || 'Sarah';
+  const week = profile?.pregnancy_week ?? 24;
+  const nickname = profile?.baby_nickname || 'Peanut';
+  const dueDate = useMemo(() => formatDueDate(profile?.due_date), [profile?.due_date]);
+
+  const avatarSource: ImageSourcePropType = profile?.avatar_url
+    ? { uri: profile.avatar_url }
+    : fallbackAvatar;
 
   const handleLogout = async () => {
     try {
@@ -60,27 +119,24 @@ export default function ProfileScreen() {
       <Header />
 
       <View style={styles.profile}>
-        <Image
-          source={require('../../assets/images/profile-avatar.jpg')}
-          style={styles.avatar}
-          resizeMode="cover"
-        />
-        <View>
-          <Text style={styles.name}>Sarah Miller</Text>
-          <Text style={styles.pregnant}>♡ 24 Weeks Pregnant</Text>
+        <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
+
+        <View style={styles.profileText}>
+          <Text style={styles.name}>{loadingProfile ? 'Loading...' : displayName}</Text>
+          <Text style={styles.pregnant}>♡ {week} Weeks Pregnant</Text>
         </View>
       </View>
 
       <View style={styles.two}>
         <View style={styles.info}>
           <Text style={styles.infoLabel}>DUE DATE</Text>
-          <Text style={styles.infoValue}>Oct 12,{`\n`}2026</Text>
+          <Text style={styles.infoValue}>{dueDate}</Text>
           <View style={styles.line} />
         </View>
 
         <View style={[styles.info, { backgroundColor: colors.softSurface }]}>
           <Text style={styles.infoLabel}>NICKNAME</Text>
-          <Text style={styles.infoValue}>Peanut</Text>
+          <Text style={styles.infoValue}>{nickname}</Text>
           <Text style={{ fontSize: 18, marginTop: 6 }}>👶</Text>
         </View>
       </View>
@@ -92,10 +148,10 @@ export default function ProfileScreen() {
 
         <View style={{ flex: 1 }}>
           <Text style={styles.rowLabel}>Pregnancy Progress</Text>
-          <Text style={styles.rowDetail}>164 days remaining</Text>
+          <Text style={styles.rowDetail}>Your profile is synced securely</Text>
         </View>
 
-        <Text style={styles.percent}>62%</Text>
+        <Text style={styles.percent}>{week}w</Text>
       </View>
 
       <Text style={styles.section}>GENERAL SETTINGS</Text>
@@ -141,7 +197,7 @@ export default function ProfileScreen() {
 
         <Row
           icon="log-out-outline"
-          label="Log out Sarah"
+          label={`Log out ${firstName}`}
           onPress={handleLogout}
           right={<View />}
         />
@@ -149,7 +205,7 @@ export default function ProfileScreen() {
 
       <View style={styles.insight}>
         <Text style={styles.insightBadge}>DAILY INSIGHT</Text>
-        <Text style={styles.insightTitle}>Peanut is now the size of a grapefruit!</Text>
+        <Text style={styles.insightTitle}>{nickname} is now the size of a grapefruit!</Text>
         <Text style={styles.insightCopy}>
           Their hearing is becoming more acute, they can now hear your heartbeat and voice clearly.
         </Text>
@@ -174,6 +230,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
     marginTop: 16,
+  },
+  profileText: {
+    flex: 1,
+    minWidth: 0,
   },
   avatar: {
     width: 70,
@@ -208,7 +268,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     ...type.title,
-    fontSize: 24,
+    fontSize: 22,
     color: colors.ink,
     marginTop: 7,
   },

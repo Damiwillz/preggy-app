@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Image,
+  ImageSourcePropType,
   Modal,
   Pressable,
   StyleSheet,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
@@ -18,6 +20,7 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { BackIcon, HeartIcon } from '@/components/ui/icons';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 import { signOut } from '@/services/auth';
+import { uploadMyAvatar } from '@/services/avatar';
 
 type MenuItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -25,6 +28,8 @@ type MenuItem = {
   subtitle?: string;
   onPress: () => void;
 };
+
+const fallbackAvatar = require('../../assets/images/profile-avatar.jpg');
 
 export function Header({
   title = 'Preggers',
@@ -37,6 +42,7 @@ export function Header({
 }) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(-12)).current;
@@ -94,6 +100,10 @@ export function Header({
   const firstName = displayName.split(' ')[0] || 'Sarah';
   const week = profile?.pregnancy_week ?? 24;
 
+  const avatarSource: ImageSourcePropType = profile?.avatar_url
+    ? { uri: profile.avatar_url }
+    : fallbackAvatar;
+
   const closeMenu = (afterClose?: () => void) => {
     Animated.parallel([
       Animated.timing(opacity, {
@@ -117,12 +127,17 @@ export function Header({
     });
   };
 
-  const navigate = (path: string) => closeMenu(() => router.push(path as never));
+  const navigate = (path: string) => {
+    closeMenu(() => router.push(path as never));
+  };
 
   const confirmLogout = () => {
     closeMenu(() => {
       Alert.alert('Log out?', 'You can sign back in anytime using your account.', [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
         {
           text: 'Log out',
           style: 'destructive',
@@ -139,6 +154,56 @@ export function Header({
     });
   };
 
+  const changeProfilePhoto = () => {
+    setMenuVisible(false);
+
+    setTimeout(async () => {
+      try {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+          Alert.alert(
+            'Photo permission needed',
+            'Please allow photo access so you can choose a profile picture.'
+          );
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.85,
+          presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
+        });
+
+        if (result.canceled || !result.assets[0]?.uri) {
+          return;
+        }
+
+        setAvatarUploading(true);
+
+        const avatarUrl = await uploadMyAvatar(result.assets[0].uri);
+
+        setProfile((current) =>
+          current
+            ? {
+                ...current,
+                avatar_url: avatarUrl,
+              }
+            : current
+        );
+
+        Alert.alert('Profile photo updated', 'Your new profile photo has been saved.');
+      } catch (error) {
+        console.log('Avatar upload error:', error);
+        Alert.alert('Upload failed', 'We could not update your profile photo. Please try again.');
+      } finally {
+        setAvatarUploading(false);
+      }
+    }, 450);
+  };
+
   const menuItems: MenuItem[] = [
     {
       icon: 'person-outline',
@@ -148,15 +213,9 @@ export function Header({
     },
     {
       icon: 'camera-outline',
-      label: 'Change profile photo',
+      label: avatarUploading ? 'Uploading photo...' : 'Change profile photo',
       subtitle: 'Upload a real profile picture',
-      onPress: () =>
-        closeMenu(() =>
-          Alert.alert(
-            'Coming next',
-            'Next step, we will add image picker and Supabase Storage so you can upload a real profile picture.',
-          ),
-        ),
+      onPress: changeProfilePhoto,
     },
     {
       icon: 'calendar-outline',
@@ -196,8 +255,8 @@ export function Header({
         closeMenu(() =>
           Alert.alert(
             'Help & FAQ',
-            'Support resources, pregnancy guidance, account help and frequently asked questions will appear here.',
-          ),
+            'Support resources, pregnancy guidance, account help and frequently asked questions will appear here.'
+          )
         ),
     },
   ];
@@ -222,17 +281,13 @@ export function Header({
           <Pressable
             onPress={() => setMenuVisible(true)}
             style={({ pressed }) => [styles.avatarTouchTarget, pressed && styles.avatarPressed]}
-            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            hitSlop={{ top: 24, bottom: 24, left: 24, right: 24 }}
             accessibilityRole="button"
             accessibilityLabel="Open profile menu"
             accessibilityHint="Opens account shortcuts and settings"
           >
             <View style={styles.avatarButton} pointerEvents="none">
-              <Image
-                source={require('../../assets/images/profile-avatar.jpg')}
-                style={styles.avatar}
-                resizeMode="cover"
-              />
+              <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
               <View style={styles.onlineDot} />
             </View>
           </Pressable>
@@ -265,11 +320,7 @@ export function Header({
             <View style={styles.menuArrow} />
 
             <View style={styles.accountHeader}>
-              <Image
-                source={require('../../assets/images/profile-avatar.jpg')}
-                style={styles.menuAvatar}
-                resizeMode="cover"
-              />
+              <Image source={avatarSource} style={styles.menuAvatar} resizeMode="cover" />
 
               <View style={styles.accountText}>
                 <Text style={styles.accountName}>{displayName}</Text>
@@ -365,13 +416,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   avatarTouchTarget: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 50,
-    elevation: 8,
+    zIndex: 9999,
+    elevation: 9999,
   },
   avatarSpacer: {
     width: 56,
