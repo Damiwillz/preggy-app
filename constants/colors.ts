@@ -1,7 +1,9 @@
-import { DynamicColorIOS, Platform, type ColorValue } from 'react-native';
+import { DynamicColorIOS, Platform } from 'react-native';
 
-function adaptive(light: string, dark: string): ColorValue {
-  return Platform.OS === 'ios' ? DynamicColorIOS({ light, dark }) : light;
+function adaptive(light: string, dark: string): string {
+  return Platform.OS === 'ios'
+    ? (DynamicColorIOS({ light, dark }) as unknown as string)
+    : light;
 }
 
 export const colors = {
