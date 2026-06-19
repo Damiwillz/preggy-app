@@ -4,3 +4,18 @@
 
 expo-env.d.ts
 # @end expo-cli
+node_modules
+
+.expo
+
+dist
+
+ios
+
+android
+
+.DS_Store
+
+*.log
+
+.env
