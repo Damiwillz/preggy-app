@@ -7,23 +7,29 @@ import { TextField } from '@/components/forms/TextField';
 import { Button } from '@/components/ui/Button';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
-import { LOCAL_AUTH } from '@/constants/auth';
+import { signInWithEmail } from '@/services/auth';
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('');
+const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const login = () => {
-    Keyboard.dismiss();
-    if (username.trim() !== LOCAL_AUTH.username || password !== LOCAL_AUTH.password) {
-      setError('Incorrect username or password.');
-      return;
-    }
-    setError('');
-    router.replace('/(tabs)/home');
-  };
+const login = async () => {
+  Keyboard.dismiss();
 
+  if (!email.trim() || !password) {
+    setError('Enter your email and password.');
+    return;
+  }
+
+  try {
+    setError('');
+    await signInWithEmail(email.trim(), password);
+    router.replace('/(tabs)/home');
+  } catch {
+    setError('Incorrect email or password.');
+  }
+};
   return (
     <Screen bottomSpace={32} style={styles.screen}>
       <View style={styles.heroWrap}>
@@ -46,15 +52,16 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>Log in to continue your journey</Text>
 
         <TextField
-          label="Username"
-          placeholder="Damilare"
-          autoCapitalize="none"
-          value={username}
-          onChangeText={(value) => {
-            setUsername(value);
-            setError('');
-          }}
-        />
+  label="Email Address"
+  placeholder="sarah@example.com"
+  autoCapitalize="none"
+  keyboardType="email-address"
+  value={email}
+  onChangeText={(value) => {
+    setEmail(value);
+    setError('');
+  }}
+/>
 
         <TextField
           label="Password"
