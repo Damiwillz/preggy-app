@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Preggy App",
+    "slug": "preggy-app",
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "scheme": "preggy",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF6F4"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
