@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   Image,
@@ -8,7 +8,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Screen } from '@/components/layout/Screen';
@@ -74,36 +74,36 @@ export default function ProfileScreen() {
 
   const scheme = useColorScheme() ?? 'light';
 
-  useEffect(() => {
-    let active = true;
-
-    getMyProfile()
-      .then((nextProfile) => {
-        if (active) setProfile(nextProfile);
-      })
-      .catch(() => {
-        if (active) {
-          Alert.alert('Profile unavailable', 'We could not load your profile right now.');
-        }
-      })
-      .finally(() => {
-        if (active) setLoadingProfile(false);
-      });
-
-    return () => {
-      active = false;
-    };
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoadingProfile(true);
+      const nextProfile = await getMyProfile();
+      setProfile(nextProfile);
+    } catch {
+      Alert.alert('Profile unavailable', 'We could not load your profile right now.');
+    } finally {
+      setLoadingProfile(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile])
+  );
 
   const displayName = profile?.full_name || 'Sarah Miller';
   const firstName = displayName.split(' ')[0] || 'Sarah';
   const week = profile?.pregnancy_week ?? 24;
+  const days = profile?.pregnancy_days ?? 0;
   const nickname = profile?.baby_nickname || 'Peanut';
-  const dueDate = useMemo(() => formatDueDate(profile?.due_date), [profile?.due_date]);
+  const dueDate = formatDueDate(profile?.due_date);
 
   const avatarSource: ImageSourcePropType = profile?.avatar_url
     ? { uri: profile.avatar_url }
     : fallbackAvatar;
+
+  const pregnancyLabel = days > 0 ? `${week} Weeks, ${days} Days Pregnant` : `${week} Weeks Pregnant`;
 
   const handleLogout = async () => {
     try {
@@ -123,7 +123,7 @@ export default function ProfileScreen() {
 
         <View style={styles.profileText}>
           <Text style={styles.name}>{loadingProfile ? 'Loading...' : displayName}</Text>
-          <Text style={styles.pregnant}>♡ {week} Weeks Pregnant</Text>
+          <Text style={styles.pregnant}>♡ {pregnancyLabel}</Text>
         </View>
       </View>
 
