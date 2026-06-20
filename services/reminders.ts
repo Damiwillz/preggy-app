@@ -32,6 +32,18 @@ Notifications.setNotificationHandler({
   }),
 });
 
+export async function setupNotificationChannel() {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('preggy-reminders', {
+      name: 'Preggy Reminders',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#F4A6B4',
+      sound: 'default',
+    });
+  }
+}
+
 async function getUserId() {
   const { data, error } = await supabase.auth.getUser();
 
@@ -46,7 +58,21 @@ async function getUserId() {
   return userId;
 }
 
+export async function getReminderPermissionStatus() {
+  await setupNotificationChannel();
+
+  const permissions = await Notifications.getPermissionsAsync();
+
+  return {
+    granted: permissions.granted,
+    status: permissions.status,
+    canAskAgain: permissions.canAskAgain,
+  };
+}
+
 export async function requestReminderPermission() {
+  await setupNotificationChannel();
+
   const current = await Notifications.getPermissionsAsync();
 
   if (current.granted) {
@@ -54,15 +80,6 @@ export async function requestReminderPermission() {
   }
 
   const requested = await Notifications.requestPermissionsAsync();
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('preggy-reminders', {
-      name: 'Preggy Reminders',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#F4A6B4',
-    });
-  }
 
   return requested.granted;
 }
@@ -125,6 +142,52 @@ export async function cancelAllPreggyReminders() {
   return preggyScheduled.length;
 }
 
+export async function sendImmediatePreggyReminder() {
+  const hasPermission = await requestReminderPermission();
+
+  if (!hasPermission) {
+    throw new Error('Notifications permission was not granted.');
+  }
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Preggy test reminder',
+      body: 'Your Preggy reminders are working.',
+      sound: true,
+      data: {
+        source: 'preggy',
+        type: 'test_now',
+      },
+    },
+    trigger: null,
+  });
+}
+
+export async function sendTestPreggyReminder() {
+  const hasPermission = await requestReminderPermission();
+
+  if (!hasPermission) {
+    throw new Error('Notifications permission was not granted.');
+  }
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Preggy test reminder',
+      body: 'Your Preggy reminders are working.',
+      sound: true,
+      data: {
+        source: 'preggy',
+        type: 'test',
+      },
+    },
+    trigger: {
+      seconds: 5,
+      repeats: false,
+      channelId: 'preggy-reminders',
+    } as Notifications.NotificationTriggerInput,
+  });
+}
+
 export async function scheduleMedicationReminders() {
   const hasPermission = await requestReminderPermission();
 
@@ -161,7 +224,6 @@ export async function scheduleMedicationReminders() {
         },
       },
       trigger: {
-        type: 'calendar',
         hour: parsedTime.hour,
         minute: parsedTime.minute,
         repeats: true,
@@ -238,7 +300,6 @@ export async function scheduleAppointmentReminders() {
           },
         },
         trigger: {
-          type: 'date',
           date: reminder.date,
           channelId: 'preggy-reminders',
         } as Notifications.NotificationTriggerInput,
@@ -255,30 +316,4 @@ export async function getPreggyScheduledReminderCount() {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
 
   return scheduled.filter((item) => item.content.data?.source === 'preggy').length;
-}
-
-
-export async function sendTestPreggyReminder() {
-  const hasPermission = await requestReminderPermission();
-
-  if (!hasPermission) {
-    throw new Error('Notifications permission was not granted.');
-  }
-
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Preggy test reminder',
-      body: 'Your Preggy reminders are working.',
-      sound: true,
-      data: {
-        source: 'preggy',
-        type: 'test',
-      },
-    },
-    trigger: {
-      type: 'timeInterval',
-      seconds: 5,
-      channelId: 'preggy-reminders',
-    } as Notifications.NotificationTriggerInput,
-  });
 }

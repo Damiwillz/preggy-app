@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -11,29 +11,108 @@ import { useAppTheme } from '@/context/AppThemeContext';
 import {
   cancelAllPreggyReminders,
   getPreggyScheduledReminderCount,
+  getReminderPermissionStatus,
   requestReminderPermission,
   scheduleAppointmentReminders,
   scheduleMedicationReminders,
+  sendImmediatePreggyReminder,
   sendTestPreggyReminder,
 } from '@/services/reminders';
+
+type PermissionStatus = {
+  granted: boolean;
+  status: string;
+  canAskAgain: boolean;
+};
 
 export default function RemindersScreen() {
   const { palette } = useAppTheme();
   const [count, setCount] = useState(0);
+  const [permission, setPermission] = useState<PermissionStatus | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function refreshCount() {
-    const nextCount = await getPreggyScheduledReminderCount();
+  async function refresh() {
+    const [nextCount, nextPermission] = await Promise.all([
+      getPreggyScheduledReminderCount(),
+      getReminderPermissionStatus(),
+    ]);
+
     setCount(nextCount);
+    setPermission(nextPermission);
   }
 
   useFocusEffect(
     useCallback(() => {
-      refreshCount().catch((error) => {
-        console.log('Reminder count error:', error);
+      refresh().catch((error) => {
+        console.log('Reminder refresh error:', error);
       });
     }, [])
   );
+
+  async function askPermission() {
+    setBusy('permission');
+
+    try {
+      const granted = await requestReminderPermission();
+      await refresh();
+
+      if (!granted) {
+        Alert.alert(
+          'Notifications are off',
+          'Open Settings and allow notifications for Preggy or Expo Go, then try again.',
+          [
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings(),
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.log('Permission error:', error);
+      Alert.alert('Permission error', 'Could not request notification permission.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function immediateTest() {
+    setBusy('test-now');
+
+    try {
+      await sendImmediatePreggyReminder();
+      await refresh();
+
+      Alert.alert('Sent', 'If notifications are allowed, the test reminder should appear now.');
+    } catch (error) {
+      console.log('Immediate test error:', error);
+
+      Alert.alert('Could not send test', 'Please allow notifications and try again.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function delayedTest() {
+    setBusy('test-delay');
+
+    try {
+      await sendTestPreggyReminder();
+      await refresh();
+
+      Alert.alert('Scheduled', 'The test reminder should appear in about 5 seconds.');
+    } catch (error) {
+      console.log('Delayed test error:', error);
+
+      Alert.alert('Could not schedule test', 'Please allow notifications and try again.');
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function enableAll() {
     setBusy('all');
@@ -51,7 +130,7 @@ export default function RemindersScreen() {
       const medicationCount = await scheduleMedicationReminders();
       const appointmentCount = await scheduleAppointmentReminders();
 
-      await refreshCount();
+      await refresh();
 
       Alert.alert(
         'Reminders scheduled',
@@ -66,63 +145,12 @@ export default function RemindersScreen() {
     }
   }
 
-  async function scheduleMedsOnly() {
-    setBusy('medications');
-
-    try {
-      const medicationCount = await scheduleMedicationReminders();
-      await refreshCount();
-
-      Alert.alert('Medication reminders', `${medicationCount} reminder${medicationCount === 1 ? '' : 's'} scheduled.`);
-    } catch (error) {
-      console.log('Medication reminders error:', error);
-
-      Alert.alert('Could not schedule medication reminders', 'Please check your saved medications.');
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function scheduleAppointmentsOnly() {
-    setBusy('appointments');
-
-    try {
-      const appointmentCount = await scheduleAppointmentReminders();
-      await refreshCount();
-
-      Alert.alert('Appointment reminders', `${appointmentCount} reminder${appointmentCount === 1 ? '' : 's'} scheduled.`);
-    } catch (error) {
-      console.log('Appointment reminders error:', error);
-
-      Alert.alert('Could not schedule appointment reminders', 'Please check your saved appointments.');
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function sendTest() {
-    setBusy('test');
-
-    try {
-      await sendTestPreggyReminder();
-      await refreshCount();
-
-      Alert.alert('Test reminder scheduled', 'You should receive a test notification in about 5 seconds.');
-    } catch (error) {
-      console.log('Test reminder error:', error);
-
-      Alert.alert('Could not send test reminder', 'Please allow notifications and try again.');
-    } finally {
-      setBusy(null);
-    }
-  }
-
   async function clearReminders() {
     setBusy('clear');
 
     try {
       const cancelled = await cancelAllPreggyReminders();
-      await refreshCount();
+      await refresh();
 
       Alert.alert('Reminders cleared', `${cancelled} Preggy reminder${cancelled === 1 ? '' : 's'} cancelled.`);
     } catch (error) {
@@ -133,6 +161,12 @@ export default function RemindersScreen() {
       setBusy(null);
     }
   }
+
+  const permissionText = permission?.granted
+    ? 'Notifications allowed'
+    : permission?.status
+      ? `Notifications ${permission.status}`
+      : 'Checking permission...';
 
   return (
     <Screen bottomSpace={36}>
@@ -148,21 +182,39 @@ export default function RemindersScreen() {
           Schedule local reminders for medications, supplements, and upcoming appointments.
         </Text>
 
-        <View style={[styles.countPill, { backgroundColor: palette.accentSoft }]}>
-          <Text style={[styles.countText, { color: palette.accent }]}>
-            {count} active reminder{count === 1 ? '' : 's'}
+        <View style={[styles.statusBox, { backgroundColor: palette.accentSoft }]}>
+          <Text style={[styles.statusText, { color: palette.accent }]}>
+            {permissionText} • {count} scheduled
           </Text>
         </View>
       </View>
 
       <ReminderAction
-        title="Send test reminder"
-        copy="Schedule a test notification that should appear in about 5 seconds."
-        icon="notifications-outline"
-        accent
-        busy={busy === 'test'}
+        title="Allow notifications"
+        copy="Ask iOS for permission or open Settings if permission was denied."
+        icon="lock-open-outline"
+        busy={busy === 'permission'}
         disabled={!!busy}
-        onPress={sendTest}
+        onPress={askPermission}
+      />
+
+      <ReminderAction
+        title="Send instant test"
+        copy="Show a notification immediately so we can confirm the system works."
+        icon="flash-outline"
+        accent
+        busy={busy === 'test-now'}
+        disabled={!!busy}
+        onPress={immediateTest}
+      />
+
+      <ReminderAction
+        title="Send 5 second test"
+        copy="Schedule a test notification that should appear in about 5 seconds."
+        icon="timer-outline"
+        busy={busy === 'test-delay'}
+        disabled={!!busy}
+        onPress={delayedTest}
       />
 
       <ReminderAction
@@ -176,24 +228,6 @@ export default function RemindersScreen() {
       />
 
       <ReminderAction
-        title="Medication reminders"
-        copy="Schedule daily reminders using saved medication or supplement times."
-        icon="medkit-outline"
-        busy={busy === 'medications'}
-        disabled={!!busy}
-        onPress={scheduleMedsOnly}
-      />
-
-      <ReminderAction
-        title="Appointment reminders"
-        copy="Schedule reminders one day before and two hours before each upcoming appointment."
-        icon="calendar-outline"
-        busy={busy === 'appointments'}
-        disabled={!!busy}
-        onPress={scheduleAppointmentsOnly}
-      />
-
-      <ReminderAction
         title="Clear Preggy reminders"
         copy="Cancel all local reminders created by Preggy on this device."
         icon="trash-outline"
@@ -202,6 +236,13 @@ export default function RemindersScreen() {
         disabled={!!busy}
         onPress={clearReminders}
       />
+
+      <View style={[styles.note, { backgroundColor: palette.softSurface, borderColor: palette.line }]}>
+        <Ionicons name="information-circle-outline" size={22} color={palette.accent} />
+        <Text style={[styles.noteText, { color: palette.text }]}>
+          Expo Go can be limited for notifications. If the instant test does not appear, the final app should be tested with a development build.
+        </Text>
+      </View>
     </Screen>
   );
 }
@@ -285,13 +326,13 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     marginTop: 8,
   },
-  countPill: {
+  statusBox: {
     marginTop: 16,
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  countText: {
+  statusText: {
     ...type.small,
     fontWeight: '800',
   },
@@ -320,5 +361,18 @@ const styles = StyleSheet.create({
     ...type.small,
     lineHeight: 19,
     marginTop: 4,
+  },
+  note: {
+    flexDirection: 'row',
+    gap: 10,
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  noteText: {
+    ...type.small,
+    flex: 1,
+    lineHeight: 19,
   },
 });
