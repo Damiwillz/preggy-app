@@ -177,7 +177,10 @@ export default function WeeklyGrowth() {
         ) : (
           <>
             <View style={styles.imageWrap}>
-              <Image source={require('../assets/images/baby-growth.jpg')} style={styles.image} />
+              <View style={styles.babyCircle}>
+                <Ionicons name="heart" size={78} color="#765B60" />
+              </View>
+              <Text style={styles.heroWeek}>Week {week}</Text>
             </View>
 
             <View style={styles.sizeBadge}>
@@ -271,9 +274,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: {
-    width: '100%',
-    height: '100%',
+  babyCircle: {
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    backgroundColor: '#FFF8F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F2C8CF',
+  },
+  heroWeek: {
+    ...type.title,
+    color: '#765B60',
+    fontSize: 24,
+    marginTop: 14,
   },
   sizeBadge: {
     padding: 18,
