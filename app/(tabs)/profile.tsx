@@ -158,6 +158,13 @@ export default function ProfileScreen() {
 
       <View style={styles.card}>
         <Row
+          icon="person-circle-outline"
+          label="Edit profile"
+          detail="Name, baby nickname and due date"
+          onPress={() => router.push('/edit-profile' as never)}
+        />
+
+        <Row
           icon="notifications-outline"
           label="Notification settings"
           right={
