@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { colors } from '@/constants/colors';
+import { applySavedAppearanceFromAccount } from '@/services/appAppearance';
 import { AuthProvider } from '@/context/AuthContext';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
+
+  useEffect(() => {
+    applySavedAppearanceFromAccount();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
+import { applyAppearanceMode } from '@/services/appAppearance';
 import { type } from '@/constants/typography';
 import {
   getMyPrivacySettings,
@@ -119,6 +120,10 @@ export default function AppearanceScreen() {
       const updated = await updateMyPrivacySettings(updates);
 
       setSettings(updated);
+
+      if (updates.appearance_mode) {
+        applyAppearanceMode(updates.appearance_mode);
+      }
     } catch (error) {
       console.log('Appearance update error:', error);
 
