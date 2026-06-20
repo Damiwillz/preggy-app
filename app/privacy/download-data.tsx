@@ -1,59 +1,269 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen } from '@/components/layout/Screen';
+
 import { Header } from '@/components/layout/Header';
+import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { supabase } from '@/lib/supabase';
+import { getMyPrivacySettings } from '@/services/privacy';
+import { getMyProfile } from '@/services/profile';
 
-type DataKey = 'Health & Symptom Logs' | 'Appointments & Notes' | 'Baby Growth Milestones' | 'Photos & Media';
-const dataOptions: { label: DataKey; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { label: 'Health & Symptom Logs', icon: 'document-text-outline' },
-  { label: 'Appointments & Notes', icon: 'calendar-outline' },
-  { label: 'Baby Growth Milestones', icon: 'happy-outline' },
-  { label: 'Photos & Media', icon: 'images-outline' },
-];
+type ExportBundle = {
+  exported_at: string;
+  profile: unknown;
+  privacy_settings: unknown;
+  symptom_logs: unknown[];
+  medications: unknown[];
+  appointments: unknown[];
+};
 
-export default function DownloadDataScreen() {
-  const [selected, setSelected] = useState<Record<DataKey, boolean>>({ 'Health & Symptom Logs': true, 'Appointments & Notes': true, 'Baby Growth Milestones': true, 'Photos & Media': true });
-  const [format, setFormat] = useState<'JSON' | 'PDF'>('JSON');
-  const [processing, setProcessing] = useState(false);
-  const count = useMemo(() => Object.values(selected).filter(Boolean).length, [selected]);
-  const request = () => {
-    if (!count) return Alert.alert('Select some data', 'Choose at least one data type to export.');
-    setProcessing(true);
-    setTimeout(() => { setProcessing(false); Alert.alert('Export requested', `Your ${format} export is being prepared. We’ll notify you when it is ready.`); }, 600);
-  };
-  return <Screen bottomSpace={110}>
-    <Header title="Download My Data" back />
-    <View style={styles.hero}><View style={styles.heroIcon}><Ionicons name="shield-checkmark-outline" size={37} color="#735A60" /></View><Text style={styles.heroText}>Your Data, Your Control</Text></View>
-    <View style={styles.intro}><Text style={styles.introTitle}>Request a Download</Text><Text style={styles.introCopy}>Your privacy is our priority. You can request a file of your health logs, milestones, and shared moments. Once ready, it will be available for download for 30 days.</Text></View>
+async function getUserId() {
+  const { data, error } = await supabase.auth.getUser();
 
-    <Text style={styles.section}>SELECT DATA TYPES</Text>
-    <View style={{ gap: 10 }}>{dataOptions.map(({ label, icon }) => <AnimatedPressable key={label} onPress={() => setSelected(v => ({ ...v, [label]: !v[label] }))} style={styles.option}><View style={styles.optionIcon}><Ionicons name={icon} size={21} color="#705A62" /></View><Text style={styles.optionText}>{label}</Text><View style={[styles.check, selected[label] && styles.checkOn]}>{selected[label] && <Ionicons name="checkmark" size={18} color="#FFF" />}</View></AnimatedPressable>)}</View>
+  if (error) throw error;
 
-    <Text style={styles.section}>FORMAT OPTIONS</Text>
-    <View style={styles.formats}>{(['JSON', 'PDF'] as const).map(f => <AnimatedPressable key={f} onPress={() => setFormat(f)} style={[styles.format, format === f && styles.formatActive]}><Ionicons name={f === 'JSON' ? 'code-slash-outline' : 'document-text-outline'} size={27} color="#675158"/><Text style={styles.formatTitle}>{f}</Text><Text style={styles.formatCopy}>{f === 'JSON' ? 'Data Portability' : 'Easy Printing'}</Text></AnimatedPressable>)}</View>
-    <AnimatedPressable onPress={request} style={styles.export}><Ionicons name="download-outline" size={21} color="#FFF" /><Text style={styles.exportText}>{processing ? 'Preparing Export…' : 'Request Data Export'}</Text></AnimatedPressable>
-    <Text style={styles.note}>Large exports may take up to 24 hours to process.</Text>
+  const userId = data.user?.id;
 
-    <Text style={styles.section}>RECENT EXPORTS</Text>
-    <View style={styles.recent}>
-      <ExportRow icon="checkmark-circle-outline" title="Full Backup (PDF)" copy="Created: Oct 12 • 4.2 MB" action="Download" />
-      <ExportRow icon="sync-outline" title="Media Only (JSON)" copy="Requested: Today, 2:15 PM" action="Processing" />
-      <ExportRow icon="time-outline" title="Symptom Log (PDF)" copy="Expired: Sep 20" action="Expired" muted />
-    </View>
-  </Screen>;
+  if (!userId) {
+    throw new Error('No logged in user.');
+  }
+
+  return userId;
 }
 
-const ExportRow = ({ icon, title, copy, action, muted }: { icon: keyof typeof Ionicons.glyphMap; title: string; copy: string; action: string; muted?: boolean }) => <View style={[styles.exportRow, muted && { opacity: 0.55 }]}><Ionicons name={icon} size={25} color={action === 'Download' ? '#2CB57A' : '#7A6A6E'} /><View style={{ flex: 1 }}><Text style={styles.exportTitle}>{title}</Text><Text style={styles.exportCopy}>{copy}</Text></View><Text style={[styles.action, action === 'Download' && styles.actionButton]}>{action}</Text></View>;
+async function getRows(table: string, userId: string) {
+  const { data, error } = await supabase.from(table).select('*').eq('user_id', userId);
+
+  if (error) throw error;
+
+  return data ?? [];
+}
+
+export default function DownloadMyDataScreen() {
+  const [exporting, setExporting] = useState(false);
+  const [preview, setPreview] = useState<ExportBundle | null>(null);
+
+  async function exportData() {
+    setExporting(true);
+
+    try {
+      const userId = await getUserId();
+
+      const [profile, privacySettings, symptomLogs, medications, appointments] = await Promise.all([
+        getMyProfile(),
+        getMyPrivacySettings(),
+        getRows('symptom_logs', userId),
+        getRows('medications', userId),
+        getRows('appointments', userId),
+      ]);
+
+      const bundle: ExportBundle = {
+        exported_at: new Date().toISOString(),
+        profile,
+        privacy_settings: privacySettings,
+        symptom_logs: symptomLogs,
+        medications,
+        appointments,
+      };
+
+      setPreview(bundle);
+
+      const json = JSON.stringify(bundle, null, 2);
+
+      await Share.share({
+        title: 'Preggy App Data Export',
+        message: json,
+      });
+    } catch (error) {
+      console.log('Data export error:', error);
+
+      Alert.alert('Export failed', 'Could not export your data. Please check your connection and try again.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const counts = preview
+    ? [
+        ['Symptom logs', preview.symptom_logs.length],
+        ['Medications', preview.medications.length],
+        ['Appointments', preview.appointments.length],
+        ['Privacy settings', preview.privacy_settings ? 1 : 0],
+      ]
+    : [
+        ['Profile', 1],
+        ['Symptom logs', 0],
+        ['Medications', 0],
+        ['Appointments', 0],
+      ];
+
+  return (
+    <Screen bottomSpace={36}>
+      <Header title="Download My Data" back />
+
+      <View style={styles.hero}>
+        <View style={styles.iconCircle}>
+          <Ionicons name="download" size={44} color="#FFF" />
+        </View>
+
+        <Text style={styles.title}>Export your Preggy data</Text>
+        <Text style={styles.subtitle}>
+          Download a copy of your profile, symptom logs, medication routines, appointments, and privacy settings.
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Included in your export</Text>
+
+        {counts.map(([label, value]) => (
+          <View key={label} style={styles.row}>
+            <View style={styles.rowLeft}>
+              <Ionicons name="checkmark-circle" size={22} color="#7EA579" />
+              <Text style={styles.rowTitle}>{label}</Text>
+            </View>
+
+            <Text style={styles.rowCount}>{value}</Text>
+          </View>
+        ))}
+      </View>
+
+      <AnimatedPressable onPress={exportData} style={styles.button} disabled={exporting}>
+        {exporting ? (
+          <ActivityIndicator color="#FFF" />
+        ) : (
+          <>
+            <Ionicons name="share-outline" size={22} color="#FFF" />
+            <Text style={styles.buttonText}>Export and share data</Text>
+          </>
+        )}
+      </AnimatedPressable>
+
+      {preview && (
+        <View style={styles.previewCard}>
+          <Text style={styles.previewTitle}>Latest export preview</Text>
+          <Text style={styles.previewMeta}>Exported at {new Date(preview.exported_at).toLocaleString()}</Text>
+
+          <ScrollView style={styles.previewBox}>
+            <Text style={styles.previewText}>{JSON.stringify(preview, null, 2)}</Text>
+          </ScrollView>
+        </View>
+      )}
+    </Screen>
+  );
+}
 
 const styles = StyleSheet.create({
-  hero: { marginTop: 14, minHeight: 120, backgroundColor: '#FFF1F2', borderRadius: 25, alignItems: 'center', justifyContent: 'center' }, heroIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }, heroText: { ...type.body, color: '#6F5B60', fontSize: 18, marginTop: 8 },
-  intro: { backgroundColor: '#FFF', borderRadius: 24, padding: 20, marginTop: 16 }, introTitle: { ...type.bodyStrong, color: '#392D30', fontSize: 18 }, introCopy: { ...type.body, color: '#65575A', lineHeight: 23, marginTop: 8 },
-  section: { ...type.section, color: '#68565B', marginTop: 22, marginBottom: 9, letterSpacing: 2.5 },
-  option: { minHeight: 58, backgroundColor: '#FFF', borderRadius: 18, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, gap: 13 }, optionIcon: { width: 39, height: 39, borderRadius: 14, backgroundColor: '#F7F1FA', alignItems: 'center', justifyContent: 'center' }, optionText: { ...type.bodyStrong, color: '#2D2326', flex: 1 }, check: { width: 36, height: 28, borderRadius: 16, borderWidth: 1.5, borderColor: '#D9CBC8', alignItems: 'center', justifyContent: 'center' }, checkOn: { backgroundColor: '#745A61', borderColor: '#745A61' },
-  formats: { flexDirection: 'row', gap: 12 }, format: { flex: 1, height: 94, borderRadius: 20, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' }, formatActive: { backgroundColor: '#FFE5E8', borderColor: '#775B62' }, formatTitle: { ...type.bodyStrong, color: '#362A2D', marginTop: 3 }, formatCopy: { ...type.tiny, color: '#807275' },
-  export: { height: 56, backgroundColor: '#755D64', borderRadius: 28, marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }, exportText: { ...type.bodyStrong, color: '#FFF', fontSize: 17 }, note: { ...type.small, color: '#726568', textAlign: 'center', marginTop: 8 },
-  recent: { gap: 9 }, exportRow: { minHeight: 64, borderRadius: 18, backgroundColor: '#F8F3F1', paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', gap: 12 }, exportTitle: { ...type.bodyStrong, color: '#2E2427' }, exportCopy: { ...type.tiny, color: '#776A6D' }, action: { ...type.small, color: '#74666A' }, actionButton: { backgroundColor: '#795D65', color: '#FFF', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 5 },
+  hero: {
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 30,
+    padding: 26,
+    marginTop: 22,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#F0E2DF',
+  },
+  iconCircle: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: '#765B60',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    ...type.title,
+    color: '#201A1D',
+    fontSize: 28,
+    textAlign: 'center',
+  },
+  subtitle: {
+    ...type.body,
+    color: '#5E5356',
+    textAlign: 'center',
+    lineHeight: 23,
+    marginTop: 8,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 26,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  cardTitle: {
+    ...type.bodyStrong,
+    color: colors.ink,
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  row: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#F0E6E3',
+  },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  rowTitle: {
+    ...type.body,
+    color: colors.ink,
+  },
+  rowCount: {
+    ...type.bodyStrong,
+    color: '#765B60',
+  },
+  button: {
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#765B60',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 18,
+  },
+  buttonText: {
+    ...type.bodyStrong,
+    color: '#FFF',
+  },
+  previewCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 16,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#F0E2DF',
+  },
+  previewTitle: {
+    ...type.bodyStrong,
+    color: colors.ink,
+    fontSize: 17,
+  },
+  previewMeta: {
+    ...type.small,
+    color: colors.text,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  previewBox: {
+    maxHeight: 260,
+    backgroundColor: '#F8F2F0',
+    borderRadius: 16,
+    padding: 12,
+  },
+  previewText: {
+    ...type.tiny,
+    color: '#42383B',
+    lineHeight: 16,
+  },
 });
