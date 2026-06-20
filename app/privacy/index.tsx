@@ -1,256 +1,316 @@
-import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen } from '@/components/layout/Screen';
+import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+
 import { Header } from '@/components/layout/Header';
+import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { AppSwitch } from '@/components/ui/AppSwitch';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import {
+  getMyPrivacySettings,
+  updateMyPrivacySettings,
+  type PrivacySettings,
+} from '@/services/privacy';
+
+type ToggleKey =
+  | 'health_data_sharing'
+  | 'analytics_tracking'
+  | 'personalized_tips'
+  | 'ai_chat_history';
 
 type ToggleRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
+  title: string;
+  copy: string;
   value: boolean;
-  onChange: (value: boolean) => void;
+  disabled: boolean;
+  onValueChange: (value: boolean) => void;
 };
 
-const ToggleRow = ({ icon, label, value, onChange }: ToggleRowProps) => (
-  <View style={styles.row}>
-    <View style={styles.rowIcon}>
-      <Ionicons name={icon} size={21} color="#725B61" />
-    </View>
-    <Text style={styles.rowLabel}>{label}</Text>
-    <View style={styles.rowAction}>
-      <AppSwitch value={value} onValueChange={onChange} accessibilityLabel={label} />
-    </View>
-  </View>
-);
+function ToggleRow({ icon, title, copy, value, disabled, onValueChange }: ToggleRowProps) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.iconCircle}>
+        <Ionicons name={icon} size={22} color="#765B60" />
+      </View>
 
-const LinkRow = ({
+      <View style={styles.rowText}>
+        <Text style={styles.rowTitle}>{title}</Text>
+        <Text style={styles.rowCopy}>{copy}</Text>
+      </View>
+
+      <Switch
+        value={value}
+        disabled={disabled}
+        onValueChange={onValueChange}
+        trackColor={{ false: '#DED2D0', true: '#F4B6C1' }}
+        thumbColor={value ? '#765B60' : '#FFFFFF'}
+      />
+    </View>
+  );
+}
+
+function LinkRow({
   icon,
-  label,
-  danger,
+  title,
+  copy,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  danger?: boolean;
+  title: string;
+  copy: string;
   onPress: () => void;
-}) => (
-  <AnimatedPressable onPress={onPress} style={styles.row}>
-    <View style={styles.rowIcon}>
-      <Ionicons name={icon} size={21} color={danger ? '#C92E3F' : '#725B61'} />
-    </View>
-    <Text style={[styles.rowLabel, danger && { color: '#C92E3F' }]}>{label}</Text>
-    <Ionicons name="chevron-forward" size={20} color="#8B7D80" />
-  </AnimatedPressable>
-);
+}) {
+  return (
+    <AnimatedPressable onPress={onPress} style={styles.linkRow}>
+      <View style={styles.iconCircle}>
+        <Ionicons name={icon} size={22} color="#765B60" />
+      </View>
+
+      <View style={styles.rowText}>
+        <Text style={styles.rowTitle}>{title}</Text>
+        <Text style={styles.rowCopy}>{copy}</Text>
+      </View>
+
+      <Ionicons name="chevron-forward" size={22} color="#8B7E81" />
+    </AnimatedPressable>
+  );
+}
 
 export default function DataPrivacyScreen() {
-  const [healthSharing, setHealthSharing] = useState(true);
-  const [biometric, setBiometric] = useState(false);
-  const [location, setLocation] = useState(true);
-  const [diagnostics, setDiagnostics] = useState(true);
+  const [settings, setSettings] = useState<PrivacySettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  const loadSettings = useCallback(() => {
+    let mounted = true;
+
+    setLoading(true);
+
+    getMyPrivacySettings()
+      .then((data) => {
+        if (mounted) {
+          setSettings(data);
+        }
+      })
+      .catch((error) => {
+        console.log('Privacy settings error:', error);
+
+        Alert.alert('Privacy settings', 'Could not load your privacy settings.');
+      })
+      .finally(() => {
+        if (mounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useFocusEffect(loadSettings);
+
+  async function toggle(key: ToggleKey, value: boolean) {
+    if (!settings) return;
+
+    const previous = settings;
+
+    setSavingKey(key);
+    setSettings({
+      ...settings,
+      [key]: value,
+    });
+
+    try {
+      const updated = await updateMyPrivacySettings({
+        [key]: value,
+      });
+
+      setSettings(updated);
+    } catch (error) {
+      console.log('Privacy update error:', error);
+
+      setSettings(previous);
+      Alert.alert('Could not save', 'Please check your connection and try again.');
+    } finally {
+      setSavingKey(null);
+    }
+  }
 
   return (
-    <Screen bottomSpace={110}>
+    <Screen bottomSpace={36}>
       <Header title="Data Privacy" back />
 
-      <View style={styles.encrypted}>
-        <View style={styles.shield}>
-          <Ionicons name="shield-checkmark" size={28} color="#7A5A61" />
+      <View style={styles.hero}>
+        <View style={styles.heroIcon}>
+          <Ionicons name="shield-checkmark" size={40} color="#FFF" />
         </View>
-        <View style={styles.heroTextBlock}>
-          <Text style={styles.heroTitle}>Your data is encrypted</Text>
-          <Text style={styles.heroCopy}>
-            Preggers uses end-to-end encryption for all health logs. Only you and authorized providers can access your journey.
-          </Text>
-        </View>
-      </View>
 
-      <Text style={styles.section}>PERSONAL DATA CONTROL</Text>
-      <View style={styles.card}>
-        <View style={[styles.row, styles.tallRow]}>
-          <View style={styles.rowIcon}>
-            <Ionicons name="medkit-outline" size={21} color="#725B61" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowLabel}>Health Data Sharing</Text>
-            <Text style={styles.detail}>Allow the app to securely sync your pregnancy milestones with your health provider.</Text>
-          </View>
-          <View style={styles.rowAction}>
-            <AppSwitch value={healthSharing} onValueChange={setHealthSharing} accessibilityLabel="Health Data Sharing" />
-          </View>
-        </View>
-        <LinkRow icon="download-outline" label="Download My Data" onPress={() => router.push('/privacy/download-data')} />
-        <LinkRow
-          icon="person-remove-outline"
-          label="Delete My Account"
-          danger
-          onPress={() =>
-            Alert.alert('Delete account?', 'This action permanently removes your pregnancy data.', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive' },
-            ])
-          }
-        />
-      </View>
-
-      <Text style={styles.section}>PERMISSIONS MANAGEMENT</Text>
-      <View style={styles.card}>
-        <ToggleRow
-          icon="finger-print"
-          label="Biometric Lock"
-          value={biometric}
-          onChange={(v) => {
-            setBiometric(v);
-            if (v) router.push('/privacy/biometric');
-          }}
-        />
-        <ToggleRow icon="location-outline" label="Location Access" value={location} onChange={setLocation} />
-        <ToggleRow icon="analytics-outline" label="Diagnostic Sharing" value={diagnostics} onChange={setDiagnostics} />
-      </View>
-
-      <View style={styles.policy}>
-        <Text style={styles.policyTitle}>Your Privacy Matters</Text>
-        <Text style={styles.policyCopy}>
-          We believe health data should remain private and portable. Read our full policy to understand how we protect you.
+        <Text style={styles.title}>Your data stays yours</Text>
+        <Text style={styles.subtitle}>
+          Control what Preggy can use to personalize your pregnancy experience.
         </Text>
-        <AnimatedPressable onPress={() => Alert.alert('Privacy Policy', 'The full policy will open here in the production app.')}>
-          <Text style={styles.policyLink}>View Full Privacy Policy  ↗</Text>
-        </AnimatedPressable>
       </View>
-      <Text style={styles.version}>PREGGERS SECURE V4.2.0</Text>
+
+      {loading || !settings ? (
+        <View style={styles.loadingCard}>
+          <ActivityIndicator color="#765B60" />
+          <Text style={styles.loadingText}>Loading privacy controls...</Text>
+        </View>
+      ) : (
+        <>
+          <View style={styles.card}>
+            <ToggleRow
+              icon="medkit-outline"
+              title="Health data sharing"
+              copy="Allow Preggy to use your logged symptoms, appointments, and routines for personalized insights."
+              value={settings.health_data_sharing}
+              disabled={savingKey === 'health_data_sharing'}
+              onValueChange={(value) => toggle('health_data_sharing', value)}
+            />
+
+            <ToggleRow
+              icon="bar-chart-outline"
+              title="Analytics tracking"
+              copy="Help improve the app with basic usage analytics."
+              value={settings.analytics_tracking}
+              disabled={savingKey === 'analytics_tracking'}
+              onValueChange={(value) => toggle('analytics_tracking', value)}
+            />
+
+            <ToggleRow
+              icon="sparkles-outline"
+              title="Personalized tips"
+              copy="Show tips based on your pregnancy week, saved profile, and app activity."
+              value={settings.personalized_tips}
+              disabled={savingKey === 'personalized_tips'}
+              onValueChange={(value) => toggle('personalized_tips', value)}
+            />
+
+            <ToggleRow
+              icon="chatbubble-ellipses-outline"
+              title="AI chat history"
+              copy="Allow Preggy AI to remember recent chat context inside your account."
+              value={settings.ai_chat_history}
+              disabled={savingKey === 'ai_chat_history'}
+              onValueChange={(value) => toggle('ai_chat_history', value)}
+            />
+          </View>
+
+          <View style={styles.card}>
+            <LinkRow
+              icon="finger-print-outline"
+              title="Biometric lock"
+              copy={settings.biometric_lock ? 'Currently enabled' : 'Currently disabled'}
+              onPress={() => router.push('/privacy/biometric' as never)}
+            />
+
+            <LinkRow
+              icon="download-outline"
+              title="Download my data"
+              copy="Export your profile, symptoms, appointments, medications, and privacy settings."
+              onPress={() => router.push('/privacy/download-data' as never)}
+            />
+          </View>
+        </>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  encrypted: {
-    marginTop: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 20,
-    flexDirection: 'row',
-    gap: 14,
-    overflow: 'hidden',
-    position: 'relative',
+  hero: {
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 28,
+    padding: 24,
+    marginTop: 20,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#F0E2DF',
   },
-  shield: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#FBE7E9',
+  heroIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#765B60',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
+    marginBottom: 14,
   },
-  heroTextBlock: {
-    flex: 1,
-    zIndex: 2,
+  title: {
+    ...type.title,
+    fontSize: 28,
+    color: '#201A1D',
+    textAlign: 'center',
   },
-  heroTitle: {
-    ...type.bodyStrong,
-    fontSize: 18,
-    color: colors.ink,
-  },
-  heroCopy: {
+  subtitle: {
     ...type.body,
-    color: colors.text,
-    lineHeight: 22,
-    marginTop: 4,
+    color: '#5E5356',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 23,
   },
-  watermark: {
-    position: 'absolute',
-    right: -26,
-    top: 12,
-    opacity: 0.42,
-    zIndex: 0,
+  loadingCard: {
+    minHeight: 180,
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#F0E2DF',
   },
-  section: {
-    ...type.section,
-    color: colors.text,
-    marginTop: 22,
-    marginBottom: 8,
-    letterSpacing: 2.5,
+  loadingText: {
+    ...type.small,
+    color: '#765B60',
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
-    paddingHorizontal: 14,
-    overflow: 'hidden',
+    borderRadius: 26,
+    padding: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   row: {
-    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    paddingVertical: 7,
+    gap: 13,
+    padding: 14,
+    borderRadius: 20,
   },
-  tallRow: {
-    minHeight: 108,
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    padding: 14,
+    borderRadius: 20,
   },
-  rowAction: {
-    minWidth: 60,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  rowIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 15,
-    backgroundColor: '#F9F0EF',
+  iconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#FBE1E5',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowLabel: {
+  rowText: {
+    flex: 1,
+  },
+  rowTitle: {
     ...type.bodyStrong,
     color: colors.ink,
     fontSize: 16,
-    flex: 1,
   },
-  detail: {
+  rowCopy: {
     ...type.small,
     color: colors.text,
     marginTop: 3,
-    paddingRight: 4,
-  },
-  policy: {
-    marginTop: 22,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.line,
-    borderRadius: 24,
-    padding: 20,
-    alignItems: 'center',
-  },
-  policyTitle: {
-    ...type.bodyStrong,
-    fontSize: 19,
-    color: colors.text,
-  },
-  policyCopy: {
-    ...type.body,
-    textAlign: 'center',
-    color: colors.text,
-    lineHeight: 22,
-    marginTop: 8,
-  },
-  policyLink: {
-    ...type.bodyStrong,
-    color: colors.plum,
-    marginTop: 12,
-  },
-  version: {
-    ...type.tiny,
-    color: colors.muted,
-    textAlign: 'center',
-    letterSpacing: 3,
-    marginTop: 24,
+    lineHeight: 18,
   },
 });
