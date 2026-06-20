@@ -29,6 +29,7 @@ export default function RootLayout() {
           <Stack.Screen name="auth/create-account" />
           <Stack.Screen name="auth/reset-password" />
           <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="log-symptoms" />
           <Stack.Screen name="appointment/details" />
           <Stack.Screen name="appointment/cancel" />
           <Stack.Screen name="calculator/result" />
