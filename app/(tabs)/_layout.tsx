@@ -50,7 +50,7 @@ export default function TabLayout() {
         return {
           headerShown: false,
           tabBarActiveTintColor: colors.plum,
-          tabBarInactiveTintColor: '#46435C',
+          tabBarInactiveTintColor: colors.muted,
           tabBarStyle: {
             height: 86,
             paddingTop: 8,

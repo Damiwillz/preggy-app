@@ -19,6 +19,6 @@ const styles = StyleSheet.create({
   ghost: { backgroundColor: 'transparent' },
   danger: { backgroundColor: colors.rose },
   label: { ...type.bodyStrong, textAlign: 'center' },
-  light: { color: colors.surface },
+  light: { color: colors.darkPrimaryText },
   dark: { color: colors.plum }
 });

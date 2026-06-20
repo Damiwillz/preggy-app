@@ -332,13 +332,13 @@ export function Header({
                 onPress={() => closeMenu()}
                 accessibilityLabel="Close profile menu"
               >
-                <Ionicons name="close" size={20} color="#6E555F" />
+                <Ionicons name="close" size={20} color={colors.text} />
               </AnimatedPressable>
             </View>
 
             <View style={styles.progressPill}>
               <View style={styles.progressIcon}>
-                <Ionicons name="heart" size={16} color="#8C4A65" />
+                <Ionicons name="heart" size={16} color={colors.plum} />
               </View>
 
               <View style={styles.progressTextWrap}>
@@ -355,7 +355,7 @@ export function Header({
               {menuItems.map((item) => (
                 <AnimatedPressable key={item.label} onPress={item.onPress} style={styles.menuRow}>
                   <View style={styles.menuIcon}>
-                    <Ionicons name={item.icon} size={21} color="#765963" />
+                    <Ionicons name={item.icon} size={21} color={colors.plum} />
                   </View>
 
                   <View style={styles.menuTextWrap}>
@@ -363,13 +363,13 @@ export function Header({
                     {item.subtitle ? <Text style={styles.menuSubtitle}>{item.subtitle}</Text> : null}
                   </View>
 
-                  <Ionicons name="chevron-forward" size={18} color="#B49FA5" />
+                  <Ionicons name="chevron-forward" size={18} color={colors.muted} />
                 </AnimatedPressable>
               ))}
             </View>
 
             <AnimatedPressable onPress={confirmLogout} style={styles.logoutButton}>
-              <Ionicons name="log-out-outline" size={20} color="#B23A48" />
+              <Ionicons name="log-out-outline" size={20} color={colors.danger} />
               <Text style={styles.logoutText}>Log out {firstName}</Text>
             </AnimatedPressable>
           </Animated.View>
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF8F6',
+    backgroundColor: colors.surface,
   },
   avatar: {
     width: 42,
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#56B884',
     borderWidth: 2,
-    borderColor: '#FFF8F6',
+    borderColor: colors.surface,
   },
   modalRoot: {
     flex: 1,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     width: '88%',
     maxWidth: 390,
     maxHeight: '84%',
-    backgroundColor: '#FFFDFC',
+    backgroundColor: colors.elevated,
     borderRadius: 28,
     padding: 16,
     shadowColor: '#2B1720',
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     top: -8,
     width: 18,
     height: 18,
-    backgroundColor: '#FFFDFC',
+    backgroundColor: colors.elevated,
     transform: [{ rotate: '45deg' }],
     borderTopLeftRadius: 4,
   },
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 27,
     borderWidth: 2,
-    borderColor: '#F3CFD2',
+    borderColor: colors.blush,
   },
   accountText: {
     flex: 1,
@@ -510,11 +510,11 @@ const styles = StyleSheet.create({
   accountName: {
     ...type.bodyStrong,
     fontSize: 18,
-    color: '#2E2025',
+    color: colors.ink,
   },
   accountMeta: {
     ...type.small,
-    color: '#7B6970',
+    color: colors.text,
     marginTop: 2,
   },
   closeButton: {
@@ -523,13 +523,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8EEEE',
+    backgroundColor: colors.softSurface,
   },
   progressPill: {
     marginTop: 12,
     padding: 12,
     borderRadius: 18,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: colors.softSurface,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -547,13 +547,13 @@ const styles = StyleSheet.create({
   },
   progressTitle: {
     ...type.small,
-    color: '#57434A',
+    color: colors.text,
     fontWeight: '700',
   },
   progressTrack: {
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#E8D5D9',
+    backgroundColor: colors.line,
     marginTop: 6,
     overflow: 'hidden',
   },
@@ -561,11 +561,11 @@ const styles = StyleSheet.create({
     width: '62%',
     height: '100%',
     borderRadius: 3,
-    backgroundColor: '#8C6370',
+    backgroundColor: colors.plum,
   },
   progressValue: {
     ...type.bodyStrong,
-    color: '#6B4E58',
+    color: colors.plum,
   },
   menuList: {
     marginTop: 10,
@@ -576,14 +576,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 11,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EFE5E7',
+    borderBottomColor: colors.line,
     paddingVertical: 7,
   },
   menuIcon: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FAEFF0',
+    backgroundColor: colors.softSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -592,18 +592,18 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     ...type.bodyStrong,
-    color: '#33272B',
+    color: colors.ink,
   },
   menuSubtitle: {
     ...type.tiny,
-    color: '#8B7B80',
+    color: colors.muted,
     marginTop: 1,
   },
   logoutButton: {
     marginTop: 14,
     minHeight: 48,
     borderRadius: 17,
-    backgroundColor: '#FFF0F1',
+    backgroundColor: colors.softSurface,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -611,6 +611,6 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     ...type.bodyStrong,
-    color: '#B23A48',
+    color: colors.danger,
   },
 });
