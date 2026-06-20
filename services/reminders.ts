@@ -256,3 +256,29 @@ export async function getPreggyScheduledReminderCount() {
 
   return scheduled.filter((item) => item.content.data?.source === 'preggy').length;
 }
+
+
+export async function sendTestPreggyReminder() {
+  const hasPermission = await requestReminderPermission();
+
+  if (!hasPermission) {
+    throw new Error('Notifications permission was not granted.');
+  }
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Preggy test reminder',
+      body: 'Your Preggy reminders are working.',
+      sound: true,
+      data: {
+        source: 'preggy',
+        type: 'test',
+      },
+    },
+    trigger: {
+      type: 'timeInterval',
+      seconds: 5,
+      channelId: 'preggy-reminders',
+    } as Notifications.NotificationTriggerInput,
+  });
+}

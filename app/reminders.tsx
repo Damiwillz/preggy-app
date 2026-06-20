@@ -14,6 +14,7 @@ import {
   requestReminderPermission,
   scheduleAppointmentReminders,
   scheduleMedicationReminders,
+  sendTestPreggyReminder,
 } from '@/services/reminders';
 
 export default function RemindersScreen() {
@@ -99,6 +100,23 @@ export default function RemindersScreen() {
     }
   }
 
+  async function sendTest() {
+    setBusy('test');
+
+    try {
+      await sendTestPreggyReminder();
+      await refreshCount();
+
+      Alert.alert('Test reminder scheduled', 'You should receive a test notification in about 5 seconds.');
+    } catch (error) {
+      console.log('Test reminder error:', error);
+
+      Alert.alert('Could not send test reminder', 'Please allow notifications and try again.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function clearReminders() {
     setBusy('clear');
 
@@ -136,6 +154,16 @@ export default function RemindersScreen() {
           </Text>
         </View>
       </View>
+
+      <ReminderAction
+        title="Send test reminder"
+        copy="Schedule a test notification that should appear in about 5 seconds."
+        icon="notifications-outline"
+        accent
+        busy={busy === 'test'}
+        disabled={!!busy}
+        onPress={sendTest}
+      />
 
       <ReminderAction
         title="Enable all reminders"
