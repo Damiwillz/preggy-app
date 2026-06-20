@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colors } from '@/constants/colors';
 import { applySavedAppearanceFromAccount } from '@/services/appAppearance';
 import { AuthProvider } from '@/context/AuthContext';
+import { AppThemeProvider } from '@/context/AppThemeContext';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -18,6 +19,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
+      <AppThemeProvider>
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
@@ -51,7 +53,8 @@ export default function RootLayout() {
           <Stack.Screen name="appearance" />
             <Stack.Screen name="edit-profile" />
         </Stack>
-      </AuthProvider>
+      </AppThemeProvider>
+    </AuthProvider>
     </GestureHandlerRootView>
   );
 }

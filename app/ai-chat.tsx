@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 
@@ -29,20 +30,25 @@ const starter: Message[] = [
   {
     id: 'welcome',
     role: 'ai',
-    text: 'Hello, Mama! I’m Preggy AI. Ask me anything about symptoms, baby growth, food, appointments, or pregnancy wellness.',
+    text: 'Hi Mama, I’m Preggy AI. Ask me about symptoms, food, baby growth, appointments, medication routines, or what to pack for birth.',
   },
 ];
 
 export default function PreggyAIChatScreen() {
+  const { palette } = useAppTheme();
   const [messages, setMessages] = useState<Message[]>(starter);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-
   const scrollRef = useRef<ScrollView>(null);
 
   const suggestions = useMemo(
-    () => ['Is this safe to eat?', 'Common symptoms', 'Baby growth update', 'Kick counts'],
+    () => [
+      'Is this symptom normal?',
+      'What can I eat today?',
+      'Explain baby movement',
+      'Help me prepare for birth',
+    ],
     []
   );
 
@@ -51,9 +57,7 @@ export default function PreggyAIChatScreen() {
 
     getMyProfile()
       .then((data) => {
-        if (mounted) {
-          setProfile(data);
-        }
+        if (mounted) setProfile(data);
       })
       .catch((error) => {
         console.log('Could not load AI profile context:', error);
@@ -100,14 +104,12 @@ export default function PreggyAIChatScreen() {
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       const answer =
         typeof data?.answer === 'string' && data.answer.trim()
           ? data.answer.trim()
-          : 'I am here with you. Could you tell me a little more about what you are feeling?';
+          : 'I’m here with you. Could you tell me a little more?';
 
       setMessages((old) => [
         ...old,
@@ -126,7 +128,7 @@ export default function PreggyAIChatScreen() {
           id: `${Date.now()}e`,
           role: 'ai',
           text:
-            'Preggy AI could not respond right now. Please check your connection and try again. For urgent pregnancy symptoms, contact your maternity care team immediately.',
+            'Preggy AI could not respond right now. Please try again later. For urgent symptoms, contact your maternity care team immediately.',
         },
       ]);
     } finally {
@@ -136,25 +138,33 @@ export default function PreggyAIChatScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: palette.canvas }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: palette.line, backgroundColor: palette.canvas }]}>
           <AnimatedPressable onPress={() => router.back()} style={styles.back}>
-            <Ionicons name="chevron-back" size={26} color="#5E4A50" />
+            <Ionicons name="chevron-back" size={27} color={palette.ink} />
           </AnimatedPressable>
 
-          <Image source={require('../assets/images/profile-avatar.jpg')} style={styles.avatar} />
+          <View style={[styles.aiAvatar, { backgroundColor: palette.accentSoft }]}>
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="sparkles" size={24} color={palette.accent} />
+            )}
+          </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Preggy AI</Text>
+            <Text style={[styles.headerTitle, { color: palette.ink }]}>Preggy AI</Text>
 
             <View style={styles.onlineRow}>
               <View style={styles.onlineDot} />
-              <Text style={styles.online}>Online & Supportive</Text>
+              <Text style={[styles.online, { color: palette.text }]}>Private pregnancy support</Text>
             </View>
           </View>
 
-          <Ionicons name="notifications-outline" size={25} color="#68575B" />
+          <View style={[styles.shield, { backgroundColor: palette.softSurface }]}>
+            <Ionicons name="shield-checkmark-outline" size={21} color={palette.accent} />
+          </View>
         </View>
 
         <ScrollView
@@ -163,97 +173,112 @@ export default function PreggyAIChatScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.today}>Today</Text>
+          <View style={[styles.heroCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+            <View style={[styles.heroIcon, { backgroundColor: palette.accent }]}>
+              <Ionicons name="sparkles" size={25} color={palette.onAccent} />
+            </View>
 
-          {messages.map((message, index) => (
-            <View
-              key={message.id}
-              style={[styles.bubble, message.role === 'user' ? styles.userBubble : styles.aiBubble]}
-            >
-              <Text style={[styles.message, message.role === 'user' && { color: '#FFF' }]}>
-                {message.text}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.heroTitle, { color: palette.ink }]}>
+                Ask anything, gently.
               </Text>
-
-              {index === 0 && <Text style={styles.time}>Now</Text>}
-            </View>
-          ))}
-
-          {sending && (
-            <View style={[styles.bubble, styles.aiBubble, styles.typingBubble]}>
-              <ActivityIndicator size="small" color="#755B63" />
-              <Text style={styles.typingText}>Preggy AI is thinking...</Text>
-            </View>
-          )}
-
-          <View style={styles.guide}>
-            <Image source={require('../assets/images/tips-yoga-hero.jpg')} style={styles.guideImage} />
-
-            <View style={styles.readBadge}>
-              <Text style={styles.readBadgeText}>5 MIN READ</Text>
-            </View>
-
-            <View style={styles.guideBody}>
-              <Text style={styles.guideTitle}>5 Safe Stretches for Back Pain</Text>
-              <Text style={styles.guideCopy}>
-                Gentle movements approved by physical therapists to alleviate pressure during pregnancy.
+              <Text style={[styles.heroCopy, { color: palette.text }]}>
+                Answers are personalized with your saved pregnancy profile.
               </Text>
-
-              <AnimatedPressable onPress={() => router.push('/tips/yoga')}>
-                <Text style={styles.guideLink}>Read Guide →</Text>
-              </AnimatedPressable>
             </View>
           </View>
+
+          <Text style={[styles.today, { backgroundColor: palette.softSurface, color: palette.text }]}>Today</Text>
+
+          {messages.map((message) => {
+            const isUser = message.role === 'user';
+
+            return (
+              <View
+                key={message.id}
+                style={[
+                  styles.messageRow,
+                  isUser ? { justifyContent: 'flex-end' } : { justifyContent: 'flex-start' },
+                ]}
+              >
+                {!isUser && (
+                  <View style={[styles.miniAvatar, { backgroundColor: palette.accentSoft }]}>
+                    <Ionicons name="sparkles" size={15} color={palette.accent} />
+                  </View>
+                )}
+
+                <View
+                  style={[
+                    styles.bubble,
+                    {
+                      backgroundColor: isUser ? palette.accent : palette.surface,
+                      borderColor: isUser ? palette.accent : palette.line,
+                    },
+                    isUser ? styles.userBubble : styles.aiBubble,
+                  ]}
+                >
+                  <Text style={[styles.message, { color: isUser ? palette.onAccent : palette.ink }]}>
+                    {message.text}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+
+          {sending && (
+            <View style={[styles.messageRow, { justifyContent: 'flex-start' }]}>
+              <View style={[styles.miniAvatar, { backgroundColor: palette.accentSoft }]}>
+                <Ionicons name="sparkles" size={15} color={palette.accent} />
+              </View>
+
+              <View style={[styles.typingBubble, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+                <ActivityIndicator size="small" color={palette.accent} />
+                <Text style={[styles.typingText, { color: palette.text }]}>Preggy AI is thinking...</Text>
+              </View>
+            </View>
+          )}
         </ScrollView>
 
-        <View style={styles.suggestions}>
+        <View style={[styles.suggestions, { borderTopColor: palette.line }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionContent}>
             {suggestions.map((suggestion) => (
-              <AnimatedPressable key={suggestion} onPress={() => send(suggestion)} style={styles.chip}>
-                <Text style={styles.chipText}>{suggestion}</Text>
+              <AnimatedPressable
+                key={suggestion}
+                onPress={() => send(suggestion)}
+                style={[styles.chip, { backgroundColor: palette.surface, borderColor: palette.line }]}
+              >
+                <Text style={[styles.chipText, { color: palette.ink }]}>{suggestion}</Text>
               </AnimatedPressable>
             ))}
           </ScrollView>
         </View>
 
-        <View style={styles.composer}>
-          <View style={styles.inputWrap}>
-            <Ionicons name="happy-outline" size={24} color="#9B8C8F" />
+        <View style={[styles.composer, { borderTopColor: palette.line, backgroundColor: palette.canvas }]}>
+          <View style={[styles.inputWrap, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color={palette.muted} />
 
             <TextInput
               value={input}
               onChangeText={setInput}
               onSubmitEditing={() => send()}
-              placeholder="Ask Preggy AI anything…"
-              placeholderTextColor="#A79A9D"
-              style={styles.input}
+              placeholder="Ask Preggy AI anything..."
+              placeholderTextColor={palette.muted}
+              style={[styles.input, { color: palette.ink }]}
               multiline
               editable={!sending}
             />
-
-            <Ionicons name="attach-outline" size={22} color="#9B8C8F" />
           </View>
 
-          <AnimatedPressable onPress={() => send()} style={[styles.send, sending && styles.sendDisabled]}>
-            {sending ? <ActivityIndicator size="small" color="#FFF" /> : <Ionicons name="send" size={22} color="#FFF" />}
+          <AnimatedPressable
+            onPress={() => send()}
+            style={[styles.send, { backgroundColor: palette.accent }, sending && styles.sendDisabled]}
+          >
+            {sending ? (
+              <ActivityIndicator size="small" color={palette.onAccent} />
+            ) : (
+              <Ionicons name="send" size={22} color={palette.onAccent} />
+            )}
           </AnimatedPressable>
-        </View>
-
-        <View style={styles.nav}>
-          {[
-            ['calendar-outline', 'Today'],
-            ['bar-chart-outline', 'Insights'],
-            ['sparkles', 'AI Chat'],
-            ['medkit-outline', 'Care'],
-          ].map(([icon, label]) => (
-            <View key={label} style={[styles.navItem, label === 'AI Chat' && styles.navActive]}>
-              <Ionicons
-                name={icon as keyof typeof Ionicons.glyphMap}
-                size={22}
-                color={label === 'AI Chat' ? '#72515D' : '#75696C'}
-              />
-              <Text style={[styles.navText, label === 'AI Chat' && styles.navTextActive]}>{label}</Text>
-            </View>
-          ))}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -263,220 +288,192 @@ export default function PreggyAIChatScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#FFF8F5',
   },
   header: {
-    height: 64,
-    paddingHorizontal: 17,
+    minHeight: 68,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
+    gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1E6E2',
   },
   back: {
     width: 34,
-    height: 42,
+    height: 44,
     justifyContent: 'center',
   },
-  avatar: {
-    width: 43,
-    height: 43,
-    borderRadius: 15,
+  aiAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  title: {
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  headerTitle: {
     ...type.bodyStrong,
-    color: '#493D40',
-    fontSize: 17,
+    fontSize: 18,
   },
   onlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
+    marginTop: 2,
   },
   onlineDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#8ED8A3',
+    backgroundColor: '#81D39A',
   },
   online: {
     ...type.small,
-    color: '#8D7F82',
+  },
+  shield: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scroll: {
     flex: 1,
   },
   content: {
-    padding: 17,
+    padding: 16,
     paddingBottom: 22,
+  },
+  heroCard: {
+    borderRadius: 26,
+    padding: 17,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    borderWidth: 1,
+    marginBottom: 15,
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+  },
+  heroCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 3,
   },
   today: {
     ...type.small,
     alignSelf: 'center',
-    backgroundColor: '#F4EFED',
-    color: '#706367',
-    borderRadius: 13,
+    borderRadius: 14,
     paddingHorizontal: 15,
-    paddingVertical: 5,
+    paddingVertical: 6,
     marginBottom: 15,
   },
+  messageRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 13,
+    alignItems: 'flex-end',
+  },
+  miniAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
   bubble: {
-    maxWidth: '84%',
+    maxWidth: '82%',
     borderRadius: 22,
-    padding: 17,
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderWidth: 1,
   },
   aiBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFF',
+    borderBottomLeftRadius: 8,
   },
   userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#765F65',
+    borderBottomRightRadius: 8,
   },
   message: {
     ...type.body,
-    color: '#2E2528',
     lineHeight: 23,
   },
-  time: {
-    ...type.tiny,
-    color: '#857679',
-    marginTop: 9,
-  },
   typingBubble: {
+    minHeight: 48,
+    borderRadius: 22,
+    paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
+    borderWidth: 1,
   },
   typingText: {
     ...type.small,
-    color: '#706367',
-  },
-  guide: {
-    backgroundColor: '#FFF',
-    borderRadius: 22,
-    overflow: 'hidden',
-    marginTop: 2,
-  },
-  guideImage: {
-    width: '100%',
-    height: 120,
-  },
-  readBadge: {
-    position: 'absolute',
-    top: 91,
-    right: 12,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-  },
-  readBadgeText: {
-    ...type.tiny,
-    color: '#59494E',
-  },
-  guideBody: {
-    padding: 14,
-  },
-  guideTitle: {
-    ...type.bodyStrong,
-    color: '#302629',
-    fontSize: 17,
-  },
-  guideCopy: {
-    ...type.small,
-    color: '#6D6063',
-    lineHeight: 18,
-    marginTop: 3,
-  },
-  guideLink: {
-    ...type.bodyStrong,
-    color: '#725960',
-    marginTop: 9,
   },
   suggestions: {
-    height: 48,
+    height: 58,
     justifyContent: 'center',
+    borderTopWidth: 1,
   },
   suggestionContent: {
     gap: 8,
     paddingHorizontal: 16,
   },
   chip: {
-    backgroundColor: '#FFF',
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
     borderWidth: 1,
-    borderColor: '#EFE4E1',
   },
   chipText: {
     ...type.small,
-    color: '#5E5054',
+    fontWeight: '700',
   },
   composer: {
     paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingVertical: 10,
     flexDirection: 'row',
     gap: 10,
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: '#F0E4E0',
   },
   inputWrap: {
     flex: 1,
-    minHeight: 48,
-    maxHeight: 90,
-    backgroundColor: '#F4EFED',
-    borderRadius: 24,
+    minHeight: 50,
+    maxHeight: 96,
+    borderRadius: 25,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    borderWidth: 1,
   },
   input: {
     flex: 1,
     ...type.body,
-    color: '#3D3235',
     paddingVertical: 11,
   },
   send: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#755B63',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendDisabled: {
     opacity: 0.7,
-  },
-  nav: {
-    height: 66,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#EFE4E0',
-  },
-  navItem: {
-    alignItems: 'center',
-    gap: 3,
-    minWidth: 72,
-    paddingVertical: 7,
-    borderRadius: 22,
-  },
-  navActive: {
-    backgroundColor: '#FFE2E7',
-  },
-  navText: {
-    ...type.tiny,
-    color: '#76696C',
-  },
-  navTextActive: {
-    color: '#72515D',
-    fontWeight: '700',
   },
 });
