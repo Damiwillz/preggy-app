@@ -197,7 +197,12 @@ export default function AppointmentsScreen() {
                 </Text>
               </View>
 
-              <Button label="Get Directions" variant="secondary" style={{ marginTop: 16 }} />
+              <Button
+                label="View Appointment Details"
+                variant="secondary"
+                style={{ marginTop: 16 }}
+                onPress={() => router.push('/appointment/details' as never)}
+              />
             </>
           ) : (
             <Text style={styles.copy}>No appointments saved yet.</Text>
