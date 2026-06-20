@@ -50,6 +50,7 @@ export default function RootLayout() {
           <Stack.Screen name="privacy/download-data" />
           <Stack.Screen name="privacy/biometric" />
           <Stack.Screen name="ai-chat" />
+        <Stack.Screen name="reminders" options={{ headerShown: false }} />
           <Stack.Screen name="appearance" />
             <Stack.Screen name="edit-profile" />
         </Stack>

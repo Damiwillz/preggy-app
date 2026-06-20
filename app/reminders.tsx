@@ -1,0 +1,296 @@
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+
+import { Header } from '@/components/layout/Header';
+import { Screen } from '@/components/layout/Screen';
+import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
+import {
+  cancelAllPreggyReminders,
+  getPreggyScheduledReminderCount,
+  requestReminderPermission,
+  scheduleAppointmentReminders,
+  scheduleMedicationReminders,
+} from '@/services/reminders';
+
+export default function RemindersScreen() {
+  const { palette } = useAppTheme();
+  const [count, setCount] = useState(0);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function refreshCount() {
+    const nextCount = await getPreggyScheduledReminderCount();
+    setCount(nextCount);
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshCount().catch((error) => {
+        console.log('Reminder count error:', error);
+      });
+    }, [])
+  );
+
+  async function enableAll() {
+    setBusy('all');
+
+    try {
+      const hasPermission = await requestReminderPermission();
+
+      if (!hasPermission) {
+        Alert.alert('Notifications disabled', 'Please allow notifications to receive Preggy reminders.');
+        return;
+      }
+
+      await cancelAllPreggyReminders();
+
+      const medicationCount = await scheduleMedicationReminders();
+      const appointmentCount = await scheduleAppointmentReminders();
+
+      await refreshCount();
+
+      Alert.alert(
+        'Reminders scheduled',
+        `${medicationCount} medication reminder${medicationCount === 1 ? '' : 's'} and ${appointmentCount} appointment reminder${appointmentCount === 1 ? '' : 's'} were scheduled.`
+      );
+    } catch (error) {
+      console.log('Enable reminders error:', error);
+
+      Alert.alert('Could not schedule reminders', 'Please check your saved medication and appointment details.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function scheduleMedsOnly() {
+    setBusy('medications');
+
+    try {
+      const medicationCount = await scheduleMedicationReminders();
+      await refreshCount();
+
+      Alert.alert('Medication reminders', `${medicationCount} reminder${medicationCount === 1 ? '' : 's'} scheduled.`);
+    } catch (error) {
+      console.log('Medication reminders error:', error);
+
+      Alert.alert('Could not schedule medication reminders', 'Please check your saved medications.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function scheduleAppointmentsOnly() {
+    setBusy('appointments');
+
+    try {
+      const appointmentCount = await scheduleAppointmentReminders();
+      await refreshCount();
+
+      Alert.alert('Appointment reminders', `${appointmentCount} reminder${appointmentCount === 1 ? '' : 's'} scheduled.`);
+    } catch (error) {
+      console.log('Appointment reminders error:', error);
+
+      Alert.alert('Could not schedule appointment reminders', 'Please check your saved appointments.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function clearReminders() {
+    setBusy('clear');
+
+    try {
+      const cancelled = await cancelAllPreggyReminders();
+      await refreshCount();
+
+      Alert.alert('Reminders cleared', `${cancelled} Preggy reminder${cancelled === 1 ? '' : 's'} cancelled.`);
+    } catch (error) {
+      console.log('Clear reminders error:', error);
+
+      Alert.alert('Could not clear reminders', 'Please try again.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Screen bottomSpace={36}>
+      <Header title="Reminders" back />
+
+      <View style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.heroIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name="notifications" size={42} color={palette.accent} />
+        </View>
+
+        <Text style={[styles.title, { color: palette.ink }]}>Preggy reminders</Text>
+        <Text style={[styles.subtitle, { color: palette.text }]}>
+          Schedule local reminders for medications, supplements, and upcoming appointments.
+        </Text>
+
+        <View style={[styles.countPill, { backgroundColor: palette.accentSoft }]}>
+          <Text style={[styles.countText, { color: palette.accent }]}>
+            {count} active reminder{count === 1 ? '' : 's'}
+          </Text>
+        </View>
+      </View>
+
+      <ReminderAction
+        title="Enable all reminders"
+        copy="Clear old Preggy reminders and schedule fresh medication and appointment reminders."
+        icon="sparkles"
+        accent
+        busy={busy === 'all'}
+        disabled={!!busy}
+        onPress={enableAll}
+      />
+
+      <ReminderAction
+        title="Medication reminders"
+        copy="Schedule daily reminders using saved medication or supplement times."
+        icon="medkit-outline"
+        busy={busy === 'medications'}
+        disabled={!!busy}
+        onPress={scheduleMedsOnly}
+      />
+
+      <ReminderAction
+        title="Appointment reminders"
+        copy="Schedule reminders one day before and two hours before each upcoming appointment."
+        icon="calendar-outline"
+        busy={busy === 'appointments'}
+        disabled={!!busy}
+        onPress={scheduleAppointmentsOnly}
+      />
+
+      <ReminderAction
+        title="Clear Preggy reminders"
+        copy="Cancel all local reminders created by Preggy on this device."
+        icon="trash-outline"
+        danger
+        busy={busy === 'clear'}
+        disabled={!!busy}
+        onPress={clearReminders}
+      />
+    </Screen>
+  );
+}
+
+function ReminderAction({
+  title,
+  copy,
+  icon,
+  onPress,
+  busy,
+  disabled,
+  accent,
+  danger,
+}: {
+  title: string;
+  copy: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  busy: boolean;
+  disabled: boolean;
+  accent?: boolean;
+  danger?: boolean;
+}) {
+  const { palette } = useAppTheme();
+
+  const iconColor = danger ? palette.danger : accent ? palette.onAccent : palette.accent;
+  const iconBg = danger ? palette.danger + '22' : accent ? palette.accent : palette.accentSoft;
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.action,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.line,
+          opacity: disabled && !busy ? 0.62 : 1,
+        },
+      ]}
+    >
+      <View style={[styles.actionIcon, { backgroundColor: iconBg }]}>
+        {busy ? <ActivityIndicator color={iconColor} /> : <Ionicons name={icon} size={25} color={iconColor} />}
+      </View>
+
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.actionTitle, { color: palette.ink }]}>{title}</Text>
+        <Text style={[styles.actionCopy, { color: palette.text }]}>{copy}</Text>
+      </View>
+
+      <Ionicons name="chevron-forward" size={22} color={palette.muted} />
+    </AnimatedPressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  hero: {
+    alignItems: 'center',
+    borderRadius: 30,
+    padding: 26,
+    marginTop: 22,
+    marginBottom: 18,
+    borderWidth: 1,
+  },
+  heroIcon: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    ...type.title,
+    fontSize: 28,
+    textAlign: 'center',
+  },
+  subtitle: {
+    ...type.body,
+    textAlign: 'center',
+    lineHeight: 23,
+    marginTop: 8,
+  },
+  countPill: {
+    marginTop: 16,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  countText: {
+    ...type.small,
+    fontWeight: '800',
+  },
+  action: {
+    minHeight: 92,
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  actionIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionTitle: {
+    ...type.bodyStrong,
+    fontSize: 17,
+  },
+  actionCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 4,
+  },
+});
