@@ -9,6 +9,8 @@ export type PrivacySettings = {
   personalized_tips: boolean;
   ai_chat_history: boolean;
   app_lock_enabled: boolean;
+  appearance_mode: 'system' | 'light' | 'dark';
+  accent_color: 'rose' | 'plum' | 'peach' | 'mint';
   created_at?: string;
   updated_at?: string;
 };
@@ -20,6 +22,8 @@ const defaultSettings = {
   personalized_tips: true,
   ai_chat_history: true,
   app_lock_enabled: false,
+  appearance_mode: 'system',
+  accent_color: 'rose',
 };
 
 export async function getMyPrivacySettings() {
