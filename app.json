@@ -1,24 +1,35 @@
 {
   "expo": {
-    "name": "Preggy App",
+    "name": "Preggy",
     "slug": "preggy-app",
     "version": "1.1.0",
     "orientation": "portrait",
     "scheme": "preggy",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.damilarewilliams.preggy",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFF6F4"
-      }
+      },
+      "package": "com.damilarewilliams.preggy",
+      "versionCode": 1
     },
     "plugins": [
       "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFF8F5"
     }
   }
 }
