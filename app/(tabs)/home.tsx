@@ -139,7 +139,6 @@ export default function HomeScreen() {
         .select('*')
         .eq('user_id', userId)
         .neq('status', 'Cancelled')
-        .order('date', { ascending: true })
         .limit(1)
         .maybeSingle(),
     ]);
