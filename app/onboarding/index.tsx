@@ -16,7 +16,17 @@ export default function OnboardingScreen() {
       contentContainerStyle={styles.scroll}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.heroWrap}>
+      <View style={styles.topRow}>
+        <View style={[styles.brandMark, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name="heart" size={22} color={palette.accent} />
+        </View>
+
+        <AnimatedPressable onPress={() => router.replace('/auth/log-in' as never)}>
+          <Text style={[styles.loginText, { color: palette.accent }]}>Log in</Text>
+        </AnimatedPressable>
+      </View>
+
+      <View style={[styles.heroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <Image
           source={require('../../assets/images/login-hero.jpg')}
           style={styles.heroImage}
@@ -25,65 +35,60 @@ export default function OnboardingScreen() {
 
         <View style={styles.heroOverlay} />
 
-        <AnimatedPressable
-          onPress={() => router.replace('/auth/log-in' as never)}
-          style={[styles.skipButton, { backgroundColor: 'rgba(255,255,255,0.94)' }]}
-        >
-          <Text style={styles.skipText}>Log in</Text>
-        </AnimatedPressable>
-
-        <View style={[styles.heroBadge, { backgroundColor: 'rgba(255,255,255,0.94)' }]}>
-          <Ionicons name="heart" size={22} color="#C96D73" />
-          <Text style={styles.heroBadgeText}>Preggy companion</Text>
+        <View style={[styles.heroLabel, { backgroundColor: 'rgba(255,255,255,0.94)' }]}>
+          <Ionicons name="sparkles" size={18} color="#C96D73" />
+          <Text style={styles.heroLabelText}>Pregnancy wellness</Text>
         </View>
       </View>
 
-      <View style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.dots}>
-          <View style={[styles.dotActive, { backgroundColor: palette.accent }]} />
-          <View style={[styles.dot, { backgroundColor: palette.line }]} />
-          <View style={[styles.dot, { backgroundColor: palette.line }]} />
-        </View>
-
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGGY COMPANION</Text>
-
-        <Text style={[styles.title, { color: palette.ink }]}>
-          Your calm pregnancy guide, all in one place
-        </Text>
-
-        <Text style={[styles.subtitle, { color: palette.text }]}>
-          Track weekly growth, appointments, symptoms, medications, privacy settings, and gentle daily guidance.
-        </Text>
-
-        <View style={styles.featureGrid}>
-          <View style={[styles.feature, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="pulse" size={22} color={palette.accent} />
-            <Text style={[styles.featureText, { color: palette.ink }]}>Daily logs</Text>
-          </View>
-
-          <View style={[styles.feature, { backgroundColor: palette.softSurface }]}>
-            <Ionicons name="calendar" size={22} color={palette.accent} />
-            <Text style={[styles.featureText, { color: palette.ink }]}>Appointments</Text>
-          </View>
-
-          <View style={[styles.feature, { backgroundColor: palette.softSurface }]}>
-            <Ionicons name="sparkles" size={22} color={palette.accent} />
-            <Text style={[styles.featureText, { color: palette.ink }]}>AI support</Text>
-          </View>
-        </View>
-
-        <AnimatedPressable
-          onPress={() => router.push('/onboarding/personal-guidance' as never)}
-          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
-        >
-          <Text style={[styles.primaryText, { color: palette.onAccent }]}>Get started</Text>
-          <Ionicons name="arrow-forward" size={20} color={palette.onAccent} />
-        </AnimatedPressable>
-
-        <AnimatedPressable onPress={() => router.replace('/auth/create-account' as never)} style={styles.secondaryButton}>
-          <Text style={[styles.secondaryText, { color: palette.accent }]}>Create account now</Text>
-        </AnimatedPressable>
+      <View style={styles.dots}>
+        <View style={[styles.dotActive, { backgroundColor: palette.accent }]} />
+        <View style={[styles.dot, { backgroundColor: palette.line }]} />
+        <View style={[styles.dot, { backgroundColor: palette.line }]} />
       </View>
+
+      <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGGY COMPANION</Text>
+
+      <Text style={[styles.title, { color: palette.ink }]}>
+        Feel supported through every week
+      </Text>
+
+      <Text style={[styles.subtitle, { color: palette.text }]}>
+        Track baby growth, symptoms, appointments, medications, and gentle daily guidance in one calm space.
+      </Text>
+
+      <View style={styles.featureGrid}>
+        <View style={[styles.feature, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.featureIcon, { backgroundColor: palette.surface }]}>
+            <Ionicons name="pulse" size={20} color={palette.accent} />
+          </View>
+          <Text style={[styles.featureTitle, { color: palette.ink }]}>Daily logs</Text>
+          <Text style={[styles.featureCopy, { color: palette.text }]}>Mood and symptoms</Text>
+        </View>
+
+        <View style={[styles.feature, { backgroundColor: palette.softSurface }]}>
+          <View style={[styles.featureIcon, { backgroundColor: palette.surface }]}>
+            <Ionicons name="calendar" size={20} color={palette.accent} />
+          </View>
+          <Text style={[styles.featureTitle, { color: palette.ink }]}>Reminders</Text>
+          <Text style={[styles.featureCopy, { color: palette.text }]}>Visits and meds</Text>
+        </View>
+      </View>
+
+      <AnimatedPressable
+        onPress={() => router.push('/onboarding/personal-guidance' as never)}
+        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+      >
+        <Text style={[styles.primaryText, { color: palette.onAccent }]}>Get started</Text>
+        <Ionicons name="arrow-forward" size={20} color={palette.onAccent} />
+      </AnimatedPressable>
+
+      <AnimatedPressable
+        onPress={() => router.replace('/auth/create-account' as never)}
+        style={[styles.secondaryButton, { borderColor: palette.line, backgroundColor: palette.surface }]}
+      >
+        <Text style={[styles.secondaryText, { color: palette.accent }]}>Create account</Text>
+      </AnimatedPressable>
     </ScrollView>
   );
 }
@@ -94,9 +99,31 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 58,
+    paddingBottom: 36,
   },
-  heroWrap: {
-    height: 430,
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  brandMark: {
+    width: 46,
+    height: 46,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  heroCard: {
+    height: 310,
+    borderRadius: 38,
+    borderWidth: 1,
+    marginTop: 22,
     overflow: 'hidden',
   },
   heroImage: {
@@ -105,50 +132,29 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(45, 26, 33, 0.22)',
+    backgroundColor: 'rgba(48, 29, 36, 0.16)',
   },
-  skipButton: {
+  heroLabel: {
     position: 'absolute',
-    top: 58,
-    right: 22,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    left: 18,
+    bottom: 18,
     borderRadius: 999,
-  },
-  skipText: {
-    ...type.small,
-    color: '#5F424D',
-    fontWeight: '900',
-  },
-  heroBadge: {
-    position: 'absolute',
-    left: 24,
-    bottom: 56,
-    borderRadius: 999,
-    paddingHorizontal: 15,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
-  heroBadgeText: {
+  heroLabelText: {
     ...type.small,
     color: '#5F424D',
     fontWeight: '900',
-  },
-  sheet: {
-    minHeight: 520,
-    marginTop: -42,
-    borderTopLeftRadius: 38,
-    borderTopRightRadius: 38,
-    borderWidth: 1,
-    paddingHorizontal: 24,
-    paddingTop: 36,
   },
   dots: {
     flexDirection: 'row',
     gap: 7,
-    marginBottom: 20,
+    marginTop: 24,
+    marginBottom: 18,
   },
   dotActive: {
     width: 28,
@@ -165,8 +171,8 @@ const styles = StyleSheet.create({
   },
   title: {
     ...type.title,
-    fontSize: 34,
-    lineHeight: 39,
+    fontSize: 36,
+    lineHeight: 41,
     marginTop: 7,
   },
   subtitle: {
@@ -176,19 +182,31 @@ const styles = StyleSheet.create({
   },
   featureGrid: {
     flexDirection: 'row',
-    gap: 9,
+    gap: 12,
     marginTop: 22,
   },
   feature: {
     flex: 1,
-    minHeight: 86,
-    borderRadius: 22,
-    padding: 12,
-    justifyContent: 'space-between',
+    borderRadius: 24,
+    padding: 14,
+    minHeight: 132,
   },
-  featureText: {
+  featureIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  featureTitle: {
+    ...type.bodyStrong,
+    fontSize: 15,
+  },
+  featureCopy: {
     ...type.tiny,
-    fontWeight: '900',
+    lineHeight: 17,
+    marginTop: 4,
   },
   primaryButton: {
     height: 60,
@@ -203,8 +221,12 @@ const styles = StyleSheet.create({
     ...type.bodyStrong,
   },
   secondaryButton: {
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1,
+    marginTop: 12,
     alignItems: 'center',
-    paddingVertical: 18,
+    justifyContent: 'center',
   },
   secondaryText: {
     ...type.small,
