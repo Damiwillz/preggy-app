@@ -17,6 +17,7 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { AppSwitch } from '@/components/ui/AppSwitch';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { signOut } from '@/services/auth';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 
@@ -69,6 +70,8 @@ function formatDueDate(value?: string | null) {
 
 export default function ProfileScreen() {
   const [notifications, setNotifications] = useState(true);
+  const { palette, mode, accentColor } = useAppTheme();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
