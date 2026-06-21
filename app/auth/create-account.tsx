@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 54,
-    paddingBottom: 34,
+    paddingBottom: 48,
   },
   topRow: {
     flexDirection: 'row',
@@ -192,9 +192,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroPanel: {
-    height: 154,
+    height: 172,
     borderRadius: 34,
-    marginTop: 14,
+    marginTop: 16,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   content: {
-    marginTop: 18,
+    marginTop: 20,
   },
   eyebrow: {
     ...type.section,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   bottom: {
-    marginTop: 22,
+    marginTop: 'auto',
   },
   primaryButton: {
     height: 56,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   loginFooter: {
     alignItems: 'center',
-    paddingTop: 11,
+    paddingTop: 13,
   },
   footerText: {
     ...type.small,
