@@ -1,103 +1,119 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 
 type GrowthInfo = {
   size: string;
   length: string;
   weight: string;
-  title: string;
+  headline: string;
   copy: string;
-  tip: string;
+  icon: keyof typeof Ionicons.glyphMap;
 };
 
 const growthByWeek: Record<number, GrowthInfo> = {
   8: {
     size: 'Raspberry',
-    length: '1.6 cm',
-    weight: '1 g',
-    title: 'Tiny features are forming',
-    copy: 'Baby’s arms, legs, fingers, and toes are starting to take shape. The heartbeat is strong and development is moving quickly.',
-    tip: 'Small, frequent meals may help with nausea this week.',
+    length: '0.6 in',
+    weight: '0.04 oz',
+    headline: 'Tiny features are forming',
+    copy: 'Baby’s arms, legs, fingers, and toes are starting to take shape.',
+    icon: 'leaf',
   },
   12: {
     size: 'Lime',
-    length: '5.4 cm',
-    weight: '14 g',
-    title: 'First trimester milestone',
-    copy: 'Baby’s organs are formed and will keep maturing. Reflexes are beginning, even if you cannot feel movement yet.',
-    tip: 'Keep taking prenatal vitamins and stay hydrated.',
+    length: '2.1 in',
+    weight: '0.5 oz',
+    headline: 'Reflexes are beginning',
+    copy: 'Baby may start making small movements, even if you cannot feel them yet.',
+    icon: 'sparkles',
   },
   16: {
     size: 'Avocado',
-    length: '11.6 cm',
-    weight: '100 g',
-    title: 'Growing stronger',
-    copy: 'Baby’s muscles are developing and facial expressions are becoming possible. Some parents begin to feel flutters soon.',
-    tip: 'Gentle movement can support energy and circulation.',
+    length: '4.6 in',
+    weight: '3.5 oz',
+    headline: 'Growth is picking up',
+    copy: 'Baby’s muscles are developing and movements may become more coordinated.',
+    icon: 'body',
   },
   20: {
     size: 'Banana',
-    length: '25.6 cm',
-    weight: '300 g',
-    title: 'Halfway there',
-    copy: 'Baby is growing hair, practicing swallowing, and becoming more active. This is often around the anatomy scan window.',
-    tip: 'Write down questions before appointments so nothing gets forgotten.',
+    length: '10 in',
+    weight: '10.6 oz',
+    headline: 'Halfway milestone',
+    copy: 'Baby is growing fast, and the anatomy scan may show more development detail.',
+    icon: 'eye',
   },
   24: {
-    size: 'Corn',
-    length: '30 cm',
-    weight: '600 g',
-    title: 'Hearing your voice',
-    copy: 'Baby can hear more sounds and may respond to your voice. Movements may feel stronger and more regular.',
-    tip: 'Try a calm bedtime routine to help your body rest.',
+    size: 'Corn cob',
+    length: '11.8 in',
+    weight: '1.3 lb',
+    headline: 'More active and responsive',
+    copy: 'Baby may respond to sounds and movement patterns can feel more noticeable.',
+    icon: 'pulse',
   },
   28: {
     size: 'Eggplant',
-    length: '37.6 cm',
-    weight: '1 kg',
-    title: 'Third trimester begins',
-    copy: 'Baby’s eyes can open and close. The brain, lungs, and body fat are developing quickly now.',
-    tip: 'Start tracking patterns of movement and report major changes to your care team.',
+    length: '14.8 in',
+    weight: '2.2 lb',
+    headline: 'Third trimester begins',
+    copy: 'Baby is gaining fat, opening eyes, and practicing breathing movements.',
+    icon: 'sunny',
   },
   32: {
     size: 'Squash',
-    length: '42.4 cm',
-    weight: '1.7 kg',
-    title: 'Filling out',
-    copy: 'Baby is gaining weight, practicing breathing motions, and may be settling into a head down position.',
-    tip: 'Use pillows to support your hips, belly, and back while sleeping.',
+    length: '16.7 in',
+    weight: '3.8 lb',
+    headline: 'Filling out beautifully',
+    copy: 'Baby is gaining weight quickly and may settle into a birth position soon.',
+    icon: 'heart',
   },
   36: {
     size: 'Papaya',
-    length: '47.4 cm',
-    weight: '2.6 kg',
-    title: 'Almost ready',
-    copy: 'Baby is gaining final weight and preparing for birth. You may feel more pelvic pressure as baby moves lower.',
-    tip: 'Keep your hospital bag, documents, and birth plan within easy reach.',
+    length: '18.7 in',
+    weight: '5.8 lb',
+    headline: 'Almost ready',
+    copy: 'Baby is continuing to gain weight while lungs and feeding skills mature.',
+    icon: 'happy',
   },
   40: {
     size: 'Watermelon',
-    length: '51 cm',
-    weight: '3.4 kg',
-    title: 'Due date window',
-    copy: 'Baby is fully developed and ready to meet you. Some babies arrive before or after the estimated due date.',
-    tip: 'Call your maternity care team if you notice contractions, waters breaking, bleeding, or reduced movement.',
+    length: '20.2 in',
+    weight: '7.6 lb',
+    headline: 'Due date window',
+    copy: 'Baby is ready to meet you. Keep your care team updated with any changes.',
+    icon: 'gift',
   },
 };
+
+const weeklyTips = [
+  'Drink water often and rest when your body asks for it.',
+  'Track baby movements and contact your care team if patterns change.',
+  'Keep meals simple, balanced, and gentle on your stomach.',
+  'Stretch lightly, walk when comfortable, and avoid overdoing it.',
+];
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function getWeek(profile: UserProfile | null) {
+function nearestWeek(week: number) {
+  const weeks = Object.keys(growthByWeek).map(Number);
+  return weeks.reduce((closest, current) =>
+    Math.abs(current - week) < Math.abs(closest - week) ? current : closest
+  );
+}
+
+function getPregnancyProgress(profile: UserProfile | null) {
   if (profile?.due_date) {
     const dueDate = new Date(`${profile.due_date}T12:00:00`);
     const today = new Date();
@@ -106,25 +122,31 @@ function getWeek(profile: UserProfile | null) {
       const msPerDay = 1000 * 60 * 60 * 24;
       const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / msPerDay);
       const pregnancyDay = clamp(280 - daysRemaining, 0, 280);
+      const week = clamp(Math.floor(pregnancyDay / 7) + 1, 1, 40);
+      const day = pregnancyDay % 7;
 
-      return clamp(Math.floor(pregnancyDay / 7) + 1, 1, 40);
+      return {
+        week,
+        day,
+        progress: Math.round((pregnancyDay / 280) * 100),
+      };
     }
   }
 
-  return clamp(profile?.pregnancy_week ?? 24, 1, 40);
+  const week = clamp(profile?.pregnancy_week ?? 24, 1, 40);
+  const day = clamp(profile?.pregnancy_days ?? 0, 0, 6);
+  const pregnancyDay = (week - 1) * 7 + day;
+
+  return {
+    week,
+    day,
+    progress: Math.round((pregnancyDay / 280) * 100),
+  };
 }
 
-function getGrowthInfo(week: number) {
-  const availableWeeks = Object.keys(growthByWeek).map(Number).sort((a, b) => a - b);
-  const closestWeek = availableWeeks.reduce((best, current) => {
-    if (current <= week) return current;
-    return best;
-  }, availableWeeks[0]);
+export default function WeeklyGrowthScreen() {
+  const { palette } = useAppTheme();
 
-  return growthByWeek[closestWeek];
-}
-
-export default function WeeklyGrowth() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -136,17 +158,13 @@ export default function WeeklyGrowth() {
 
       getMyProfile()
         .then((data) => {
-          if (mounted) {
-            setProfile(data);
-          }
+          if (mounted) setProfile(data);
         })
         .catch((error) => {
           console.log('Weekly growth profile error:', error);
         })
         .finally(() => {
-          if (mounted) {
-            setLoading(false);
-          }
+          if (mounted) setLoading(false);
         });
 
       return () => {
@@ -155,235 +173,258 @@ export default function WeeklyGrowth() {
     }, [])
   );
 
-  const week = useMemo(() => getWeek(profile), [profile]);
-  const growth = useMemo(() => getGrowthInfo(week), [week]);
+  const progress = useMemo(() => getPregnancyProgress(profile), [profile]);
+  const growth = growthByWeek[nearestWeek(progress.week)];
   const babyName = profile?.baby_nickname || 'Baby';
 
   return (
-    <Screen bottomSpace={32}>
+    <Screen bottomSpace={40}>
       <Header title="Weekly Growth" back />
 
-      <Text style={styles.title}>Week {week} Growth</Text>
-      <Text style={styles.subtitle}>
-        A live update on how {babyName} may be growing this week.
-      </Text>
+      <View style={styles.heading}>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>LIVE GROWTH</Text>
+        <Text style={[styles.title, { color: palette.ink }]}>This week with {babyName}</Text>
+        <Text style={[styles.subtitle, { color: palette.text }]}>
+          Based on your saved pregnancy profile.
+        </Text>
+      </View>
 
-      <View style={styles.hero}>
+      <View style={[styles.heroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color="#765B60" />
-            <Text style={styles.loadingText}>Loading growth update...</Text>
+            <ActivityIndicator color={palette.accent} />
+            <Text style={[styles.loadingText, { color: palette.text }]}>Loading growth details...</Text>
           </View>
         ) : (
           <>
-            <View style={styles.imageWrap}>
-              <View style={styles.babyCircle}>
-                <Ionicons name="heart" size={78} color="#765B60" />
+            <View style={styles.heroTop}>
+              <View>
+                <Text style={[styles.weekLabel, { color: palette.accent }]}>WEEK {progress.week}, DAY {progress.day}</Text>
+                <Text style={[styles.heroTitle, { color: palette.ink }]}>{growth.size}</Text>
+                <Text style={[styles.heroSubtitle, { color: palette.text }]}>Baby is about this size</Text>
               </View>
-              <Text style={styles.heroWeek}>Week {week}</Text>
+
+              <View style={[styles.babyIcon, { backgroundColor: palette.accentSoft }]}>
+                <Ionicons name={growth.icon} size={54} color={palette.accent} />
+              </View>
             </View>
 
-            <View style={styles.sizeBadge}>
-              <Text style={styles.sizeLabel}>ABOUT THE SIZE OF</Text>
-              <Text style={styles.sizeText}>{growth.size}</Text>
+            <View style={[styles.progressTrack, { backgroundColor: palette.softSurface }]}>
+              <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
             </View>
+
+            <Text style={[styles.progressText, { color: palette.text }]}>
+              {progress.progress}% through your pregnancy journey
+            </Text>
           </>
         )}
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Ionicons name="resize-outline" size={24} color="#765B60" />
-          <Text style={styles.statValue}>{growth.length}</Text>
-          <Text style={styles.statLabel}>Length</Text>
+      <View style={styles.measureGrid}>
+        <View style={[styles.measureCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+          <Text style={[styles.measureValue, { color: palette.ink }]}>{growth.length}</Text>
+          <Text style={[styles.measureLabel, { color: palette.text }]}>Length</Text>
         </View>
 
-        <View style={styles.statCard}>
-          <Ionicons name="scale-outline" size={24} color="#765B60" />
-          <Text style={styles.statValue}>{growth.weight}</Text>
-          <Text style={styles.statLabel}>Weight</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Ionicons name="calendar-outline" size={24} color="#765B60" />
-          <Text style={styles.statValue}>{week}/40</Text>
-          <Text style={styles.statLabel}>Week</Text>
+        <View style={[styles.measureCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+          <Text style={[styles.measureValue, { color: palette.ink }]}>{growth.weight}</Text>
+          <Text style={[styles.measureLabel, { color: palette.text }]}>Weight</Text>
         </View>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.cardIcon}>
-          <Ionicons name="sparkles" size={24} color="#FFF" />
+      <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.infoIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name="sparkles" size={24} color={palette.accent} />
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle}>{growth.title}</Text>
-          <Text style={styles.cardCopy}>{growth.copy}</Text>
+          <Text style={[styles.infoTitle, { color: palette.ink }]}>{growth.headline}</Text>
+          <Text style={[styles.infoCopy, { color: palette.text }]}>{growth.copy}</Text>
         </View>
       </View>
 
-      <View style={styles.tipCard}>
-        <Text style={styles.tipLabel}>THIS WEEK’S TIP</Text>
-        <Text style={styles.tipText}>{growth.tip}</Text>
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Gentle reminders</Text>
+
+      <View style={styles.tips}>
+        {weeklyTips.map((tip, index) => (
+          <View key={tip} style={[styles.tipRow, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <View style={[styles.tipNumber, { backgroundColor: palette.accentSoft }]}>
+              <Text style={[styles.tipNumberText, { color: palette.accent }]}>{index + 1}</Text>
+            </View>
+
+            <Text style={[styles.tipText, { color: palette.text }]}>{tip}</Text>
+          </View>
+        ))}
       </View>
 
-      <AnimatedPressable style={styles.button}>
-        <Text style={styles.buttonText}>View full weekly guide</Text>
+      <AnimatedPressable
+        onPress={() => router.push('/timeline' as never)}
+        style={[styles.timelineButton, { backgroundColor: palette.accent }]}
+      >
+        <Ionicons name="map" size={21} color={palette.onAccent} />
+        <Text style={[styles.timelineText, { color: palette.onAccent }]}>View full timeline</Text>
       </AnimatedPressable>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  heading: {
+    marginTop: 22,
+    marginBottom: 18,
+  },
+  eyebrow: {
+    ...type.section,
+  },
   title: {
     ...type.title,
-    fontSize: 30,
-    color: '#211A1D',
-    textAlign: 'center',
-    marginTop: 22,
+    fontSize: 31,
+    marginTop: 3,
   },
   subtitle: {
     ...type.body,
-    color: '#5E5356',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 20,
-    lineHeight: 23,
+    marginTop: 7,
   },
-  hero: {
-    backgroundColor: '#FFF',
+  heroCard: {
+    minHeight: 230,
     borderRadius: 30,
-    minHeight: 265,
-    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#F0E2DF',
+    padding: 20,
+    marginBottom: 14,
   },
   loading: {
-    minHeight: 265,
+    minHeight: 188,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
   loadingText: {
     ...type.small,
-    color: '#765B60',
   },
-  imageWrap: {
-    height: 210,
-    backgroundColor: '#FFE7EA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  babyCircle: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    backgroundColor: '#FFF8F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#F2C8CF',
-  },
-  heroWeek: {
-    ...type.title,
-    color: '#765B60',
-    fontSize: 24,
-    marginTop: 14,
-  },
-  sizeBadge: {
-    padding: 18,
-    alignItems: 'center',
-  },
-  sizeLabel: {
-    ...type.section,
-    color: '#9B7B82',
-  },
-  sizeText: {
-    ...type.title,
-    color: '#765B60',
-    fontSize: 27,
-    marginTop: 4,
-  },
-  statsRow: {
+  heroTop: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    borderRadius: 22,
-    paddingVertical: 18,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F0E2DF',
+    justifyContent: 'space-between',
+    gap: 16,
   },
-  statValue: {
-    ...type.bodyStrong,
-    color: '#2E2528',
-    fontSize: 17,
-    marginTop: 8,
+  weekLabel: {
+    ...type.section,
   },
-  statLabel: {
-    ...type.tiny,
-    color: '#74686B',
+  heroTitle: {
+    ...type.title,
+    fontSize: 34,
+    marginTop: 5,
+  },
+  heroSubtitle: {
+    ...type.body,
     marginTop: 3,
   },
-  card: {
+  babyIcon: {
+    width: 112,
+    height: 112,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressTrack: {
+    height: 12,
+    borderRadius: 20,
+    marginTop: 28,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 20,
+  },
+  progressText: {
+    ...type.small,
+    marginTop: 10,
+  },
+  measureGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 14,
+  },
+  measureCard: {
+    flex: 1,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+  },
+  measureValue: {
+    ...type.bodyStrong,
+    fontSize: 22,
+  },
+  measureLabel: {
+    ...type.small,
+    marginTop: 5,
+  },
+  infoCard: {
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 18,
     flexDirection: 'row',
     gap: 14,
-    backgroundColor: '#FFF',
-    borderRadius: 26,
-    padding: 18,
-    marginTop: 18,
-    borderWidth: 1,
-    borderColor: '#F0E2DF',
+    marginBottom: 20,
   },
-  cardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#765B60',
+  infoIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitle: {
+  infoTitle: {
     ...type.bodyStrong,
-    color: '#2E2528',
-    fontSize: 19,
+    fontSize: 18,
   },
-  cardCopy: {
+  infoCopy: {
     ...type.body,
-    color: '#5A5053',
-    marginTop: 6,
     lineHeight: 23,
+    marginTop: 5,
   },
-  tipCard: {
-    backgroundColor: '#FFF0F2',
-    borderRadius: 24,
-    padding: 18,
-    marginTop: 16,
+  sectionTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    marginBottom: 10,
   },
-  tipLabel: {
-    ...type.section,
-    color: '#9B6771',
+  tips: {
+    gap: 10,
+  },
+  tipRow: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tipNumber: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipNumberText: {
+    ...type.small,
+    fontWeight: '900',
   },
   tipText: {
-    ...type.body,
-    color: '#3F3437',
-    lineHeight: 23,
-    marginTop: 8,
+    ...type.small,
+    flex: 1,
+    lineHeight: 19,
   },
-  button: {
-    backgroundColor: '#765B60',
-    height: 56,
-    borderRadius: 28,
+  timelineButton: {
+    height: 58,
+    borderRadius: 29,
+    marginTop: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 18,
+    flexDirection: 'row',
+    gap: 9,
   },
-  buttonText: {
+  timelineText: {
     ...type.bodyStrong,
-    color: '#FFF',
   },
 });
