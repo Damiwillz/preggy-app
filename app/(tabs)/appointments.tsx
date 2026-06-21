@@ -1,379 +1,411 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
-import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Card } from '@/components/cards/Card';
-import { Button } from '@/components/ui/Button';
+import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { CalendarIcon, PinIcon, PlusIcon } from '@/components/ui/icons';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
-import { reminders } from '@/data/mockData';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 
 type Appointment = {
   id: string;
   user_id: string;
-  title: string;
+  title: string | null;
+  doctor: string | null;
+  clinic: string | null;
+  appointment_at: string | null;
+  status: string | null;
+  notes: string | null;
   doctor_name: string | null;
   clinic_name: string | null;
   appointment_date: string | null;
   appointment_time: string | null;
-  status: string | null;
-  notes: string | null;
-  created_at: string;
+  date: string | null;
+  time: string | null;
+  location: string | null;
+  type: string | null;
 };
 
-const defaultAppointment = {
-  title: 'Anatomy scan',
-  doctor_name: 'Dr. Sarah Jenkins',
-  clinic_name: 'Riverside Women’s Health Clinic',
-  appointment_date: '2026-07-22',
-  appointment_time: '10:30 AM',
-  status: 'Confirmed',
-  notes: 'Routine anatomy scan and wellness check.',
-};
+function formatDate(date?: string | null) {
+  if (!date) return 'No date set';
 
-function formatAppointmentDate(value?: string | null, time?: string | null) {
-  if (!value) return time || 'Date not set';
+  const parsed = new Date(`${date}T12:00:00`);
 
-  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
 
-  if (Number.isNaN(date.getTime())) return time || 'Date not set';
-
-  const label = date.toLocaleDateString('en-US', {
-    month: 'long',
+  return parsed.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
   });
+}
 
-  return time ? `${label}, ${time}` : label;
+function displayTitle(appointment: Appointment) {
+  return appointment.title || appointment.type || 'Prenatal appointment';
+}
+
+function displayDoctor(appointment: Appointment) {
+  return appointment.doctor_name || appointment.doctor || 'Care team';
+}
+
+function displayClinic(appointment: Appointment) {
+  return appointment.clinic_name || appointment.location || appointment.clinic || 'Clinic not set';
+}
+
+function displayDate(appointment: Appointment) {
+  return appointment.date || appointment.appointment_date;
+}
+
+function displayTime(appointment: Appointment) {
+  return appointment.time || appointment.appointment_time || 'Time not set';
 }
 
 export default function AppointmentsScreen() {
+  const { palette } = useAppTheme();
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
-  const loadAppointments = useCallback(async () => {
-    try {
-      setLoading(true);
+  async function getUserId() {
+    const { data, error } = await supabase.auth.getUser();
 
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (error) throw error;
 
-      if (userError) throw userError;
+    const userId = data.user?.id;
 
-      const userId = userData.user?.id;
-
-      if (!userId) {
-        Alert.alert('Login needed', 'Please log in to view your appointments.');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('id,user_id,title,doctor_name,clinic_name,appointment_date,appointment_time,status,notes,created_at')
-        .eq('user_id', userId)
-        .order('appointment_date', { ascending: true });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setAppointments(data as Appointment[]);
-        return;
-      }
-
-      const { data: created, error: createError } = await supabase
-        .from('appointments')
-        .insert({
-          user_id: userId,
-          ...defaultAppointment,
-        })
-        .select('id,user_id,title,doctor_name,clinic_name,appointment_date,appointment_time,status,notes,created_at')
-        .single();
-
-      if (createError) throw createError;
-
-      setAppointments(created ? [created as Appointment] : []);
-    } catch (error) {
-      console.log('Appointments load error:', error);
-      Alert.alert('Appointments error', 'We could not load your appointments.');
-    } finally {
-      setLoading(false);
+    if (!userId) {
+      throw new Error('No logged in user.');
     }
-  }, []);
+
+    return userId;
+  }
+
+  async function loadAppointments() {
+    const userId = await getUserId();
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('user_id', userId)
+      .order('appointment_at', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    setAppointments((data ?? []) as Appointment[]);
+  }
 
   useFocusEffect(
     useCallback(() => {
-      loadAppointments();
-    }, [loadAppointments])
+      let mounted = true;
+
+      setLoading(true);
+
+      loadAppointments()
+        .catch((error) => {
+          console.log('Appointments load error:', error);
+          Alert.alert('Appointments', 'Could not load appointments.');
+        })
+        .finally(() => {
+          if (mounted) setLoading(false);
+        });
+
+      return () => {
+        mounted = false;
+      };
+    }, [])
   );
 
-  const nextAppointment = appointments[0];
+  async function addAppointment() {
+    setAdding(true);
 
-  const addDemoAppointment = async () => {
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const userId = await getUserId();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 7);
 
-      if (userError) throw userError;
+      const date = tomorrow.toISOString().slice(0, 10);
+      const time = '10:00 AM';
+      const appointmentAt = new Date(`${date}T10:00:00`).toISOString();
 
-      const userId = userData.user?.id;
-
-      if (!userId) {
-        Alert.alert('Login needed', 'Please log in before adding an appointment.');
-        return;
-      }
-
-      const nextMonth = new Date();
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-
-      const appointmentDate = nextMonth.toISOString().split('T')[0];
-
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert({
-          user_id: userId,
-          title: 'Prenatal checkup',
-          doctor_name: 'Dr. Sarah Jenkins',
-          clinic_name: 'Riverside Women’s Health Clinic',
-          appointment_date: appointmentDate,
-          appointment_time: '9:00 AM',
-          status: 'Pending',
-          notes: 'Monthly prenatal wellness check.',
-        })
-        .select('id,user_id,title,doctor_name,clinic_name,appointment_date,appointment_time,status,notes,created_at')
-        .single();
+      const { error } = await supabase.from('appointments').insert({
+        user_id: userId,
+        title: 'Prenatal checkup',
+        type: 'Prenatal checkup',
+        doctor: 'Dr. Grace',
+        doctor_name: 'Dr. Grace',
+        clinic: 'Women’s Wellness Clinic',
+        clinic_name: 'Women’s Wellness Clinic',
+        location: 'Women’s Wellness Clinic',
+        appointment_date: date,
+        appointment_time: time,
+        date,
+        time,
+        appointment_at: appointmentAt,
+        status: 'Upcoming',
+        notes: 'Bring your questions and any recent symptom notes.',
+      });
 
       if (error) throw error;
 
-      setAppointments((current) => [...current, data as Appointment]);
-
-      Alert.alert('Appointment added', 'A new prenatal checkup has been added.');
+      await loadAppointments();
     } catch (error) {
-      console.log('Appointment add error:', error);
-      Alert.alert('Add failed', 'We could not add this appointment.');
+      console.log('Add appointment error:', error);
+      Alert.alert('Appointment', 'Could not add appointment.');
+    } finally {
+      setAdding(false);
     }
-  };
+  }
 
   return (
-    <Screen>
+    <Screen bottomSpace={120}>
       <Header />
 
-      <Text style={styles.title}>Appointments</Text>
+      <View style={styles.heading}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>CARE SCHEDULE</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>Appointments</Text>
+          <Text style={[styles.subtitle, { color: palette.text }]}>
+            Keep prenatal visits, doctors, clinics, and appointment notes in one place.
+          </Text>
+        </View>
 
-      <AnimatedPressable onPress={() => router.push('/appointment/details')}>
-        <Card>
-          <View style={styles.headerRow}>
-            <Text style={styles.section}>Appointments</Text>
-            <Text style={styles.viewAll}>{loading ? 'Loading' : `${appointments.length} saved`}</Text>
+        <AnimatedPressable
+          onPress={addAppointment}
+          disabled={adding}
+          style={[styles.addButton, { backgroundColor: palette.accent }]}
+        >
+          {adding ? (
+            <ActivityIndicator color={palette.onAccent} />
+          ) : (
+            <Ionicons name="add" size={26} color={palette.onAccent} />
+          )}
+        </AnimatedPressable>
+      </View>
+
+      {loading ? (
+        <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <ActivityIndicator color={palette.accent} />
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>Loading appointments...</Text>
+        </View>
+      ) : appointments.length === 0 ? (
+        <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="calendar-outline" size={34} color={palette.accent} />
           </View>
 
-          {nextAppointment ? (
-            <>
-              <View style={styles.row}>
-                <View style={styles.icon}>
-                  <CalendarIcon color={colors.plum} />
-                </View>
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>No appointments yet</Text>
+          <Text style={[styles.emptyCopy, { color: palette.text }]}>
+            Tap the plus button to add a sample prenatal appointment.
+          </Text>
+        </View>
+      ) : (
+        appointments.map((appointment) => {
+          const isCancelled = appointment.status === 'Cancelled';
 
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{nextAppointment.title}</Text>
-                  <Text style={styles.copy}>
-                    {formatAppointmentDate(
-                      nextAppointment.appointment_date,
-                      nextAppointment.appointment_time
-                    )}
+          return (
+            <AnimatedPressable
+              key={appointment.id}
+              onPress={() => router.push('/appointment/details' as never)}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: isCancelled ? palette.danger : palette.line,
+                  opacity: isCancelled ? 0.68 : 1,
+                },
+              ]}
+            >
+              <View style={styles.cardTop}>
+                <View style={[styles.dateBox, { backgroundColor: palette.accentSoft }]}>
+                  <Text style={[styles.dateMonth, { color: palette.accent }]}>
+                    {formatDate(displayDate(appointment)).split(' ')[1] ?? 'Date'}
+                  </Text>
+                  <Text style={[styles.dateDay, { color: palette.ink }]}>
+                    {formatDate(displayDate(appointment)).split(' ')[2] ?? ''}
                   </Text>
                 </View>
 
-                <Text style={styles.badge}>{nextAppointment.status || 'Confirmed'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.cardTitle, { color: palette.ink }]}>{displayTitle(appointment)}</Text>
+                  <Text style={[styles.cardMeta, { color: palette.text }]}>
+                    {displayTime(appointment)} • {displayDoctor(appointment)}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.status,
+                    { backgroundColor: isCancelled ? palette.danger + '22' : palette.accentSoft },
+                  ]}
+                >
+                  <Text style={[styles.statusText, { color: isCancelled ? palette.danger : palette.accent }]}>
+                    {appointment.status || 'Upcoming'}
+                  </Text>
+                </View>
               </View>
 
-              <Text style={styles.info}>{nextAppointment.doctor_name || 'Doctor not set'}</Text>
-
-              <View style={styles.location}>
-                <PinIcon size={18} />
-                <Text style={styles.info}>
-                  {nextAppointment.clinic_name || 'Clinic not set'}
-                </Text>
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={19} color={palette.muted} />
+                <Text style={[styles.infoText, { color: palette.text }]}>{displayClinic(appointment)}</Text>
               </View>
 
-              <Button
-                label="View Appointment Details"
-                variant="secondary"
-                style={{ marginTop: 16 }}
-                onPress={() => router.push('/appointment/details' as never)}
-              />
-            </>
-          ) : (
-            <Text style={styles.copy}>No appointments saved yet.</Text>
-          )}
-        </Card>
-      </AnimatedPressable>
+              {appointment.notes ? (
+                <View style={[styles.note, { backgroundColor: palette.softSurface }]}>
+                  <Text style={[styles.noteText, { color: palette.text }]}>{appointment.notes}</Text>
+                </View>
+              ) : null}
 
-      <Card style={styles.reminderCard}>
-        <Text style={styles.heading}>Daily Reminders</Text>
-
-        {reminders.map((item) => (
-          <View key={item.title} style={styles.reminder}>
-            <Text style={styles.reminderTitle}>{item.title}</Text>
-            <Text style={styles.reminderTime}>{item.time}</Text>
-          </View>
-        ))}
-      </Card>
-
-      <Card style={styles.calendarCard}>
-        <Text style={styles.section}>UPCOMING APPOINTMENTS</Text>
-
-        <View style={styles.days}>
-          {appointments.slice(0, 5).map((appointment, index) => (
-            <View key={appointment.id} style={index === 0 ? styles.dayActive : styles.day}>
-              <Text style={index === 0 ? styles.dayActiveText : styles.dayText}>
-                {appointment.appointment_date
-                  ? new Date(`${appointment.appointment_date}T00:00:00`).toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      day: 'numeric',
-                    })
-                  : 'No date'}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </Card>
-
-      <AnimatedPressable style={styles.fab} onPress={addDemoAppointment}>
-        <PlusIcon />
-      </AnimatedPressable>
+              <View style={[styles.detailsButton, { borderColor: palette.line }]}>
+                <Text style={[styles.detailsText, { color: palette.accent }]}>View Appointment Details</Text>
+                <Ionicons name="arrow-forward" size={18} color={palette.accent} />
+              </View>
+            </AnimatedPressable>
+          );
+        })
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    ...type.title,
-    color: colors.ink,
-    marginTop: 20,
+  heading: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'flex-start',
+    marginTop: 22,
     marginBottom: 18,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  eyebrow: {
+    ...type.section,
+  },
+  title: {
+    ...type.title,
+    fontSize: 31,
+    marginTop: 3,
+  },
+  subtitle: {
+    ...type.body,
+    lineHeight: 23,
+    marginTop: 7,
+  },
+  addButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  empty: {
+    minHeight: 240,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  emptyCopy: {
+    ...type.body,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: 6,
+  },
+  card: {
+    borderRadius: 28,
+    padding: 18,
+    borderWidth: 1,
     marginBottom: 16,
   },
-  section: {
-    ...type.section,
-    color: colors.rose,
-  },
-  viewAll: {
-    ...type.small,
-    color: colors.plum,
-  },
-  row: {
+  cardTop: {
     flexDirection: 'row',
+    gap: 13,
     alignItems: 'center',
-    gap: 12,
   },
-  icon: {
-    width: 52,
-    height: 52,
+  dateBox: {
+    width: 58,
+    height: 66,
     borderRadius: 20,
-    backgroundColor: colors.softSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  name: {
-    ...type.bodyStrong,
-    color: colors.ink,
-  },
-  copy: {
-    ...type.small,
-    color: colors.text,
-  },
-  badge: {
+  dateMonth: {
     ...type.tiny,
-    color: colors.green,
-    backgroundColor: '#EFF5EA',
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  dateDay: {
+    ...type.title,
+    fontSize: 22,
+    marginTop: 1,
+  },
+  cardTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+  },
+  cardMeta: {
+    ...type.small,
+    marginTop: 4,
+  },
+  status: {
+    borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 99,
   },
-  info: {
-    ...type.small,
-    color: colors.text,
-    marginTop: 10,
+  statusText: {
+    ...type.tiny,
+    fontWeight: '900',
   },
-  location: {
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-  },
-  reminderCard: {
-    marginTop: 18,
-  },
-  heading: {
-    ...type.bodyStrong,
-    color: colors.ink,
-    marginBottom: 8,
-  },
-  reminder: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  reminderTitle: {
-    ...type.bodyStrong,
-    color: colors.ink,
-  },
-  reminderTime: {
-    ...type.small,
-    color: colors.plum,
-    textAlign: 'right',
-  },
-  calendarCard: {
-    marginTop: 18,
-  },
-  days: {
-    flexDirection: 'row',
     gap: 8,
     marginTop: 14,
   },
-  day: {
+  infoText: {
+    ...type.small,
     flex: 1,
-    minHeight: 58,
+  },
+  note: {
     borderRadius: 18,
-    backgroundColor: colors.cream,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 13,
+    marginTop: 13,
   },
-  dayActive: {
-    flex: 1,
-    minHeight: 58,
-    borderRadius: 18,
-    backgroundColor: colors.plum,
-    alignItems: 'center',
-    justifyContent: 'center',
+  noteText: {
+    ...type.small,
+    lineHeight: 19,
   },
-  dayText: {
-    ...type.tiny,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  dayActiveText: {
-    ...type.tiny,
-    color: colors.surface,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 108,
-    width: 58,
-    height: 58,
+  detailsButton: {
+    marginTop: 14,
+    minHeight: 44,
     borderRadius: 22,
-    backgroundColor: colors.plum,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+  },
+  detailsText: {
+    ...type.small,
+    fontWeight: '900',
   },
 });
