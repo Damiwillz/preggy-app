@@ -170,13 +170,8 @@ export default function ProfileScreen() {
         <Row
           icon="notifications-outline"
           label="Notification settings"
-          right={
-            <AppSwitch
-              value={notifications}
-              onValueChange={setNotifications}
-              accessibilityLabel="Notification settings"
-            />
-          }
+          detail="Test and schedule app reminders"
+          onPress={() => router.push('/reminders' as never)}
         />
 
         <Row
