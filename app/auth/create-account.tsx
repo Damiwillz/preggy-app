@@ -70,7 +70,7 @@ export default function CreateAccountScreen() {
         <View style={[styles.softCircleTwo, { backgroundColor: palette.surface }]} />
 
         <View style={[styles.heroIcon, { backgroundColor: palette.surface }]}>
-          <Ionicons name="heart" size={54} color={palette.accent} />
+          <Ionicons name="heart" size={48} color={palette.accent} />
         </View>
 
         <View style={[styles.floatingBadge, styles.badgeOne, { backgroundColor: palette.surface }]}>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 54,
-    paddingBottom: 22,
+    paddingBottom: 34,
   },
   topRow: {
     flexDirection: 'row',
@@ -192,9 +192,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroPanel: {
-    height: 168,
+    height: 154,
     borderRadius: 34,
-    marginTop: 18,
+    marginTop: 14,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -218,9 +218,9 @@ const styles = StyleSheet.create({
     bottom: -58,
   },
   heroIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -246,32 +246,32 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   content: {
-    marginTop: 22,
+    marginTop: 18,
   },
   eyebrow: {
     ...type.section,
   },
   title: {
     ...type.title,
-    fontSize: 32,
-    lineHeight: 36,
+    fontSize: 30,
+    lineHeight: 34,
     marginTop: 5,
   },
   subtitle: {
     ...type.body,
-    lineHeight: 22,
-    marginTop: 8,
-    marginBottom: 18,
+    lineHeight: 21,
+    marginTop: 6,
+    marginBottom: 14,
   },
   inputWrap: {
-    height: 56,
+    height: 54,
     borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 11,
+    marginBottom: 9,
   },
   input: {
     flex: 1,
@@ -291,10 +291,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   bottom: {
-    marginTop: 'auto',
+    marginTop: 22,
   },
   primaryButton: {
-    height: 58,
+    height: 56,
     borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   loginFooter: {
     alignItems: 'center',
-    paddingTop: 15,
+    paddingTop: 11,
   },
   footerText: {
     ...type.small,
