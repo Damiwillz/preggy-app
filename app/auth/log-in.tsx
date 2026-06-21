@@ -1,209 +1,249 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Image, Keyboard, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-
+import { Ionicons } from '@expo/vector-icons';
+import { Screen } from '@/components/layout/Screen';
+import { TextField } from '@/components/forms/TextField';
+import { Button } from '@/components/ui/Button';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
-import { useAppTheme } from '@/context/AppThemeContext';
 import { signInWithEmail } from '@/services/auth';
 
 export default function LoginScreen() {
-  const { palette } = useAppTheme();
-
-  const [email, setEmail] = useState('');
+const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [secure, setSecure] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  async function handleLogin() {
-    if (!email.trim() || !password) {
-      Alert.alert('Missing details', 'Enter your email and password.');
-      return;
-    }
+const login = async () => {
+  Keyboard.dismiss();
 
-    setLoading(true);
-
-    try {
-      await signInWithEmail(email.trim(), password);
-      router.replace('/(tabs)/home' as never);
-    } catch (error) {
-      console.log('Login error:', error);
-      Alert.alert('Could not log in', 'Check your email and password, then try again.');
-    } finally {
-      setLoading(false);
-    }
+  if (!email.trim() || !password) {
+    setError('Enter your email and password.');
+    return;
   }
 
+  try {
+    setError('');
+    await signInWithEmail(email.trim(), password);
+    router.replace('/(tabs)/home');
+  } catch {
+    setError('Incorrect email or password.');
+  }
+};
   return (
-    <KeyboardAvoidingView
-      style={[styles.page, { backgroundColor: palette.canvas }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.hero}>
-        <Image source={require('../../assets/images/login-hero.jpg')} style={styles.heroImage} resizeMode="cover" />
-
-        <View style={[styles.logo, { backgroundColor: palette.surface }]}>
-          <Ionicons name="heart" size={30} color={palette.accent} />
-        </View>
+    <Screen bottomSpace={32} style={styles.screen}>
+      <View style={styles.heroWrap}>
+        <Image
+          source={require('../../assets/images/login-hero-clean.jpg')}
+          style={styles.hero}
+          resizeMode="cover"
+        />
+        <AnimatedPressable
+          onPress={() => router.back()}
+          style={styles.back}
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={24} color="#6A5B5B" />
+        </AnimatedPressable>
       </View>
 
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>WELCOME BACK</Text>
-        <Text style={[styles.title, { color: palette.ink }]}>Log in to Preggy</Text>
-        <Text style={[styles.subtitle, { color: palette.text }]}>
-          Continue tracking your pregnancy journey, appointments, reminders, and daily wellness.
-        </Text>
+      <View style={styles.card}>
+        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.subtitle}>Log in to continue your journey</Text>
 
-        <View style={[styles.inputWrap, { backgroundColor: palette.softSurface, borderColor: palette.line }]}>
-          <Ionicons name="mail-outline" size={20} color={palette.muted} />
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email address"
-            placeholderTextColor={palette.muted}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={[styles.input, { color: palette.ink }]}
-          />
-        </View>
+        <TextField
+  label="Email Address"
+  placeholder="sarah@example.com"
+  autoCapitalize="none"
+  keyboardType="email-address"
+  value={email}
+  onChangeText={(value) => {
+    setEmail(value);
+    setError('');
+  }}
+/>
 
-        <View style={[styles.inputWrap, { backgroundColor: palette.softSurface, borderColor: palette.line }]}>
-          <Ionicons name="lock-closed-outline" size={20} color={palette.muted} />
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Password"
-            placeholderTextColor={palette.muted}
-            secureTextEntry={secure}
-            style={[styles.input, { color: palette.ink }]}
-          />
-
-          <AnimatedPressable onPress={() => setSecure((value) => !value)}>
-            <Ionicons name={secure ? 'eye-outline' : 'eye-off-outline'} size={20} color={palette.muted} />
-          </AnimatedPressable>
-        </View>
-
-        <AnimatedPressable onPress={() => router.push('/auth/forgot-password' as never)} style={styles.forgot}>
-          <Text style={[styles.forgotText, { color: palette.accent }]}>Forgot password?</Text>
-        </AnimatedPressable>
+        <TextField
+          label="Password"
+          placeholder="••••••••"
+          value={password}
+          onChangeText={(value) => {
+            setPassword(value);
+            setError('');
+          }}
+          secureTextEntry
+          enablePasswordToggle
+          error={error}
+          onSubmitEditing={login}
+        />
 
         <AnimatedPressable
-          onPress={handleLogin}
-          disabled={loading}
-          style={[styles.primaryButton, { backgroundColor: palette.accent, opacity: loading ? 0.75 : 1 }]}
+          style={styles.forgotPassword}
+          onPress={() => router.push('/auth/reset-password')}
+          accessibilityRole="button"
+          accessibilityLabel="Reset your password"
         >
-          {loading ? (
-            <ActivityIndicator color={palette.onAccent} />
-          ) : (
-            <>
-              <Text style={[styles.primaryText, { color: palette.onAccent }]}>Log in</Text>
-              <Ionicons name="arrow-forward" size={20} color={palette.onAccent} />
-            </>
-          )}
+          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
         </AnimatedPressable>
 
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: palette.text }]}>New to Preggy?</Text>
-          <AnimatedPressable onPress={() => router.push('/auth/create-account' as never)}>
-            <Text style={[styles.footerLink, { color: palette.accent }]}>Create account</Text>
+        <Button label="Log In" onPress={login} />
+
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={styles.or}>OR CONTINUE WITH</Text>
+          <View style={styles.line} />
+        </View>
+
+        <View style={styles.socials}>
+          <AnimatedPressable style={styles.social}>
+            <Ionicons name="logo-google" size={21} color="#1C1718" />
+            <Text style={styles.socialText}>Google</Text>
+          </AnimatedPressable>
+
+          <AnimatedPressable style={styles.social}>
+            <Ionicons name="logo-apple" size={22} color="#1C1718" />
+            <Text style={styles.socialText}>Apple</Text>
           </AnimatedPressable>
         </View>
+
+        <AnimatedPressable
+          style={styles.createAccount}
+          onPress={() => router.push('/auth/create-account')}
+        >
+          <Text style={styles.createAccountText}>
+            Don’t have an account? <Text style={styles.createAccountStrong}>Create an Account</Text>
+          </Text>
+        </AnimatedPressable>
       </View>
-    </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    flex: 1,
+  screen: {
+    paddingHorizontal: 0,
+    backgroundColor: '#FFF9F6',
+  },
+  heroWrap: {
+    height: 292,
+    backgroundColor: '#F4C4BB',
+    position: 'relative',
+    overflow: 'hidden',
   },
   hero: {
-    height: 275,
-  },
-  heroImage: {
     width: '100%',
     height: '100%',
   },
-  logo: {
+  back: {
     position: 'absolute',
-    bottom: -30,
-    left: 26,
-    width: 64,
-    height: 64,
-    borderRadius: 24,
+    left: 22,
+    top: 18,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255,255,255,.93)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#5D4245',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
   },
   card: {
-    flex: 1,
-    marginTop: -10,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    borderWidth: 1,
+    marginTop: -28,
+    marginHorizontal: 22,
+    width: 'auto',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
     paddingHorizontal: 24,
-    paddingTop: 44,
-  },
-  eyebrow: {
-    ...type.section,
+    paddingTop: 28,
+    paddingBottom: 26,
+    shadowColor: '#603B3B',
+    shadowOpacity: 0.09,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
   },
   title: {
     ...type.title,
-    fontSize: 32,
-    marginTop: 5,
+    fontSize: 30,
+    color: '#665456',
+    textAlign: 'center',
   },
   subtitle: {
     ...type.body,
-    lineHeight: 23,
-    marginTop: 8,
-    marginBottom: 22,
+    color: '#4F4647',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 24,
   },
-  inputWrap: {
-    height: 58,
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingHorizontal: 15,
+
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginTop: -4,
+    marginBottom: 18,
+    paddingVertical: 8,
+    paddingLeft: 18,
+  },
+  forgotPasswordText: {
+    ...type.small,
+    color: '#6E2F5A',
+    fontWeight: '800',
+  },
+  divider: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 12,
+    marginVertical: 20,
   },
-  input: {
+  line: {
     flex: 1,
-    ...type.body,
-    paddingVertical: 0,
+    height: 1,
+    backgroundColor: '#EEE4E0',
   },
-  forgot: {
-    alignSelf: 'flex-end',
-    marginTop: 2,
-    marginBottom: 18,
+  or: {
+    ...type.tiny,
+    color: '#7C7070',
+    textAlign: 'center',
   },
-  forgotText: {
-    ...type.small,
-    fontWeight: '900',
+  socials: {
+    width: '100%',
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 14,
   },
-  primaryButton: {
-    height: 58,
-    borderRadius: 29,
+  social: {
+    flex: 1,
+    minWidth: 0,
+    height: 54,
+    borderRadius: 15,
+    backgroundColor: '#F7F3F1',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 9,
+    gap: 10,
   },
-  primaryText: {
-    ...type.bodyStrong,
+  socialText: {
+    ...type.body,
+    color: '#282222',
+    fontWeight: '600',
   },
-  footer: {
-    flexDirection: 'row',
+  createAccount: {
+    minHeight: 52,
+    marginTop: 16,
+    paddingHorizontal: 12,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 22,
   },
-  footerText: {
+  createAccountText: {
     ...type.small,
+    color: '#65595B',
+    textAlign: 'center',
+    lineHeight: 21,
   },
-  footerLink: {
-    ...type.small,
-    fontWeight: '900',
+  createAccountStrong: {
+    fontWeight: '800',
+    color: '#4B3E42',
   },
 });
