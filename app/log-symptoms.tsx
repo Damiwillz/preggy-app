@@ -1,25 +1,35 @@
-import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Card } from '@/components/cards/Card';
-import { Button } from '@/components/ui/Button';
+import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 
 const moods = [
-  ['😊', 'Happy'],
-  ['😌', 'Calm'],
-  ['😴', 'Tired'],
-  ['🤢', 'Queasy'],
-  ['🤯', 'Tense'],
+  { emoji: '😊', label: 'Happy' },
+  { emoji: '😌', label: 'Calm' },
+  { emoji: '😴', label: 'Tired' },
+  { emoji: '🤢', label: 'Queasy' },
+  { emoji: '😣', label: 'Uncomfortable' },
 ];
 
-const symptoms = ['Nausea', 'Back Pain', 'Fatigue', 'Swelling', 'Baby Kicks', 'Other'];
+const symptomOptions = [
+  'Nausea',
+  'Back pain',
+  'Fatigue',
+  'Swelling',
+  'Headache',
+  'Baby kicks',
+  'Heartburn',
+  'Cramps',
+];
+
+const intensityLevels = [1, 2, 3, 4, 5];
 
 function getTodayLabel() {
   return new Date().toLocaleDateString('en-US', {
@@ -30,28 +40,32 @@ function getTodayLabel() {
 }
 
 export default function LogSymptomsScreen() {
-  const [selectedMood, setSelectedMood] = useState('Calm');
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([
-    'Nausea',
-    'Back Pain',
-    'Fatigue',
-  ]);
-  const [intensity, setIntensity] = useState(4);
+  const { palette } = useAppTheme();
+
+  const [mood, setMood] = useState('Calm');
+  const [symptoms, setSymptoms] = useState<string[]>(['Baby kicks']);
+  const [intensity, setIntensity] = useState(2);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const toggleSymptom = (symptom: string) => {
-    setSelectedSymptoms((current) =>
+  const summary = useMemo(() => {
+    if (symptoms.length === 0) return 'No symptoms selected';
+
+    return symptoms.join(', ');
+  }, [symptoms]);
+
+  function toggleSymptom(symptom: string) {
+    setSymptoms((current) =>
       current.includes(symptom)
         ? current.filter((item) => item !== symptom)
         : [...current, symptom]
     );
-  };
+  }
 
-  const saveEntry = async () => {
+  async function saveLog() {
+    setSaving(true);
+
     try {
-      setSaving(true);
-
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError) throw userError;
@@ -59,305 +73,303 @@ export default function LogSymptomsScreen() {
       const userId = userData.user?.id;
 
       if (!userId) {
-        Alert.alert('Login needed', 'Please log in before saving your symptom entry.');
-        return;
+        throw new Error('No logged in user.');
       }
 
       const { error } = await supabase.from('symptom_logs').insert({
         user_id: userId,
-        mood: selectedMood,
-        symptoms: selectedSymptoms,
+        mood,
+        symptoms,
         intensity,
-        notes: notes.trim(),
+        notes: notes.trim() || null,
       });
 
       if (error) throw error;
 
-      setNotes('');
-
-      Alert.alert('Entry saved', 'Your daily symptom log has been saved.', [
+      Alert.alert('Saved', 'Your symptom log has been saved.', [
         {
-          text: 'View Home',
+          text: 'Go Home',
           onPress: () => router.replace('/(tabs)/home' as never),
         },
       ]);
     } catch (error) {
-      console.log('Symptom save error:', error);
-      Alert.alert('Save failed', 'We could not save your symptom log. Please try again.');
+      console.log('Save symptom log error:', error);
+
+      Alert.alert('Could not save', 'Please check your connection and try again.');
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   return (
-    <Screen>
-      <Header title="Daily Log" />
+    <Screen bottomSpace={40}>
+      <Header title="Log Symptoms" back />
 
-      <Text style={styles.eyebrow}>TODAY’S FOCUS</Text>
-      <Text style={styles.title}>How are you feeling?</Text>
-      <Text style={styles.date}>{getTodayLabel()}</Text>
-      <Text style={styles.week}>Track your symptoms and mood today</Text>
+      <View style={styles.heading}>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>DAILY CHECK IN</Text>
+        <Text style={[styles.title, { color: palette.ink }]}>How are you feeling?</Text>
+        <Text style={[styles.subtitle, { color: palette.text }]}>
+          {getTodayLabel()} • Track your mood, symptoms, and notes.
+        </Text>
+      </View>
 
-      <Card style={styles.card}>
-        <Text style={styles.section}>Current Mood</Text>
-
-        <View style={styles.moodRow}>
-          {moods.map(([emoji, label]) => {
-            const active = selectedMood === label;
-
-            return (
-              <AnimatedPressable
-                key={label}
-                onPress={() => setSelectedMood(label)}
-                style={[styles.mood, active && styles.moodActive]}
-              >
-                <Text style={styles.emoji}>{emoji}</Text>
-                <Text style={[styles.moodText, active && styles.moodActiveText]}>{label}</Text>
-              </AnimatedPressable>
-            );
-          })}
+      <View style={[styles.summaryCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+        <View style={[styles.summaryIcon, { backgroundColor: palette.accent }]}>
+          <Ionicons name="pulse" size={28} color={palette.onAccent} />
         </View>
 
-        <Text style={styles.section}>Physical Symptoms</Text>
-
-        <View style={styles.chips}>
-          {symptoms.map((item) => {
-            const active = selectedSymptoms.includes(item);
-
-            return (
-              <AnimatedPressable
-                key={item}
-                onPress={() => toggleSymptom(item)}
-                style={[styles.chip, active && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, active && styles.chipActiveText]}>{item}</Text>
-              </AnimatedPressable>
-            );
-          })}
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.summaryLabel, { color: palette.accent }]}>TODAY’S SUMMARY</Text>
+          <Text style={[styles.summaryTitle, { color: palette.ink }]}>{mood} • Level {intensity}</Text>
+          <Text style={[styles.summaryCopy, { color: palette.text }]}>{summary}</Text>
         </View>
+      </View>
 
-        <View style={styles.levelRow}>
-          <Text style={styles.section}>Overall Intensity</Text>
-          <Text style={styles.level}>Level {intensity}</Text>
-        </View>
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Mood</Text>
 
-        <View style={styles.levelButtons}>
-          {[1, 2, 3, 4, 5].map((level) => {
-            const active = intensity === level;
+      <View style={styles.moodGrid}>
+        {moods.map((item) => {
+          const selected = mood === item.label;
 
-            return (
-              <AnimatedPressable
-                key={level}
-                onPress={() => setIntensity(level)}
-                style={[styles.levelButton, active && styles.levelButtonActive]}
-              >
-                <Text style={[styles.levelButtonText, active && styles.levelButtonTextActive]}>
-                  {level}
-                </Text>
-              </AnimatedPressable>
-            );
-          })}
-        </View>
+          return (
+            <AnimatedPressable
+              key={item.label}
+              onPress={() => setMood(item.label)}
+              style={[
+                styles.moodCard,
+                {
+                  backgroundColor: selected ? palette.accentSoft : palette.surface,
+                  borderColor: selected ? palette.accent : palette.line,
+                },
+              ]}
+            >
+              <Text style={styles.emoji}>{item.emoji}</Text>
+              <Text style={[styles.moodText, { color: selected ? palette.accent : palette.text }]}>
+                {item.label}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
 
-        <View style={styles.slider}>
-          <View style={[styles.sliderFill, { width: `${intensity * 20}%` }]} />
-          <View style={[styles.knob, { left: `${intensity * 20 - 4}%` }]} />
-        </View>
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Symptoms</Text>
 
-        <View style={styles.sliderLabels}>
-          <Text style={styles.copy}>Mild</Text>
-          <Text style={styles.copy}>Intense</Text>
-        </View>
+      <View style={styles.symptomWrap}>
+        {symptomOptions.map((symptom) => {
+          const selected = symptoms.includes(symptom);
 
-        <Text style={styles.section}>Additional Notes</Text>
+          return (
+            <AnimatedPressable
+              key={symptom}
+              onPress={() => toggleSymptom(symptom)}
+              style={[
+                styles.symptomChip,
+                {
+                  backgroundColor: selected ? palette.accent : palette.surface,
+                  borderColor: selected ? palette.accent : palette.line,
+                },
+              ]}
+            >
+              <Text style={[styles.symptomText, { color: selected ? palette.onAccent : palette.ink }]}>
+                {symptom}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
 
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Intensity</Text>
+
+      <View style={[styles.intensityCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        {intensityLevels.map((level) => {
+          const selected = intensity === level;
+
+          return (
+            <AnimatedPressable
+              key={level}
+              onPress={() => setIntensity(level)}
+              style={[
+                styles.levelButton,
+                {
+                  backgroundColor: selected ? palette.accent : palette.softSurface,
+                  borderColor: selected ? palette.accent : palette.line,
+                },
+              ]}
+            >
+              <Text style={[styles.levelText, { color: selected ? palette.onAccent : palette.text }]}>
+                {level}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Notes</Text>
+
+      <View style={[styles.notesCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <TextInput
-          multiline
-          placeholder="How are you feeling today? Any specific symptoms or cravings?"
-          placeholderTextColor={colors.muted}
-          style={styles.notes}
           value={notes}
           onChangeText={setNotes}
+          placeholder="Add anything you want to remember..."
+          placeholderTextColor={palette.muted}
+          style={[styles.notesInput, { color: palette.ink }]}
+          multiline
+          textAlignVertical="top"
         />
-      </Card>
+      </View>
 
-      <Card style={styles.suggested}>
-        <Text style={styles.section}>Suggested for You</Text>
-        <Text style={styles.strong}>10 min Gentle Back Stretch</Text>
-      </Card>
-
-      <Button
-        label={saving ? 'Saving Entry...' : 'Save Entry'}
-        style={{ marginTop: 18 }}
-        onPress={saveEntry}
-      />
+      <AnimatedPressable
+        onPress={saveLog}
+        disabled={saving}
+        style={[styles.saveButton, { backgroundColor: palette.accent }]}
+      >
+        {saving ? (
+          <ActivityIndicator color={palette.onAccent} />
+        ) : (
+          <>
+            <Ionicons name="checkmark-circle" size={22} color={palette.onAccent} />
+            <Text style={[styles.saveText, { color: palette.onAccent }]}>Save today’s log</Text>
+          </>
+        )}
+      </AnimatedPressable>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  heading: {
+    marginTop: 22,
+    marginBottom: 18,
+  },
   eyebrow: {
     ...type.section,
-    color: colors.rose,
-    marginTop: 24,
   },
   title: {
     ...type.title,
-    color: colors.ink,
-    marginTop: 6,
+    fontSize: 31,
+    marginTop: 3,
   },
-  date: {
-    ...type.bodyStrong,
-    color: colors.ink,
-    marginTop: 18,
+  subtitle: {
+    ...type.body,
+    lineHeight: 23,
+    marginTop: 7,
   },
-  week: {
-    ...type.small,
-    color: colors.text,
-    marginTop: 4,
-    marginBottom: 18,
-  },
-  card: {
-    gap: 16,
-  },
-  section: {
-    ...type.section,
-    color: colors.rose,
-  },
-  moodRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  mood: {
-    flex: 1,
-    minHeight: 78,
-    borderRadius: 20,
-    backgroundColor: colors.cream,
+  summaryCard: {
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: colors.line,
+    padding: 18,
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  summaryIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  moodActive: {
-    backgroundColor: colors.softSurface,
-    borderColor: colors.blushDeep,
+  summaryLabel: {
+    ...type.section,
   },
-  emoji: {
-    fontSize: 24,
-    marginBottom: 5,
+  summaryTitle: {
+    ...type.bodyStrong,
+    fontSize: 19,
+    marginTop: 4,
   },
-  moodText: {
-    ...type.tiny,
-    color: colors.text,
+  summaryCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 4,
   },
-  moodActiveText: {
-    color: colors.plum,
-    fontWeight: '800',
+  sectionTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    marginBottom: 10,
+    marginTop: 6,
   },
-  chips: {
+  moodGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+    marginBottom: 14,
   },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-    backgroundColor: colors.cream,
+  moodCard: {
+    width: '31%',
+    minHeight: 94,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
   },
-  chipActive: {
-    backgroundColor: colors.plum,
+  emoji: {
+    fontSize: 28,
+    marginBottom: 7,
   },
-  chipText: {
+  moodText: {
     ...type.small,
-    color: colors.text,
+    fontWeight: '800',
+    textAlign: 'center',
   },
-  chipActiveText: {
-    color: colors.surface,
+  symptomWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+    marginBottom: 14,
   },
-  levelRow: {
+  symptomChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  symptomText: {
+    ...type.small,
+    fontWeight: '800',
+  },
+  intensityCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  level: {
-    ...type.small,
-    color: colors.plum,
-  },
-  levelButtons: {
-    flexDirection: 'row',
-    gap: 10,
+    marginBottom: 14,
   },
   levelButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.cream,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 1,
-    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  levelButtonActive: {
-    backgroundColor: colors.plum,
-    borderColor: colors.plum,
-  },
-  levelButtonText: {
+  levelText: {
     ...type.bodyStrong,
-    color: colors.text,
+    fontSize: 18,
   },
-  levelButtonTextActive: {
-    color: colors.surface,
-  },
-  slider: {
-    height: 10,
-    borderRadius: 99,
-    backgroundColor: colors.softSurface,
-    overflow: 'visible',
-  },
-  sliderFill: {
-    height: '100%',
-    borderRadius: 99,
-    backgroundColor: colors.plum,
-  },
-  knob: {
-    position: 'absolute',
-    top: -6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.surface,
-    borderWidth: 5,
-    borderColor: colors.plum,
-  },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: -8,
-  },
-  copy: {
-    ...type.small,
-    color: colors.text,
-  },
-  notes: {
-    minHeight: 110,
-    borderRadius: 22,
-    padding: 16,
-    backgroundColor: colors.cream,
+  notesCard: {
+    minHeight: 135,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.line,
-    color: colors.ink,
-    ...type.body,
-    textAlignVertical: 'top',
+    padding: 14,
   },
-  suggested: {
+  notesInput: {
+    ...type.body,
+    minHeight: 105,
+    lineHeight: 22,
+  },
+  saveButton: {
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 9,
     marginTop: 18,
   },
-  strong: {
+  saveText: {
     ...type.bodyStrong,
-    color: colors.ink,
-    marginTop: 8,
   },
 });
