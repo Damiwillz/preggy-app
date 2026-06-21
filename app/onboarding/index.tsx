@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -11,7 +11,7 @@ export default function OnboardingScreen() {
   const { palette } = useAppTheme();
 
   return (
-    <View style={[styles.page, { backgroundColor: palette.canvas }]}>
+    <ScrollView style={[styles.page, { backgroundColor: palette.canvas }]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <View style={styles.heroWrap}>
         <Image
           source={require('../../assets/images/onboarding-journey-photo.jpg')}
@@ -79,13 +79,16 @@ export default function OnboardingScreen() {
           <Text style={[styles.secondaryText, { color: palette.accent }]}>Create account now</Text>
         </AnimatedPressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
     flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
   },
   heroWrap: {
     height: 390,
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sheet: {
-    flex: 1,
+    minHeight: 520,
     marginTop: -30,
     borderTopLeftRadius: 38,
     borderTopRightRadius: 38,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -29,7 +29,7 @@ export default function PersonalGuidanceScreen() {
   const { palette } = useAppTheme();
 
   return (
-    <View style={[styles.page, { backgroundColor: palette.canvas }]}>
+    <ScrollView style={[styles.page, { backgroundColor: palette.canvas }]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <View style={styles.topRow}>
         <AnimatedPressable
           onPress={() => router.replace('/onboarding' as never)}
@@ -91,15 +91,19 @@ export default function PersonalGuidanceScreen() {
         <Text style={[styles.primaryText, { color: palette.onAccent }]}>Continue</Text>
         <Ionicons name="arrow-forward" size={20} color={palette.onAccent} />
       </AnimatedPressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
     flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 58,
+    paddingBottom: 28,
   },
   topRow: {
     flexDirection: 'row',
@@ -214,7 +218,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     marginTop: 'auto',
-    marginBottom: 28,
+    marginBottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
