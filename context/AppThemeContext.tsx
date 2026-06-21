@@ -1,6 +1,7 @@
 import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
 
+import { supabase } from '@/lib/supabase';
 import { getMyPrivacySettings, updateMyPrivacySettings } from '@/services/privacy';
 
 type AppearanceMode = 'system' | 'light' | 'dark';
@@ -127,6 +128,15 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
 
   const refreshTheme = useCallback(async () => {
     try {
+      const { data } = await supabase.auth.getSession();
+
+      if (!data.session) {
+        setModeState('system');
+        setAccentColorState('rose');
+        applyNativeMode('system');
+        return;
+      }
+
       const settings = await getMyPrivacySettings();
 
       const nextMode = (settings.appearance_mode ?? 'system') as AppearanceMode;
@@ -136,7 +146,7 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
       setAccentColorState(nextAccent);
       applyNativeMode(nextMode);
     } catch (error) {
-      console.log('Theme refresh failed:', error);
+      console.log('Theme refresh skipped:', error);
     }
   }, []);
 
