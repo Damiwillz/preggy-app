@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   bottom: {
-    marginTop: 'auto',
+    marginTop: 34,
   },
   primaryButton: {
     height: 56,
