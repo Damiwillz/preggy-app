@@ -163,7 +163,10 @@ const styles = StyleSheet.create({
     marginTop: 26,
   },
   heroImage: {
-    width: '100%',
+    position: 'absolute',
+    left: -42,
+    top: 0,
+    width: '118%',
     height: '100%',
   },
   heroShade: {
