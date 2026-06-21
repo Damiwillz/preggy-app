@@ -68,7 +68,7 @@ export default function CreateAccountScreen() {
 
         <View style={[styles.hero, { backgroundColor: palette.accentSoft }]}>
           <View style={[styles.heroCircle, { backgroundColor: palette.surface }]}>
-            <Ionicons name="heart" size={72} color={palette.accent} />
+            <Ionicons name="heart" size={62} color={palette.accent} />
           </View>
 
           <View style={[styles.floatCard, styles.floatOne, { backgroundColor: palette.surface }]}>
@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: 24,
-    paddingTop: 58,
-    paddingBottom: 28,
+    paddingTop: 54,
+    paddingBottom: 90,
   },
   topRow: {
     flexDirection: 'row',
@@ -183,17 +183,17 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   hero: {
-    height: 220,
-    borderRadius: 36,
-    marginTop: 26,
+    height: 188,
+    borderRadius: 32,
+    marginTop: 18,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   heroCircle: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
+    width: 112,
+    height: 112,
+    borderRadius: 56,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -221,32 +221,32 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 30,
     borderWidth: 1,
-    padding: 20,
-    marginTop: 18,
+    padding: 18,
+    marginTop: 16,
   },
   eyebrow: {
     ...type.section,
   },
   title: {
     ...type.title,
-    fontSize: 32,
+    fontSize: 30,
     marginTop: 5,
   },
   subtitle: {
     ...type.body,
     lineHeight: 23,
     marginTop: 8,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   inputWrap: {
-    height: 58,
+    height: 56,
     borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   input: {
     flex: 1,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   primaryButton: {
-    height: 58,
+    height: 56,
     borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
