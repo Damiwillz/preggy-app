@@ -6,8 +6,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { getPublishedArticles, type Article } from '@/services/articles';
 
 const articleImages: Record<string, number> = {
@@ -22,6 +22,8 @@ function getArticleImage(imageKey: string) {
 }
 
 export default function TipsScreen() {
+  const { palette } = useAppTheme();
+
   const [category, setCategory] = useState('All');
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
@@ -37,9 +39,7 @@ export default function TipsScreen() {
 
       getPublishedArticles()
         .then((data) => {
-          if (mounted) {
-            setArticles(data);
-          }
+          if (mounted) setArticles(data);
         })
         .catch((error) => {
           console.log('Tips articles error:', error);
@@ -49,9 +49,7 @@ export default function TipsScreen() {
           }
         })
         .finally(() => {
-          if (mounted) {
-            setLoading(false);
-          }
+          if (mounted) setLoading(false);
         });
 
       return () => {
@@ -86,57 +84,69 @@ export default function TipsScreen() {
 
       <View style={styles.headingRow}>
         <View>
-          <Text style={styles.eyebrow}>LIVE GUIDANCE</Text>
-          <Text style={styles.title}>Daily Guidance</Text>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>LIVE GUIDANCE</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>Daily Guidance</Text>
         </View>
 
-        <View style={styles.savedCircle}>
-          <Ionicons name="bookmark-outline" size={21} color={colors.plum} />
+        <View style={[styles.savedCircle, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Ionicons name="bookmark-outline" size={21} color={palette.accent} />
         </View>
       </View>
 
-      <View style={styles.search}>
-        <Ionicons name="search" size={21} color={colors.muted} />
+      <View style={[styles.search, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <Ionicons name="search" size={21} color={palette.muted} />
 
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Search guidance, movement, or prep..."
-          placeholderTextColor={colors.muted}
-          style={styles.searchInput}
+          placeholderTextColor={palette.muted}
+          style={[styles.searchInput, { color: palette.ink }]}
           returnKeyType="search"
         />
 
         {query.length > 0 && (
-          <AnimatedPressable onPress={() => setQuery('')} style={styles.clearButton}>
-            <Ionicons name="close" size={16} color={colors.text} />
+          <AnimatedPressable onPress={() => setQuery('')} style={[styles.clearButton, { backgroundColor: palette.softSurface }]}>
+            <Ionicons name="close" size={16} color={palette.ink} />
           </AnimatedPressable>
         )}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categories}>
-        {categories.map((item) => (
-          <AnimatedPressable
-            key={item}
-            onPress={() => setCategory(item)}
-            style={[styles.chip, category === item && styles.chipActive]}
-          >
-            <Text style={[styles.chipText, category === item && styles.chipTextActive]}>{item}</Text>
-          </AnimatedPressable>
-        ))}
+        {categories.map((item) => {
+          const selected = category === item;
+
+          return (
+            <AnimatedPressable
+              key={item}
+              onPress={() => setCategory(item)}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: selected ? palette.accent : palette.softSurface,
+                  borderColor: selected ? palette.accent : palette.line,
+                },
+              ]}
+            >
+              <Text style={[styles.chipText, { color: selected ? palette.onAccent : palette.ink }]}>
+                {item}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
       </ScrollView>
 
       {loading ? (
-        <View style={styles.empty}>
-          <ActivityIndicator color={colors.plum} />
-          <Text style={styles.emptyTitle}>Loading articles...</Text>
-          <Text style={styles.emptyCopy}>Fetching live guidance from Supabase.</Text>
+        <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <ActivityIndicator color={palette.accent} />
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>Loading articles...</Text>
+          <Text style={[styles.emptyCopy, { color: palette.text }]}>Fetching live guidance from Supabase.</Text>
         </View>
       ) : errorText ? (
-        <View style={styles.empty}>
-          <Ionicons name="cloud-offline-outline" size={38} color={colors.muted} />
-          <Text style={styles.emptyTitle}>Could not load articles</Text>
-          <Text style={styles.emptyCopy}>{errorText}</Text>
+        <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Ionicons name="cloud-offline-outline" size={38} color={palette.muted} />
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>Could not load articles</Text>
+          <Text style={[styles.emptyCopy, { color: palette.text }]}>{errorText}</Text>
 
           <AnimatedPressable
             onPress={() => {
@@ -148,26 +158,28 @@ export default function TipsScreen() {
                 .catch(() => setErrorText('Could not load articles. Please try again.'))
                 .finally(() => setLoading(false));
             }}
-            style={styles.retry}
+            style={[styles.retry, { backgroundColor: palette.accent }]}
           >
-            <Text style={styles.retryText}>Try again</Text>
+            <Text style={[styles.retryText, { color: palette.onAccent }]}>Try again</Text>
           </AnimatedPressable>
         </View>
       ) : filtered.length === 0 ? (
-        <View style={styles.empty}>
-          <Ionicons name="leaf-outline" size={38} color={colors.muted} />
-          <Text style={styles.emptyTitle}>Nothing found</Text>
-          <Text style={styles.emptyCopy}>Try another search or category.</Text>
+        <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Ionicons name="leaf-outline" size={38} color={palette.muted} />
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>Nothing found</Text>
+          <Text style={[styles.emptyCopy, { color: palette.text }]}>Try another search or category.</Text>
         </View>
       ) : (
         filtered.map((article) =>
           article.featured ? (
             <AnimatedPressable key={article.id} onPress={() => openArticle(article)} style={styles.featured}>
               <Image source={getArticleImage(article.image_key)} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-              <View style={styles.overlay} />
+              <View style={[styles.overlay, { backgroundColor: palette.isDark ? 'rgba(0,0,0,0.56)' : 'rgba(31,19,24,0.38)' }]} />
 
               <View style={styles.featuredText}>
-                <Text style={styles.featuredBadge}>FEATURED</Text>
+                <Text style={[styles.featuredBadge, { backgroundColor: palette.accentSoft, color: palette.accent }]}>
+                  FEATURED
+                </Text>
                 <Text style={styles.featuredTitle}>{article.title}</Text>
                 <Text style={styles.featuredSubtitle}>{article.subtitle}</Text>
 
@@ -178,25 +190,29 @@ export default function TipsScreen() {
               </View>
             </AnimatedPressable>
           ) : (
-            <AnimatedPressable key={article.id} onPress={() => openArticle(article)} style={styles.article}>
+            <AnimatedPressable
+              key={article.id}
+              onPress={() => openArticle(article)}
+              style={[styles.article, { backgroundColor: palette.surface, borderColor: palette.line }]}
+            >
               <Image source={getArticleImage(article.image_key)} style={styles.articleImage} resizeMode="cover" />
 
               <View style={styles.articleBody}>
                 <View style={styles.metaRow}>
-                  <Text style={styles.meta}>
+                  <Text style={[styles.meta, { color: palette.accent }]}>
                     {article.category} • {article.read_time}
                   </Text>
 
                   <Ionicons
                     name="arrow-up-outline"
                     size={18}
-                    color={colors.plum}
+                    color={palette.accent}
                     style={{ transform: [{ rotate: '45deg' }] }}
                   />
                 </View>
 
-                <Text style={styles.articleTitle}>{article.title}</Text>
-                <Text style={styles.articleSubtitle}>{article.subtitle}</Text>
+                <Text style={[styles.articleTitle, { color: palette.ink }]}>{article.title}</Text>
+                <Text style={[styles.articleSubtitle, { color: palette.text }]}>{article.subtitle}</Text>
               </View>
             </AnimatedPressable>
           )
@@ -216,46 +232,38 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...type.section,
-    color: colors.rose,
   },
   title: {
     ...type.title,
     fontSize: 30,
-    color: colors.ink,
     marginTop: 3,
   },
   savedCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.line,
   },
   search: {
     height: 58,
     borderRadius: 18,
-    backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 10,
     borderWidth: 1,
-    borderColor: colors.line,
   },
   searchInput: {
     flex: 1,
     ...type.body,
-    color: colors.ink,
     paddingVertical: 0,
   },
   clearButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.softSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -268,17 +276,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 19,
     paddingVertical: 10,
     borderRadius: 24,
-    backgroundColor: '#F4EEEB',
-  },
-  chipActive: {
-    backgroundColor: colors.plum,
+    borderWidth: 1,
   },
   chipText: {
     ...type.small,
-    color: '#54484A',
-  },
-  chipTextActive: {
-    color: '#fff',
+    fontWeight: '800',
   },
   featured: {
     height: 300,
@@ -286,24 +288,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 22,
     justifyContent: 'flex-end',
-    backgroundColor: colors.line,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(31,19,24,0.38)',
   },
   featuredText: {
     padding: 24,
   },
   featuredBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FBE3E6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
     ...type.tiny,
-    color: colors.plum,
     marginBottom: 10,
+    fontWeight: '900',
   },
   featuredTitle: {
     ...type.title,
@@ -325,14 +324,13 @@ const styles = StyleSheet.create({
   openText: {
     ...type.small,
     color: '#fff',
+    fontWeight: '800',
   },
   article: {
-    backgroundColor: colors.surface,
     borderRadius: 24,
     overflow: 'hidden',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: colors.line,
   },
   articleImage: {
     width: '100%',
@@ -348,54 +346,46 @@ const styles = StyleSheet.create({
   },
   meta: {
     ...type.small,
-    color: colors.rose,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   articleTitle: {
     ...type.bodyStrong,
     fontSize: 19,
     lineHeight: 25,
-    color: colors.ink,
     marginTop: 7,
   },
   articleSubtitle: {
     ...type.small,
-    color: colors.text,
     marginTop: 7,
+    lineHeight: 19,
   },
   empty: {
     marginTop: 30,
     minHeight: 220,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.line,
     padding: 24,
   },
   emptyTitle: {
     ...type.bodyStrong,
-    color: colors.ink,
     marginTop: 12,
     textAlign: 'center',
   },
   emptyCopy: {
     ...type.small,
-    color: colors.text,
     marginTop: 4,
     textAlign: 'center',
   },
   retry: {
     marginTop: 16,
-    backgroundColor: colors.plum,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
   },
   retryText: {
     ...type.small,
-    color: '#fff',
-    fontWeight: '800',
+    fontWeight: '900',
   },
 });
