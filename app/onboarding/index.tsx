@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -12,21 +12,36 @@ export default function OnboardingScreen() {
 
   return (
     <ScrollView style={[styles.page, { backgroundColor: palette.canvas }]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-      <View style={styles.heroWrap}>
-        <Image
-          source={require('../../assets/images/onboarding-journey-photo.jpg')}
-          style={styles.heroImage}
-          resizeMode="cover"
-        />
-
-        <View style={styles.heroOverlay} />
+      <View style={[styles.heroWrap, { backgroundColor: palette.accentSoft }]}>
+        <View style={[styles.softCircleOne, { backgroundColor: palette.surface }]} />
+        <View style={[styles.softCircleTwo, { backgroundColor: palette.surface }]} />
+        <View style={[styles.softCircleThree, { backgroundColor: palette.accent }]} />
 
         <AnimatedPressable
           onPress={() => router.replace('/auth/log-in' as never)}
-          style={[styles.skipButton, { backgroundColor: 'rgba(255,255,255,0.92)' }]}
+          style={[styles.skipButton, { backgroundColor: palette.surface }]}
         >
-          <Text style={styles.skipText}>Log in</Text>
+          <Text style={[styles.skipText, { color: palette.accent }]}>Log in</Text>
         </AnimatedPressable>
+
+        <View style={[styles.mamaCard, { backgroundColor: palette.surface }]}>
+          <View style={[styles.mamaIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="heart" size={54} color={palette.accent} />
+          </View>
+
+          <Text style={[styles.mamaTitle, { color: palette.ink }]}>Preggy</Text>
+          <Text style={[styles.mamaCopy, { color: palette.text }]}>A calmer way to follow your pregnancy journey</Text>
+        </View>
+
+        <View style={[styles.floatBadge, styles.floatBadgeOne, { backgroundColor: palette.surface }]}>
+          <Ionicons name="pulse" size={19} color={palette.accent} />
+          <Text style={[styles.floatBadgeText, { color: palette.ink }]}>Symptoms</Text>
+        </View>
+
+        <View style={[styles.floatBadge, styles.floatBadgeTwo, { backgroundColor: palette.surface }]}>
+          <Ionicons name="calendar" size={19} color={palette.accent} />
+          <Text style={[styles.floatBadgeText, { color: palette.ink }]}>Appointments</Text>
+        </View>
 
         <View style={[styles.logoBubble, { backgroundColor: palette.surface }]}>
           <Ionicons name="heart" size={30} color={palette.accent} />
@@ -93,13 +108,82 @@ const styles = StyleSheet.create({
   heroWrap: {
     height: 390,
   },
-  heroImage: {
-    width: '100%',
-    height: '100%',
+  softCircleOne: {
+    position: 'absolute',
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    opacity: 0.58,
+    left: -70,
+    top: 58,
   },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(43,25,31,0.24)',
+  softCircleTwo: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    opacity: 0.52,
+    right: -38,
+    top: 118,
+  },
+  softCircleThree: {
+    position: 'absolute',
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    opacity: 0.18,
+    right: 60,
+    top: 58,
+  },
+  mamaCard: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    top: 118,
+    height: 178,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+  },
+  mamaIcon: {
+    width: 86,
+    height: 86,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  mamaTitle: {
+    ...type.title,
+    fontSize: 26,
+  },
+  mamaCopy: {
+    ...type.small,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginTop: 3,
+  },
+  floatBadge: {
+    position: 'absolute',
+    borderRadius: 999,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  floatBadgeOne: {
+    left: 24,
+    top: 274,
+  },
+  floatBadgeTwo: {
+    right: 22,
+    top: 306,
+  },
+  floatBadgeText: {
+    ...type.tiny,
+    fontWeight: '900',
   },
   skipButton: {
     position: 'absolute',
@@ -111,7 +195,6 @@ const styles = StyleSheet.create({
   },
   skipText: {
     ...type.small,
-    color: '#5F424D',
     fontWeight: '900',
   },
   logoBubble: {
