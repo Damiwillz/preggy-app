@@ -30,6 +30,13 @@
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFF8F5"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a3274963-c3ee-4f6b-9564-f3a0471f595d"
+      }
+    },
+    "owner": "dammywillz"
   }
 }
