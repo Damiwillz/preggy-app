@@ -113,6 +113,46 @@ export default function MedicationScreen() {
     }
   }
 
+  async function deleteMedication(medication: Medication) {
+    Alert.alert(
+      'Delete medication',
+      `Remove ${medication.name} from your routine?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setSavingId(medication.id);
+
+            const previous = medications;
+
+            setMedications((old) => old.filter((item) => item.id !== medication.id));
+
+            try {
+              const { error } = await supabase
+                .from('medications')
+                .delete()
+                .eq('id', medication.id);
+
+              if (error) throw error;
+            } catch (error) {
+              console.log('Delete medication error:', error);
+
+              setMedications(previous);
+              Alert.alert('Medication', 'Could not delete medication.');
+            } finally {
+              setSavingId(null);
+            }
+          },
+        },
+      ]
+    );
+  }
+
   async function toggleMedication(medication: Medication) {
     setSavingId(medication.id);
 
@@ -250,15 +290,25 @@ export default function MedicationScreen() {
                 ) : null}
               </View>
 
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: isTaken ? palette.success + '22' : palette.softSurface },
-                ]}
-              >
-                <Text style={[styles.statusText, { color: isTaken ? palette.success : palette.text }]}>
-                  {isTaken ? 'Taken' : 'Due'}
-                </Text>
+              <View style={styles.rightActions}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: isTaken ? palette.success + '22' : palette.softSurface },
+                  ]}
+                >
+                  <Text style={[styles.statusText, { color: isTaken ? palette.success : palette.text }]}>
+                    {isTaken ? 'Taken' : 'Due'}
+                  </Text>
+                </View>
+
+                <AnimatedPressable
+                  onPress={() => deleteMedication(medication)}
+                  disabled={savingId === medication.id}
+                  style={[styles.deleteButton, { backgroundColor: palette.danger + '20' }]}
+                >
+                  <Ionicons name="trash-outline" size={18} color={palette.danger} />
+                </AnimatedPressable>
               </View>
             </AnimatedPressable>
           );
@@ -383,10 +433,21 @@ const styles = StyleSheet.create({
     marginTop: 5,
     lineHeight: 18,
   },
+  rightActions: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
   statusBadge: {
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusText: {
     ...type.tiny,
