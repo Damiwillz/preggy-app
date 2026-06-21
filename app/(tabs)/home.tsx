@@ -1,20 +1,16 @@
-import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
 
-import { Screen } from '@/components/layout/Screen';
-import { Header } from '@/components/layout/Header';
 import { Card } from '@/components/cards/Card';
-import { Button } from '@/components/ui/Button';
+import { Header } from '@/components/layout/Header';
+import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { CalendarIcon, HeartIcon, WaterIcon } from '@/components/ui/icons';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
-import { wisdom } from '@/data/mockData';
-import { getMyProfile, type UserProfile } from '@/services/profile';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
+import { getMyProfile, type UserProfile } from '@/services/profile';
 
 type SymptomLog = {
   id: string;
@@ -25,387 +21,568 @@ type SymptomLog = {
   created_at: string;
 };
 
-function getDaysToGo(dueDate?: string | null) {
-  if (!dueDate) return 193;
+type Medication = {
+  id: string;
+  name: string;
+  dosage: string | null;
+  time: string | null;
+  taken: boolean | null;
+};
 
-  const today = new Date();
-  const due = new Date(`${dueDate}T00:00:00`);
-  const difference = due.getTime() - today.getTime();
+type Appointment = {
+  id: string;
+  title: string | null;
+  type: string | null;
+  date: string | null;
+  time: string | null;
+  location: string | null;
+  status: string | null;
+};
 
-  return Math.max(0, Math.ceil(difference / 86400000));
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
-function getCompletion(week?: number | null) {
-  const currentWeek = week ?? 12;
-  return Math.min(100, Math.max(0, Math.round((currentWeek / 40) * 100)));
-}
+function getPregnancyProgress(profile: UserProfile | null) {
+  if (profile?.due_date) {
+    const dueDate = new Date(`${profile.due_date}T12:00:00`);
+    const today = new Date();
 
-function getBabySize(week?: number | null) {
-  const currentWeek = week ?? 12;
+    if (!Number.isNaN(dueDate.getTime())) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / msPerDay);
+      const pregnancyDay = clamp(280 - daysRemaining, 0, 280);
+      const week = clamp(Math.floor(pregnancyDay / 7) + 1, 1, 40);
+      const day = pregnancyDay % 7;
 
-  if (currentWeek < 13) {
-    return {
-      emoji: '🍋‍🟩',
-      size: 'Lime',
-      detail: 'Weight: ~14g | Length: ~5.4cm',
-    };
+      return {
+        week,
+        day,
+        progress: Math.round((pregnancyDay / 280) * 100),
+        daysRemaining: clamp(daysRemaining, 0, 280),
+      };
+    }
   }
 
-  if (currentWeek < 20) {
-    return {
-      emoji: '🥑',
-      size: 'Avocado',
-      detail: 'Growing stronger every week',
-    };
-  }
-
-  if (currentWeek < 28) {
-    return {
-      emoji: '🍊',
-      size: 'Grapefruit',
-      detail: 'Hearing and movement are developing',
-    };
-  }
-
-  if (currentWeek < 35) {
-    return {
-      emoji: '🍍',
-      size: 'Pineapple',
-      detail: 'Gaining weight and preparing for birth',
-    };
-  }
+  const week = clamp(profile?.pregnancy_week ?? 24, 1, 40);
+  const day = clamp(profile?.pregnancy_days ?? 0, 0, 6);
+  const pregnancyDay = (week - 1) * 7 + day;
 
   return {
-    emoji: '🎃',
-    size: 'Pumpkin',
-    detail: 'Almost ready for your big day',
+    week,
+    day,
+    progress: Math.round((pregnancyDay / 280) * 100),
+    daysRemaining: clamp(280 - pregnancyDay, 0, 280),
   };
 }
 
-function formatSymptoms(log: SymptomLog | null) {
-  if (!log?.symptoms?.length) return 'No symptoms saved yet';
+function formatDate(date?: string | null) {
+  if (!date) return 'No date set';
 
-  return log.symptoms.join(', ');
+  const parsed = new Date(`${date}T12:00:00`);
+
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function greeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
 export default function HomeScreen() {
+  const { palette } = useAppTheme();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [latestLog, setLatestLog] = useState<SymptomLog | null>(null);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const loadHomeData = useCallback(async () => {
-    const nextProfile = await getMyProfile();
-    setProfile(nextProfile);
+  async function loadDashboard() {
+    setLoading(true);
 
-    const { data: userData } = await supabase.auth.getUser();
+    const profileData = await getMyProfile();
+    setProfile(profileData);
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError) throw userError;
+
     const userId = userData.user?.id;
 
-    if (!userId) return;
+    if (!userId) {
+      throw new Error('No logged in user.');
+    }
 
-    const { data } = await supabase
-      .from('symptom_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const [logResult, medsResult, appointmentResult] = await Promise.all([
+      supabase
+        .from('symptom_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('medications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('time', { ascending: true }),
+      supabase
+        .from('appointments')
+        .select('*')
+        .eq('user_id', userId)
+        .neq('status', 'Cancelled')
+        .order('date', { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
-    setLatestLog((data as SymptomLog | null) ?? null);
-  }, []);
+    if (logResult.error) throw logResult.error;
+    if (medsResult.error) throw medsResult.error;
+    if (appointmentResult.error) throw appointmentResult.error;
+
+    setLatestLog((logResult.data as SymptomLog | null) ?? null);
+    setMedications((medsResult.data ?? []) as Medication[]);
+    setNextAppointment((appointmentResult.data as Appointment | null) ?? null);
+  }
 
   useFocusEffect(
     useCallback(() => {
-      loadHomeData();
-    }, [loadHomeData])
+      let mounted = true;
+
+      loadDashboard()
+        .catch((error) => {
+          console.log('Home dashboard error:', error);
+        })
+        .finally(() => {
+          if (mounted) {
+            setLoading(false);
+          }
+        });
+
+      return () => {
+        mounted = false;
+      };
+    }, [])
   );
 
-  const displayName = profile?.full_name?.split(' ')[0] || 'Mama';
-  const week = profile?.pregnancy_week ?? 12;
-  const days = profile?.pregnancy_days ?? 0;
-  const completion = getCompletion(week);
-  const daysToGo = getDaysToGo(profile?.due_date);
-  const baby = getBabySize(week);
+  const progress = useMemo(() => getPregnancyProgress(profile), [profile]);
+  const babyName = profile?.baby_nickname || 'Baby';
+  const firstName = profile?.full_name?.split(' ')?.[0] || 'Mama';
+  const medicationDone = medications.filter((item) => item.taken).length;
+  const medicationTotal = medications.length;
+  const symptoms = latestLog?.symptoms?.length ? latestLog.symptoms.join(', ') : 'No symptoms logged yet';
 
   return (
-    <Screen>
+    <Screen bottomSpace={120}>
       <Header />
 
-      <Text style={styles.eyebrow}>CURRENT PROGRESS</Text>
-      <Text style={styles.title}>You’re glowing, {displayName}</Text>
-
-      <LinearGradient
-        colors={[colors.blush, '#FFF3EF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        <View style={styles.progressTop}>
-          <Text style={styles.muted}>Current Stage</Text>
-          <Text style={styles.week}>Week {week}</Text>
+      <View style={styles.top}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.greeting, { color: palette.text }]}>{greeting()}, {firstName}</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>How are you and {babyName} today?</Text>
         </View>
 
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${completion}%` }]} />
+        <View style={[styles.weekPill, { backgroundColor: palette.accentSoft }]}>
+          <Text style={[styles.weekPillText, { color: palette.accent }]}>Week {progress.week}</Text>
         </View>
+      </View>
 
-        <View style={styles.progressBottom}>
-          <Text style={styles.muted}>{days > 0 ? `${days} extra days` : 'Pregnancy progress'}</Text>
-          <Text style={styles.percent}>{completion}%</Text>
-        </View>
-
-        <Text style={styles.days}>{daysToGo} days to go</Text>
-        <Text style={styles.daysSub}>Until your big day</Text>
-      </LinearGradient>
-
-      <Card style={styles.development}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.section}>Baby Development</Text>
-          <Text style={styles.badge}>LIVE</Text>
-        </View>
-
-        <View style={styles.limeWrap}>
-          <View style={styles.lime}>
-            <Text style={styles.limeText}>{baby.emoji}</Text>
+      <Card style={styles.hero}>
+        <View style={styles.heroTop}>
+          <View>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>TODAY’S JOURNEY</Text>
+            <Text style={[styles.heroTitle, { color: palette.ink }]}>
+              Week {progress.week}, Day {progress.day}
+            </Text>
           </View>
 
-          <View style={{ flex: 1 }}>
-            <Text style={styles.copy}>Your baby is currently the size of a</Text>
-            <Text style={styles.limeTitle}>{baby.size}</Text>
-            <Text style={styles.copy}>{baby.detail}</Text>
+          <View style={[styles.progressCircle, { backgroundColor: palette.accentSoft }]}>
+            <Text style={[styles.progressText, { color: palette.accent }]}>{progress.progress}%</Text>
           </View>
+        </View>
+
+        <View style={[styles.track, { backgroundColor: palette.softSurface }]}>
+          <View style={[styles.fill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
+        </View>
+
+        <View style={styles.heroBottom}>
+          <View>
+            <Text style={[styles.smallLabel, { color: palette.muted }]}>Estimated countdown</Text>
+            <Text style={[styles.smallValue, { color: palette.ink }]}>
+              {progress.daysRemaining > 0 ? `${progress.daysRemaining} days to go` : 'Due date window'}
+            </Text>
+          </View>
+
+          <AnimatedPressable onPress={() => router.push('/timeline' as never)} style={[styles.heroButton, { backgroundColor: palette.accent }]}>
+            <Text style={[styles.heroButtonText, { color: palette.onAccent }]}>Timeline</Text>
+          </AnimatedPressable>
         </View>
       </Card>
 
-      <AnimatedPressable onPress={() => router.push('/log-symptoms' as never)}>
-        <Card style={styles.milestone}>
-          <View style={styles.iconBubble}>
-            <Ionicons name="pulse-outline" size={25} color={colors.plum} />
+      {loading ? (
+        <Card style={styles.loadingCard}>
+          <ActivityIndicator color={palette.accent} />
+          <Text style={[styles.loadingText, { color: palette.text }]}>Refreshing your live dashboard...</Text>
+        </Card>
+      ) : (
+        <>
+          <View style={styles.quickGrid}>
+            <QuickAction
+              icon="add-circle-outline"
+              title="Log symptoms"
+              copy="Mood, notes, intensity"
+              onPress={() => router.push('/log-symptoms' as never)}
+            />
+
+            <QuickAction
+              icon="medkit-outline"
+              title="Medication"
+              copy={medicationTotal ? `${medicationDone}/${medicationTotal} taken` : 'No routine yet'}
+              onPress={() => router.push('/medication' as never)}
+            />
           </View>
 
-          <View style={{ flex: 1 }}>
-            <Text style={styles.section}>LATEST SYMPTOM LOG</Text>
-            <Text style={styles.mileTitle}>
-              {latestLog ? `${latestLog.mood || 'Mood'} • Level ${latestLog.intensity || 1}` : 'No entry yet'}
+          <View style={styles.quickGrid}>
+            <QuickAction
+              icon="calendar-outline"
+              title="Appointments"
+              copy={nextAppointment ? `${formatDate(nextAppointment.date)} ${nextAppointment.time ?? ''}`.trim() : 'No upcoming visit'}
+              onPress={() => router.push('/(tabs)/appointments' as never)}
+            />
+
+            <QuickAction
+              icon="sparkles-outline"
+              title="Preggy AI"
+              copy="Ask anything"
+              onPress={() => router.push('/ai-chat' as never)}
+            />
+          </View>
+
+          <Card style={styles.sectionCard}>
+            <View style={styles.sectionTop}>
+              <View>
+                <Text style={[styles.sectionLabel, { color: palette.accent }]}>LATEST LOG</Text>
+                <Text style={[styles.sectionTitle, { color: palette.ink }]}>
+                  {latestLog?.mood || 'No mood logged yet'}
+                </Text>
+              </View>
+
+              <View style={[styles.iconBadge, { backgroundColor: palette.accentSoft }]}>
+                <Ionicons name="pulse-outline" size={24} color={palette.accent} />
+              </View>
+            </View>
+
+            <Text style={[styles.sectionCopy, { color: palette.text }]}>
+              {symptoms}
             </Text>
-            <Text style={styles.copy}>{formatSymptoms(latestLog)}</Text>
-          </View>
-        </Card>
-      </AnimatedPressable>
 
-      <AnimatedPressable onPress={() => router.push('/appointment/details')}>
-        <Card style={styles.milestone}>
-          <View style={styles.iconBubble}>
-            <CalendarIcon color={colors.plum} />
-          </View>
+            {latestLog?.notes ? (
+              <Text style={[styles.note, { color: palette.muted }]}>
+                “{latestLog.notes}”
+              </Text>
+            ) : null}
 
-          <View style={{ flex: 1 }}>
-            <Text style={styles.section}>NEXT MILESTONE</Text>
-            <Text style={styles.mileTitle}>Keep tracking your journey</Text>
-            <Text style={styles.copy}>Your profile and symptoms now sync with Supabase.</Text>
-          </View>
-        </Card>
-      </AnimatedPressable>
-
-      <Text style={styles.heading}>Today’s Wisdom</Text>
-
-      <View style={styles.wisdomGrid}>
-        {wisdom.map((item, index) => (
-          <Card key={item.title} style={styles.wisdom}>
-            <View style={styles.wisdomIcon}>{index === 0 ? <WaterIcon /> : <HeartIcon />}</View>
-            <Text style={styles.wisdomTitle}>{item.title}</Text>
-            <Text style={styles.copy}>{item.body}</Text>
+            <AnimatedPressable onPress={() => router.push('/log-symptoms' as never)} style={[styles.linkButton, { borderColor: palette.line }]}>
+              <Text style={[styles.linkText, { color: palette.accent }]}>Update today’s log</Text>
+              <Ionicons name="arrow-forward" size={18} color={palette.accent} />
+            </AnimatedPressable>
           </Card>
-        ))}
-      </View>
 
-      <Text style={styles.heading}>Explore your journey</Text>
+          <Card style={styles.sectionCard}>
+            <View style={styles.sectionTop}>
+              <View>
+                <Text style={[styles.sectionLabel, { color: palette.accent }]}>NEXT APPOINTMENT</Text>
+                <Text style={[styles.sectionTitle, { color: palette.ink }]}>
+                  {nextAppointment?.title || nextAppointment?.type || 'No upcoming appointment'}
+                </Text>
+              </View>
 
-      <View style={styles.actions}>
-        <AnimatedPressable onPress={() => router.push('/medication')} style={styles.actionCard}>
-          <Ionicons name="medical-outline" size={26} color={colors.plum} />
-          <Text style={styles.actionTitle}>Medication</Text>
-          <Text style={styles.copy}>Track supplements and doses</Text>
-        </AnimatedPressable>
+              <View style={[styles.iconBadge, { backgroundColor: palette.accentSoft }]}>
+                <Ionicons name="calendar" size={24} color={palette.accent} />
+              </View>
+            </View>
 
-        <AnimatedPressable onPress={() => router.push('/timeline')} style={styles.actionCard}>
-          <Ionicons name="git-branch-outline" size={26} color={colors.plum} />
-          <Text style={styles.actionTitle}>Timeline</Text>
-          <Text style={styles.copy}>See every milestone ahead</Text>
-        </AnimatedPressable>
-      </View>
+            <Text style={[styles.sectionCopy, { color: palette.text }]}>
+              {nextAppointment
+                ? `${formatDate(nextAppointment.date)}${nextAppointment.time ? ` at ${nextAppointment.time}` : ''}${nextAppointment.location ? ` • ${nextAppointment.location}` : ''}`
+                : 'Add your next prenatal visit to keep everything in one place.'}
+            </Text>
 
-      <Button label="Log symptoms" onPress={() => router.push('/log-symptoms' as never)} style={{ marginTop: 18 }} />
+            <AnimatedPressable onPress={() => router.push('/(tabs)/appointments' as never)} style={[styles.linkButton, { borderColor: palette.line }]}>
+              <Text style={[styles.linkText, { color: palette.accent }]}>View appointments</Text>
+              <Ionicons name="arrow-forward" size={18} color={palette.accent} />
+            </AnimatedPressable>
+          </Card>
+
+          <View style={[styles.aiBanner, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+            <View style={[styles.aiIcon, { backgroundColor: palette.accent }]}>
+              <Ionicons name="sparkles" size={25} color={palette.onAccent} />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.aiTitle, { color: palette.ink }]}>Need quick guidance?</Text>
+              <Text style={[styles.aiCopy, { color: palette.text }]}>
+                Ask Preggy AI about symptoms, meals, movement, and appointment prep.
+              </Text>
+            </View>
+
+            <AnimatedPressable onPress={() => router.push('/ai-chat' as never)} style={[styles.askButton, { backgroundColor: palette.accent }]}>
+              <Text style={[styles.askText, { color: palette.onAccent }]}>Ask</Text>
+            </AnimatedPressable>
+          </View>
+        </>
+      )}
     </Screen>
   );
 }
 
+function QuickAction({
+  icon,
+  title,
+  copy,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  copy: string;
+  onPress: () => void;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <AnimatedPressable onPress={onPress} style={[styles.quickCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+      <View style={[styles.quickIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={icon} size={24} color={palette.accent} />
+      </View>
+
+      <Text style={[styles.quickTitle, { color: palette.ink }]}>{title}</Text>
+      <Text style={[styles.quickCopy, { color: palette.text }]}>{copy}</Text>
+    </AnimatedPressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  eyebrow: {
-    ...type.section,
-    color: colors.rose,
+  top: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
     marginTop: 22,
+    marginBottom: 16,
+  },
+  greeting: {
+    ...type.body,
   },
   title: {
     ...type.title,
-    color: colors.ink,
+    fontSize: 28,
+    lineHeight: 34,
     marginTop: 4,
-    marginBottom: 18,
   },
-  heroCard: {
-    borderRadius: 32,
-    padding: 22,
-    overflow: 'hidden',
+  weekPill: {
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginTop: 3,
   },
-  progressTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  muted: {
+  weekPillText: {
     ...type.small,
-    color: colors.text,
+    fontWeight: '900',
   },
-  week: {
-    ...type.title,
-    color: colors.plum,
-  },
-  progressBar: {
-    height: 12,
-    borderRadius: 99,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    marginVertical: 16,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 99,
-    backgroundColor: colors.plum,
-  },
-  progressBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  percent: {
-    ...type.bodyStrong,
-    color: colors.plum,
-  },
-  days: {
-    ...type.title,
-    color: colors.ink,
-    marginTop: 20,
-  },
-  daysSub: {
-    ...type.small,
-    color: colors.text,
-  },
-  development: {
-    marginTop: 18,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  hero: {
     marginBottom: 16,
   },
-  section: {
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  eyebrow: {
     ...type.section,
-    color: colors.rose,
   },
-  badge: {
-    ...type.tiny,
-    color: colors.plum,
-    backgroundColor: colors.softSurface,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 99,
-  },
-  limeWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  lime: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#E8F0D5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  limeText: {
-    fontSize: 35,
-  },
-  limeTitle: {
+  heroTitle: {
     ...type.title,
-    color: colors.plum,
+    fontSize: 27,
+    marginTop: 4,
   },
-  copy: {
-    ...type.small,
-    color: colors.text,
+  progressCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  milestone: {
+  progressText: {
+    ...type.bodyStrong,
+  },
+  track: {
+    height: 12,
+    borderRadius: 999,
+    overflow: 'hidden',
     marginTop: 18,
-    flexDirection: 'row',
-    gap: 15,
-    alignItems: 'center',
   },
-  iconBubble: {
-    width: 54,
-    height: 54,
-    borderRadius: 22,
-    backgroundColor: colors.softSurface,
+  fill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  heroBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    gap: 12,
+  },
+  smallLabel: {
+    ...type.tiny,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  smallValue: {
+    ...type.bodyStrong,
+    marginTop: 3,
+  },
+  heroButton: {
+    minHeight: 42,
+    borderRadius: 21,
+    paddingHorizontal: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mileTitle: {
-    ...type.bodyStrong,
-    color: colors.ink,
-    marginVertical: 4,
+  heroButtonText: {
+    ...type.small,
+    fontWeight: '900',
   },
-  heading: {
-    ...type.bodyStrong,
-    color: colors.ink,
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  wisdomGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  wisdom: {
-    flex: 1,
-    minHeight: 142,
-  },
-  wisdomIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    backgroundColor: colors.softSurface,
+  loadingCard: {
+    minHeight: 160,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    gap: 10,
   },
-  wisdomTitle: {
-    ...type.bodyStrong,
-    color: colors.ink,
-    marginBottom: 4,
+  loadingText: {
+    ...type.small,
   },
-  actions: {
+  quickGrid: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 12,
   },
-  actionCard: {
+  quickCard: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 22,
-    padding: 18,
-    minHeight: 130,
+    minHeight: 132,
+    borderRadius: 24,
+    padding: 15,
     borderWidth: 1,
-    borderColor: colors.line,
   },
-  actionTitle: {
+  quickIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 13,
+  },
+  quickTitle: {
     ...type.bodyStrong,
-    color: colors.ink,
+    fontSize: 16,
+  },
+  quickCopy: {
+    ...type.small,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  sectionCard: {
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  sectionTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 14,
+    alignItems: 'flex-start',
+  },
+  sectionLabel: {
+    ...type.section,
+  },
+  sectionTitle: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    lineHeight: 26,
+    marginTop: 4,
+  },
+  iconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionCopy: {
+    ...type.body,
+    lineHeight: 23,
     marginTop: 10,
-    marginBottom: 4,
+  },
+  note: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 9,
+  },
+  linkButton: {
+    marginTop: 14,
+    minHeight: 44,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    gap: 8,
+  },
+  linkText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  aiBanner: {
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    marginTop: 2,
+  },
+  aiIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiTitle: {
+    ...type.bodyStrong,
+    fontSize: 17,
+  },
+  aiCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 3,
+  },
+  askButton: {
+    minHeight: 42,
+    borderRadius: 21,
+    paddingHorizontal: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  askText: {
+    ...type.small,
+    fontWeight: '900',
   },
 });
