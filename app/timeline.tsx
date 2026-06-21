@@ -7,8 +7,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 
 type TimelineItem = {
@@ -99,12 +99,13 @@ function getPregnancyProgress(profile: UserProfile | null) {
 
   const week = clamp(profile?.pregnancy_week ?? 24, 1, 40);
   const day = clamp(profile?.pregnancy_days ?? 0, 0, 6);
+  const pregnancyDay = (week - 1) * 7 + day;
 
   return {
     week,
     day,
-    daysRemaining: clamp(280 - ((week - 1) * 7 + day), 0, 280),
-    progress: Math.round((((week - 1) * 7 + day) / 280) * 100),
+    daysRemaining: clamp(280 - pregnancyDay, 0, 280),
+    progress: Math.round((pregnancyDay / 280) * 100),
   };
 }
 
@@ -115,6 +116,8 @@ function getStatus(itemWeek: number, currentWeek: number) {
 }
 
 export default function Timeline() {
+  const { palette } = useAppTheme();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -126,17 +129,13 @@ export default function Timeline() {
 
       getMyProfile()
         .then((data) => {
-          if (mounted) {
-            setProfile(data);
-          }
+          if (mounted) setProfile(data);
         })
         .catch((error) => {
           console.log('Timeline profile error:', error);
         })
         .finally(() => {
-          if (mounted) {
-            setLoading(false);
-          }
+          if (mounted) setLoading(false);
         });
 
       return () => {
@@ -152,52 +151,52 @@ export default function Timeline() {
     <Screen bottomSpace={40}>
       <Header title="Timeline" back />
 
-      <Text style={styles.title}>Pregnancy Timeline</Text>
-      <Text style={styles.sub}>
+      <Text style={[styles.title, { color: palette.ink }]}>Pregnancy Timeline</Text>
+      <Text style={[styles.sub, { color: palette.text }]}>
         Your live journey with {babyName}, updated from your saved pregnancy profile.
       </Text>
 
-      <View style={styles.summaryCard}>
+      <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         {loading ? (
           <View style={styles.loadingRow}>
-            <ActivityIndicator color="#765B60" />
-            <Text style={styles.loadingText}>Loading timeline...</Text>
+            <ActivityIndicator color={palette.accent} />
+            <Text style={[styles.loadingText, { color: palette.text }]}>Loading timeline...</Text>
           </View>
         ) : (
           <>
             <View style={styles.summaryTop}>
               <View>
-                <Text style={styles.summaryLabel}>CURRENT STAGE</Text>
-                <Text style={styles.summaryTitle}>
+                <Text style={[styles.summaryLabel, { color: palette.accent }]}>CURRENT STAGE</Text>
+                <Text style={[styles.summaryTitle, { color: palette.ink }]}>
                   Week {progress.week}, Day {progress.day}
                 </Text>
               </View>
 
-              <View style={styles.percentBadge}>
-                <Text style={styles.percentText}>{progress.progress}%</Text>
+              <View style={[styles.percentBadge, { backgroundColor: palette.accentSoft }]}>
+                <Text style={[styles.percentText, { color: palette.accent }]}>{progress.progress}%</Text>
               </View>
             </View>
 
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${progress.progress}%` }]} />
+            <View style={[styles.progressTrack, { backgroundColor: palette.softSurface }]}>
+              <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
             </View>
 
             <View style={styles.summaryBottom}>
-              <Text style={styles.summaryNote}>
+              <Text style={[styles.summaryNote, { color: palette.text }]}>
                 {progress.daysRemaining > 0
                   ? `${progress.daysRemaining} days until your estimated due date`
                   : 'You have reached your due date window'}
               </Text>
 
               <AnimatedPressable onPress={() => router.push('/calculator/result' as never)}>
-                <Text style={styles.updateLink}>Update due date</Text>
+                <Text style={[styles.updateLink, { color: palette.accent }]}>Update due date</Text>
               </AnimatedPressable>
             </View>
           </>
         )}
       </View>
 
-      <View style={styles.line} />
+      <View style={[styles.line, { backgroundColor: palette.accentSoft }]} />
 
       {items.map((item, index) => {
         const status = getStatus(item.week, progress.week);
@@ -209,39 +208,45 @@ export default function Timeline() {
             <View
               style={[
                 styles.icon,
-                isCompleted && styles.completedIcon,
-                isCurrent && styles.currentIcon,
+                { backgroundColor: palette.accentSoft },
+                isCompleted && { backgroundColor: palette.success },
+                isCurrent && { backgroundColor: palette.accent },
               ]}
             >
               <Ionicons
                 name={isCompleted ? 'checkmark' : item.icon}
                 size={22}
-                color={isCompleted || isCurrent ? '#FFF' : '#765B60'}
+                color={isCompleted || isCurrent ? palette.onAccent : palette.accent}
               />
             </View>
 
             <View
               style={[
                 styles.card,
-                index === items.length - 1 && styles.last,
-                isCurrent && styles.currentCard,
+                {
+                  backgroundColor: isCurrent ? palette.accentSoft : palette.surface,
+                  borderColor: isCurrent ? palette.accent : palette.line,
+                },
+                index === items.length - 1 && { backgroundColor: palette.softSurface },
               ]}
             >
               <View style={styles.cardTop}>
-                <Text style={styles.week}>WEEK {item.week}</Text>
+                <Text style={[styles.week, { color: palette.accent }]}>WEEK {item.week}</Text>
 
                 <View
                   style={[
                     styles.statusBadge,
-                    isCompleted && styles.completedBadge,
-                    isCurrent && styles.currentBadge,
+                    { backgroundColor: palette.softSurface },
+                    isCompleted && { backgroundColor: palette.success + '22' },
+                    isCurrent && { backgroundColor: palette.accent },
                   ]}
                 >
                   <Text
                     style={[
                       styles.statusText,
-                      isCompleted && styles.completedText,
-                      isCurrent && styles.currentText,
+                      { color: palette.text },
+                      isCompleted && { color: palette.success },
+                      isCurrent && { color: palette.onAccent },
                     ]}
                   >
                     {status}
@@ -249,8 +254,8 @@ export default function Timeline() {
                 </View>
               </View>
 
-              <Text style={styles.itemTitle}>{item.title}</Text>
-              <Text style={styles.copy}>{item.copy}</Text>
+              <Text style={[styles.itemTitle, { color: palette.ink }]}>{item.title}</Text>
+              <Text style={[styles.copy, { color: palette.text }]}>{item.copy}</Text>
 
               {item.image ? <Image source={item.image} style={styles.image} /> : null}
             </View>
@@ -265,24 +270,21 @@ const styles = StyleSheet.create({
   title: {
     ...type.title,
     fontSize: 30,
-    color: '#201A1A',
     textAlign: 'center',
     marginTop: 22,
   },
   sub: {
     ...type.body,
-    color: '#51484A',
     textAlign: 'center',
     marginTop: 7,
     marginBottom: 18,
+    lineHeight: 23,
   },
   summaryCard: {
-    backgroundColor: '#FFF',
     borderRadius: 26,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#F0E2DF',
   },
   loadingRow: {
     minHeight: 104,
@@ -292,7 +294,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...type.small,
-    color: '#765B60',
   },
   summaryTop: {
     flexDirection: 'row',
@@ -301,11 +302,9 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     ...type.section,
-    color: '#9B7B82',
   },
   summaryTitle: {
     ...type.title,
-    color: '#5F474E',
     fontSize: 25,
     marginTop: 5,
   },
@@ -313,25 +312,21 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: '#FFE1E6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   percentText: {
     ...type.bodyStrong,
-    color: '#72515D',
   },
   progressTrack: {
     height: 11,
     borderRadius: 20,
-    backgroundColor: '#F3E7E4',
     marginTop: 18,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: 20,
-    backgroundColor: '#765B60',
   },
   summaryBottom: {
     marginTop: 13,
@@ -341,13 +336,12 @@ const styles = StyleSheet.create({
   },
   summaryNote: {
     ...type.small,
-    color: '#6D6063',
     flex: 1,
+    lineHeight: 19,
   },
   updateLink: {
     ...type.small,
-    color: '#72515D',
-    fontWeight: '800',
+    fontWeight: '900',
   },
   line: {
     position: 'absolute',
@@ -355,7 +349,6 @@ const styles = StyleSheet.create({
     top: 326,
     bottom: 50,
     width: 3,
-    backgroundColor: '#F4DDE0',
   },
   item: {
     flexDirection: 'row',
@@ -367,32 +360,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FBE1E5',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
   },
-  completedIcon: {
-    backgroundColor: '#8AB985',
-  },
-  currentIcon: {
-    backgroundColor: '#765B60',
-  },
   card: {
     flex: 1,
-    backgroundColor: colors.surface,
     borderRadius: 24,
     padding: 20,
-  },
-  currentCard: {
-    borderWidth: 2,
-    borderColor: '#F2B7C1',
-    backgroundColor: '#FFF7F8',
-  },
-  last: {
-    backgroundColor: '#FFF0F1',
     borderWidth: 1,
-    borderColor: '#fff',
   },
   cardTop: {
     flexDirection: 'row',
@@ -402,40 +378,27 @@ const styles = StyleSheet.create({
   },
   week: {
     ...type.body,
-    color: '#765B60',
+    fontWeight: '900',
   },
   statusBadge: {
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: '#F4EFED',
-  },
-  completedBadge: {
-    backgroundColor: '#E4F3E0',
-  },
-  currentBadge: {
-    backgroundColor: '#765B60',
   },
   statusText: {
     ...type.tiny,
-    color: '#706367',
-  },
-  completedText: {
-    color: '#4E7548',
-  },
-  currentText: {
-    color: '#FFF',
+    fontWeight: '900',
   },
   itemTitle: {
     ...type.body,
     fontSize: 20,
-    color: '#1F1A1A',
     marginTop: 8,
+    fontWeight: '800',
   },
   copy: {
     ...type.body,
-    color: '#4C4444',
     marginTop: 8,
+    lineHeight: 23,
   },
   image: {
     width: '100%',
