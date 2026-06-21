@@ -133,8 +133,7 @@ export default function HomeScreen() {
       supabase
         .from('medications')
         .select('*')
-        .eq('user_id', userId)
-        .order('time', { ascending: true }),
+        .eq('user_id', userId),
       supabase
         .from('appointments')
         .select('*')
