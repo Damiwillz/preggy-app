@@ -127,7 +127,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroImage: {
-    width: '100%',
+    position: 'absolute',
+    left: -42,
+    top: 0,
+    width: '118%',
     height: '100%',
   },
   heroOverlay: {
