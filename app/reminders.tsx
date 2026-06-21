@@ -27,18 +27,19 @@ type PermissionStatus = {
 
 export default function RemindersScreen() {
   const { palette } = useAppTheme();
+
   const [count, setCount] = useState(0);
   const [permission, setPermission] = useState<PermissionStatus | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function refresh() {
-    const [nextCount, nextPermission] = await Promise.all([
-      getPreggyScheduledReminderCount(),
+    const [permissionStatus, scheduledCount] = await Promise.all([
       getReminderPermissionStatus(),
+      getPreggyScheduledReminderCount(),
     ]);
 
-    setCount(nextCount);
-    setPermission(nextPermission);
+    setPermission(permissionStatus);
+    setCount(scheduledCount);
   }
 
   useFocusEffect(
@@ -49,326 +50,301 @@ export default function RemindersScreen() {
     }, [])
   );
 
-  async function askPermission() {
-    setBusy('permission');
+  async function runAction(key: string, action: () => Promise<void>, successMessage: string) {
+    setBusy(key);
 
     try {
-      const granted = await requestReminderPermission();
+      await action();
       await refresh();
-
-      if (!granted) {
-        Alert.alert(
-          'Notifications are off',
-          'Open Settings and allow notifications for Preggy or Expo Go, then try again.',
-          [
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings(),
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-          ]
-        );
-      }
+      Alert.alert('Done', successMessage);
     } catch (error) {
-      console.log('Permission error:', error);
-      Alert.alert('Permission error', 'Could not request notification permission.');
+      console.log(`${key} reminder error:`, error);
+      Alert.alert('Reminder error', 'Could not complete this reminder action. Please try again.');
     } finally {
       setBusy(null);
     }
   }
 
-  async function immediateTest() {
-    setBusy('test-now');
+  async function handlePermission() {
+    await runAction(
+      'permission',
+      async () => {
+        const result = await requestReminderPermission();
 
-    try {
-      await sendImmediatePreggyReminder();
-      await refresh();
-
-      Alert.alert('Sent', 'If notifications are allowed, the test reminder should appear now.');
-    } catch (error) {
-      console.log('Immediate test error:', error);
-
-      Alert.alert('Could not send test', 'Please allow notifications and try again.');
-    } finally {
-      setBusy(null);
-    }
+        if (!result.granted && !result.canAskAgain) {
+          Alert.alert(
+            'Notifications blocked',
+            'Open Android settings and allow notifications for Preggy.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+        }
+      },
+      'Notification permission checked.'
+    );
   }
 
-  async function delayedTest() {
-    setBusy('test-delay');
-
-    try {
-      await sendTestPreggyReminder();
-      await refresh();
-
-      Alert.alert('Scheduled', 'The test reminder should appear in about 5 seconds.');
-    } catch (error) {
-      console.log('Delayed test error:', error);
-
-      Alert.alert('Could not schedule test', 'Please allow notifications and try again.');
-    } finally {
-      setBusy(null);
-    }
+  async function handleTestNotification() {
+    await runAction(
+      'test',
+      sendTestPreggyReminder,
+      'A test notification has been sent. Check your notification shade if you do not see it immediately.'
+    );
   }
 
-  async function enableAll() {
-    setBusy('all');
-
-    try {
-      const hasPermission = await requestReminderPermission();
-
-      if (!hasPermission) {
-        Alert.alert('Notifications disabled', 'Please allow notifications to receive Preggy reminders.');
-        return;
-      }
-
-      await cancelAllPreggyReminders();
-
-      const medicationCount = await scheduleMedicationReminders();
-      const appointmentCount = await scheduleAppointmentReminders();
-
-      await refresh();
-
-      Alert.alert(
-        'Reminders scheduled',
-        `${medicationCount} medication reminder${medicationCount === 1 ? '' : 's'} and ${appointmentCount} appointment reminder${appointmentCount === 1 ? '' : 's'} were scheduled.`
-      );
-    } catch (error) {
-      console.log('Enable reminders error:', error);
-
-      Alert.alert('Could not schedule reminders', 'Please check your saved medication and appointment details.');
-    } finally {
-      setBusy(null);
-    }
+  async function handleImmediateNotification() {
+    await runAction(
+      'immediate',
+      sendImmediatePreggyReminder,
+      'An immediate reminder has been sent.'
+    );
   }
 
-  async function clearReminders() {
-    setBusy('clear');
-
-    try {
-      const cancelled = await cancelAllPreggyReminders();
-      await refresh();
-
-      Alert.alert('Reminders cleared', `${cancelled} Preggy reminder${cancelled === 1 ? '' : 's'} cancelled.`);
-    } catch (error) {
-      console.log('Clear reminders error:', error);
-
-      Alert.alert('Could not clear reminders', 'Please try again.');
-    } finally {
-      setBusy(null);
-    }
+  async function handleScheduleAll() {
+    await runAction(
+      'schedule',
+      async () => {
+        await scheduleMedicationReminders();
+        await scheduleAppointmentReminders();
+      },
+      'Medication and appointment reminders have been scheduled.'
+    );
   }
 
-  const permissionText = permission?.granted
-    ? 'Notifications allowed'
-    : permission?.status
-      ? `Notifications ${permission.status}`
-      : 'Checking permission...';
+  async function handleCancelAll() {
+    await runAction(
+      'cancel',
+      cancelAllPreggyReminders,
+      'All Preggy reminders have been cancelled.'
+    );
+  }
+
+  const granted = permission?.granted ?? false;
 
   return (
-    <Screen bottomSpace={36}>
-      <Header title="Reminders" back />
+    <Screen bottomSpace={40}>
+      <Header title="Notifications" back />
 
-      <View style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={[styles.heroIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name="notifications" size={42} color={palette.accent} />
+      <View style={styles.heading}>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>REMINDERS</Text>
+        <Text style={[styles.title, { color: palette.ink }]}>Preggy notifications</Text>
+        <Text style={[styles.subtitle, { color: palette.text }]}>
+          Test notifications, request permission, and schedule medication or appointment reminders.
+        </Text>
+      </View>
+
+      <View style={[styles.statusCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.statusIcon, { backgroundColor: granted ? palette.accentSoft : palette.softSurface }]}>
+          <Ionicons
+            name={granted ? 'notifications' : 'notifications-off-outline'}
+            size={28}
+            color={granted ? palette.accent : palette.muted}
+          />
         </View>
 
-        <Text style={[styles.title, { color: palette.ink }]}>Preggy reminders</Text>
-        <Text style={[styles.subtitle, { color: palette.text }]}>
-          Schedule local reminders for medications, supplements, and upcoming appointments.
-        </Text>
-
-        <View style={[styles.statusBox, { backgroundColor: palette.accentSoft }]}>
-          <Text style={[styles.statusText, { color: palette.accent }]}>
-            {permissionText} • {count} scheduled
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.statusTitle, { color: palette.ink }]}>
+            {granted ? 'Notifications allowed' : 'Notifications not allowed yet'}
+          </Text>
+          <Text style={[styles.statusCopy, { color: palette.text }]}>
+            Status: {permission?.status ?? 'checking'} • Scheduled reminders: {count}
           </Text>
         </View>
       </View>
 
-      <ReminderAction
-        title="Allow notifications"
-        copy="Ask iOS for permission or open Settings if permission was denied."
-        icon="lock-open-outline"
-        busy={busy === 'permission'}
-        disabled={!!busy}
-        onPress={askPermission}
-      />
+      <AnimatedPressable
+        onPress={handleTestNotification}
+        disabled={busy !== null}
+        style={[styles.testButton, { backgroundColor: palette.accent }]}
+      >
+        {busy === 'test' ? (
+          <ActivityIndicator color={palette.onAccent} />
+        ) : (
+          <>
+            <Ionicons name="flash" size={22} color={palette.onAccent} />
+            <Text style={[styles.testButtonText, { color: palette.onAccent }]}>Test notification</Text>
+          </>
+        )}
+      </AnimatedPressable>
 
-      <ReminderAction
-        title="Send instant test"
-        copy="Show a notification immediately so we can confirm the system works."
-        icon="flash-outline"
-        accent
-        busy={busy === 'test-now'}
-        disabled={!!busy}
-        onPress={immediateTest}
-      />
+      <View style={styles.actions}>
+        <ReminderRow
+          icon="shield-checkmark-outline"
+          title="Allow notifications"
+          copy="Ask Android for notification permission"
+          busy={busy === 'permission'}
+          onPress={handlePermission}
+        />
 
-      <ReminderAction
-        title="Send 5 second test"
-        copy="Schedule a test notification that should appear in about 5 seconds."
-        icon="timer-outline"
-        busy={busy === 'test-delay'}
-        disabled={!!busy}
-        onPress={delayedTest}
-      />
+        <ReminderRow
+          icon="send-outline"
+          title="Send immediate reminder"
+          copy="Send a Preggy reminder right now"
+          busy={busy === 'immediate'}
+          onPress={handleImmediateNotification}
+        />
 
-      <ReminderAction
-        title="Enable all reminders"
-        copy="Clear old Preggy reminders and schedule fresh medication and appointment reminders."
-        icon="sparkles"
-        accent
-        busy={busy === 'all'}
-        disabled={!!busy}
-        onPress={enableAll}
-      />
+        <ReminderRow
+          icon="calendar-outline"
+          title="Schedule all reminders"
+          copy="Schedule medication and appointment reminders"
+          busy={busy === 'schedule'}
+          onPress={handleScheduleAll}
+        />
 
-      <ReminderAction
-        title="Clear Preggy reminders"
-        copy="Cancel all local reminders created by Preggy on this device."
-        icon="trash-outline"
-        danger
-        busy={busy === 'clear'}
-        disabled={!!busy}
-        onPress={clearReminders}
-      />
+        <ReminderRow
+          icon="trash-outline"
+          title="Cancel all reminders"
+          copy="Remove all scheduled Preggy reminders"
+          danger
+          busy={busy === 'cancel'}
+          onPress={handleCancelAll}
+        />
+      </View>
 
-      <View style={[styles.note, { backgroundColor: palette.softSurface, borderColor: palette.line }]}>
-        <Ionicons name="information-circle-outline" size={22} color={palette.accent} />
+      <View style={[styles.note, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+        <Ionicons name="information-circle" size={22} color={palette.accent} />
         <Text style={[styles.noteText, { color: palette.text }]}>
-          Expo Go can be limited for notifications. If the instant test does not appear, the final app should be tested with a development build.
+          Notifications work best in this Android development build. Expo Go does not fully support this feature.
         </Text>
       </View>
     </Screen>
   );
 }
 
-function ReminderAction({
+function ReminderRow({
+  icon,
   title,
   copy,
-  icon,
-  onPress,
   busy,
-  disabled,
-  accent,
   danger,
+  onPress,
 }: {
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
   copy: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
   busy: boolean;
-  disabled: boolean;
-  accent?: boolean;
   danger?: boolean;
+  onPress: () => void;
 }) {
   const { palette } = useAppTheme();
-
-  const iconColor = danger ? palette.danger : accent ? palette.onAccent : palette.accent;
-  const iconBg = danger ? palette.danger + '22' : accent ? palette.accent : palette.accentSoft;
 
   return (
     <AnimatedPressable
       onPress={onPress}
-      disabled={disabled}
-      style={[
-        styles.action,
-        {
-          backgroundColor: palette.surface,
-          borderColor: palette.line,
-          opacity: disabled && !busy ? 0.62 : 1,
-        },
-      ]}
+      disabled={busy}
+      style={[styles.row, { backgroundColor: palette.surface, borderColor: palette.line }]}
     >
-      <View style={[styles.actionIcon, { backgroundColor: iconBg }]}>
-        {busy ? <ActivityIndicator color={iconColor} /> : <Ionicons name={icon} size={25} color={iconColor} />}
+      <View style={[styles.rowIcon, { backgroundColor: danger ? palette.danger + '22' : palette.accentSoft }]}>
+        {busy ? (
+          <ActivityIndicator color={danger ? palette.danger : palette.accent} />
+        ) : (
+          <Ionicons name={icon} size={23} color={danger ? palette.danger : palette.accent} />
+        )}
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={[styles.actionTitle, { color: palette.ink }]}>{title}</Text>
-        <Text style={[styles.actionCopy, { color: palette.text }]}>{copy}</Text>
+        <Text style={[styles.rowTitle, { color: danger ? palette.danger : palette.ink }]}>{title}</Text>
+        <Text style={[styles.rowCopy, { color: palette.text }]}>{copy}</Text>
       </View>
 
-      <Ionicons name="chevron-forward" size={22} color={palette.muted} />
+      <Ionicons name="chevron-forward" size={20} color={palette.muted} />
     </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    alignItems: 'center',
-    borderRadius: 30,
-    padding: 26,
+  heading: {
     marginTop: 22,
     marginBottom: 18,
-    borderWidth: 1,
   },
-  heroIcon: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+  eyebrow: {
+    ...type.section,
   },
   title: {
     ...type.title,
-    fontSize: 28,
-    textAlign: 'center',
+    fontSize: 31,
+    marginTop: 3,
   },
   subtitle: {
     ...type.body,
-    textAlign: 'center',
     lineHeight: 23,
-    marginTop: 8,
+    marginTop: 7,
   },
-  statusBox: {
-    marginTop: 16,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  statusText: {
-    ...type.small,
-    fontWeight: '800',
-  },
-  action: {
-    minHeight: 92,
-    borderRadius: 24,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  actionIcon: {
-    width: 52,
-    height: 52,
+  statusCard: {
     borderRadius: 26,
+    borderWidth: 1,
+    padding: 18,
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  statusIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionTitle: {
+  statusTitle: {
     ...type.bodyStrong,
-    fontSize: 17,
+    fontSize: 18,
   },
-  actionCopy: {
+  statusCopy: {
     ...type.small,
     lineHeight: 19,
     marginTop: 4,
   },
+  testButton: {
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 9,
+    marginBottom: 16,
+  },
+  testButtonText: {
+    ...type.bodyStrong,
+  },
+  actions: {
+    gap: 12,
+  },
+  row: {
+    minHeight: 78,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  rowIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowTitle: {
+    ...type.bodyStrong,
+    fontSize: 16,
+  },
+  rowCopy: {
+    ...type.small,
+    lineHeight: 18,
+    marginTop: 3,
+  },
   note: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 14,
     flexDirection: 'row',
     gap: 10,
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    marginTop: 4,
+    marginTop: 16,
   },
   noteText: {
     ...type.small,
