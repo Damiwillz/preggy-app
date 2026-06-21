@@ -1,177 +1,198 @@
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
 
-const C = {
-  bg: '#FFF9F6',
-  ink: '#171214',
-  body: '#5E5052',
-  plum: '#765A61',
-  blush: '#FFD9D3',
-  dot: '#D8CCCA',
-};
+import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
-export default function OnboardingJourney() {
+export default function OnboardingScreen() {
+  const { palette } = useAppTheme();
+
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
+    <View style={[styles.page, { backgroundColor: palette.canvas }]}>
+      <View style={styles.heroWrap}>
+        <Image
+          source={require('../../assets/images/onboarding-journey-photo.jpg')}
+          style={styles.heroImage}
+          resizeMode="cover"
+        />
 
-      <Image
-        source={require('../../assets/images/onboarding-journey-clean.jpg')}
-        style={styles.hero}
-        resizeMode="cover"
-      />
+        <View style={styles.heroOverlay} />
 
-      <LinearGradient
-        colors={[
-          'rgba(255,249,246,0)',
-          'rgba(255,249,246,.20)',
-          'rgba(255,249,246,.88)',
-          C.bg,
-        ]}
-        locations={[0, 0.42, 0.67, 0.81]}
-        style={styles.fade}
-      />
+        <AnimatedPressable
+          onPress={() => router.replace('/auth/log-in' as never)}
+          style={[styles.skipButton, { backgroundColor: 'rgba(255,255,255,0.92)' }]}
+        >
+          <Text style={styles.skipText}>Log in</Text>
+        </AnimatedPressable>
 
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <View style={styles.content}>
-          <View style={styles.spacer} />
+        <View style={[styles.logoBubble, { backgroundColor: palette.surface }]}>
+          <Ionicons name="heart" size={30} color={palette.accent} />
+        </View>
+      </View>
 
-          <Text style={styles.brand}>Preggers</Text>
-          <Text style={styles.title}>Track your pregnancy journey{`\n`}with love</Text>
-          <Text style={styles.copy}>
-            Calculate your due date, follow your baby’s growth, and feel prepared every week.
-          </Text>
+      <View style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.dots}>
+          <View style={[styles.dotActive, { backgroundColor: palette.accent }]} />
+          <View style={[styles.dot, { backgroundColor: palette.line }]} />
+          <View style={[styles.dot, { backgroundColor: palette.line }]} />
+        </View>
 
-          <Pressable
-            onPress={() => router.push('/onboarding/track-milestones')}
-            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryText}>Get Started</Text>
-          </Pressable>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGGY COMPANION</Text>
 
-          <Pressable
-            onPress={() => router.replace('/auth/log-in')}
-            style={styles.linkButton}
-          >
-            <Text style={styles.linkText}>I already have an account</Text>
-          </Pressable>
+        <Text style={[styles.title, { color: palette.ink }]}>
+          Your calm pregnancy guide, all in one place
+        </Text>
 
-          <View style={styles.dots}>
-            <View style={styles.activeDot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
+        <Text style={[styles.subtitle, { color: palette.text }]}>
+          Track weekly growth, appointments, symptoms, medications, privacy settings, and gentle daily guidance.
+        </Text>
+
+        <View style={styles.featureGrid}>
+          <View style={[styles.feature, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="pulse" size={22} color={palette.accent} />
+            <Text style={[styles.featureText, { color: palette.ink }]}>Daily logs</Text>
+          </View>
+
+          <View style={[styles.feature, { backgroundColor: palette.softSurface }]}>
+            <Ionicons name="calendar" size={22} color={palette.accent} />
+            <Text style={[styles.featureText, { color: palette.ink }]}>Appointments</Text>
+          </View>
+
+          <View style={[styles.feature, { backgroundColor: palette.softSurface }]}>
+            <Ionicons name="sparkles" size={22} color={palette.accent} />
+            <Text style={[styles.featureText, { color: palette.ink }]}>AI support</Text>
           </View>
         </View>
-      </SafeAreaView>
+
+        <AnimatedPressable
+          onPress={() => router.push('/onboarding/personal-guidance' as never)}
+          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        >
+          <Text style={[styles.primaryText, { color: palette.onAccent }]}>Get started</Text>
+          <Ionicons name="arrow-forward" size={20} color={palette.onAccent} />
+        </AnimatedPressable>
+
+        <AnimatedPressable onPress={() => router.replace('/auth/create-account' as never)} style={styles.secondaryButton}>
+          <Text style={[styles.secondaryText, { color: palette.accent }]}>Create account now</Text>
+        </AnimatedPressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  page: {
     flex: 1,
-    backgroundColor: C.bg,
   },
-  hero: {
-    ...StyleSheet.absoluteFillObject,
+  heroWrap: {
+    height: 390,
+  },
+  heroImage: {
     width: '100%',
-    height: '72%',
+    height: '100%',
   },
-  fade: {
+  heroOverlay: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(43,25,31,0.24)',
   },
-  safe: {
-    flex: 1,
+  skipButton: {
+    position: 'absolute',
+    top: 58,
+    right: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 28,
-    paddingBottom: 18,
-    alignItems: 'center',
+  skipText: {
+    ...type.small,
+    color: '#5F424D',
+    fontWeight: '900',
   },
-  spacer: {
-    flex: 1,
-  },
-  brand: {
-    fontFamily: 'Avenir Next',
-    fontWeight: '800',
-    fontSize: 30,
-    color: C.plum,
-    marginBottom: 22,
-  },
-  title: {
-    fontFamily: 'Avenir Next',
-    fontWeight: '800',
-    fontSize: 29,
-    lineHeight: 35,
-    textAlign: 'center',
-    color: C.ink,
-    letterSpacing: -0.7,
-  },
-  copy: {
-    fontFamily: 'Avenir Next',
-    fontWeight: '500',
-    fontSize: 17,
-    lineHeight: 26,
-    textAlign: 'center',
-    color: C.body,
-    marginTop: 16,
-    maxWidth: 355,
-  },
-  primary: {
-    width: '100%',
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: C.blush,
+  logoBubble: {
+    position: 'absolute',
+    left: 24,
+    bottom: -32,
+    width: 68,
+    height: 68,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 30,
-    shadowColor: '#75585B',
-    shadowOpacity: 0.13,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 7 },
   },
-  pressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.92,
-  },
-  primaryText: {
-    fontFamily: 'Avenir Next',
-    fontWeight: '700',
-    fontSize: 18,
-    color: '#5D474B',
-  },
-  linkButton: {
-    minHeight: 48,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  linkText: {
-    fontFamily: 'Avenir Next',
-    fontWeight: '700',
-    fontSize: 16,
-    color: '#3C3444',
+  sheet: {
+    flex: 1,
+    marginTop: -30,
+    borderTopLeftRadius: 38,
+    borderTopRightRadius: 38,
+    borderWidth: 1,
+    paddingHorizontal: 24,
+    paddingTop: 52,
   },
   dots: {
     flexDirection: 'row',
     gap: 7,
-    alignItems: 'center',
-    marginTop: 4,
+    marginBottom: 20,
   },
-  activeDot: {
-    width: 34,
+  dotActive: {
+    width: 28,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: C.plum,
+    borderRadius: 999,
   },
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: C.dot,
+    borderRadius: 999,
+  },
+  eyebrow: {
+    ...type.section,
+  },
+  title: {
+    ...type.title,
+    fontSize: 34,
+    lineHeight: 39,
+    marginTop: 7,
+  },
+  subtitle: {
+    ...type.body,
+    lineHeight: 24,
+    marginTop: 12,
+  },
+  featureGrid: {
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 22,
+  },
+  feature: {
+    flex: 1,
+    minHeight: 86,
+    borderRadius: 22,
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  featureText: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  primaryButton: {
+    height: 60,
+    borderRadius: 30,
+    marginTop: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 9,
+  },
+  primaryText: {
+    ...type.bodyStrong,
+  },
+  secondaryButton: {
+    alignItems: 'center',
+    paddingVertical: 18,
+  },
+  secondaryText: {
+    ...type.small,
+    fontWeight: '900',
   },
 });
