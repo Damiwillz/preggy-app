@@ -68,7 +68,7 @@ export default function CreateAccountScreen() {
 
         <View style={[styles.hero, { backgroundColor: palette.accentSoft }]}>
           <View style={[styles.heroCircle, { backgroundColor: palette.surface }]}>
-            <Ionicons name="heart" size={62} color={palette.accent} />
+            <Ionicons name="heart" size={52} color={palette.accent} />
           </View>
 
           <View style={[styles.floatCard, styles.floatOne, { backgroundColor: palette.surface }]}>
@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: 24,
-    paddingTop: 54,
-    paddingBottom: 90,
+    paddingTop: 52,
+    paddingBottom: 36,
   },
   topRow: {
     flexDirection: 'row',
@@ -183,17 +183,17 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   hero: {
-    height: 188,
-    borderRadius: 32,
-    marginTop: 18,
+    height: 160,
+    borderRadius: 28,
+    marginTop: 14,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   heroCircle: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -221,32 +221,32 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 30,
     borderWidth: 1,
-    padding: 18,
-    marginTop: 16,
+    padding: 16,
+    marginTop: 14,
   },
   eyebrow: {
     ...type.section,
   },
   title: {
     ...type.title,
-    fontSize: 30,
+    fontSize: 28,
     marginTop: 5,
   },
   subtitle: {
     ...type.body,
-    lineHeight: 23,
-    marginTop: 8,
-    marginBottom: 16,
+    lineHeight: 21,
+    marginTop: 6,
+    marginBottom: 12,
   },
   inputWrap: {
-    height: 56,
-    borderRadius: 18,
+    height: 54,
+    borderRadius: 17,
     borderWidth: 1,
     paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 9,
   },
   input: {
     flex: 1,
@@ -254,11 +254,11 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   privacyNote: {
-    borderRadius: 18,
+    borderRadius: 17,
     padding: 12,
     flexDirection: 'row',
     gap: 9,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   privacyText: {
     ...type.tiny,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   primaryButton: {
-    height: 56,
+    height: 54,
     borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
