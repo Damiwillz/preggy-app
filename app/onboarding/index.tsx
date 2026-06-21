@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 58,
-    paddingBottom: 36,
+    paddingTop: 52,
+    paddingBottom: 22,
   },
   topRow: {
     flexDirection: 'row',
@@ -120,10 +120,10 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroCard: {
-    height: 310,
-    borderRadius: 38,
+    height: 255,
+    borderRadius: 30,
     borderWidth: 1,
-    marginTop: 22,
+    marginTop: 16,
     overflow: 'hidden',
   },
   heroImage: {
@@ -156,8 +156,8 @@ const styles = StyleSheet.create({
   dots: {
     flexDirection: 'row',
     gap: 7,
-    marginTop: 24,
-    marginBottom: 18,
+    marginTop: 16,
+    marginBottom: 12,
   },
   dotActive: {
     width: 28,
@@ -174,25 +174,25 @@ const styles = StyleSheet.create({
   },
   title: {
     ...type.title,
-    fontSize: 36,
-    lineHeight: 41,
+    fontSize: 32,
+    lineHeight: 36,
     marginTop: 7,
   },
   subtitle: {
     ...type.body,
-    lineHeight: 24,
-    marginTop: 12,
+    lineHeight: 22,
+    marginTop: 9,
   },
   featureGrid: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 22,
+    marginTop: 16,
   },
   feature: {
     flex: 1,
     borderRadius: 24,
     padding: 14,
-    minHeight: 132,
+    minHeight: 108,
   },
   featureIcon: {
     width: 42,
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   featureTitle: {
     ...type.bodyStrong,
@@ -212,9 +212,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   primaryButton: {
-    height: 60,
-    borderRadius: 30,
-    marginTop: 24,
+    height: 54,
+    borderRadius: 27,
+    marginTop: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -224,10 +224,10 @@ const styles = StyleSheet.create({
     ...type.bodyStrong,
   },
   secondaryButton: {
-    height: 54,
-    borderRadius: 27,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 1,
-    marginTop: 12,
+    marginTop: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },

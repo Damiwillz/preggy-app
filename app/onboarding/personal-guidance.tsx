@@ -47,7 +47,7 @@ export default function PersonalGuidanceScreen() {
         </View>
 
         <View style={[styles.bigCircle, { backgroundColor: palette.surface }]}>
-          <Ionicons name="sparkles" size={72} color={palette.accent} />
+          <Ionicons name="sparkles" size={54} color={palette.accent} />
         </View>
 
         <View style={[styles.smallBubble, styles.bubbleTwo, { backgroundColor: palette.surface }]}>
@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 54,
-    paddingBottom: 46,
+    paddingTop: 52,
+    paddingBottom: 22,
   },
   topRow: {
     flexDirection: 'row',
@@ -123,25 +123,25 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   illustration: {
-    height: 178,
-    borderRadius: 34,
-    marginTop: 20,
+    height: 150,
+    borderRadius: 28,
+    marginTop: 16,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   bigCircle: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
+    width: 94,
+    height: 94,
+    borderRadius: 47,
     alignItems: 'center',
     justifyContent: 'center',
   },
   smallBubble: {
     position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 7,
-    marginTop: 18,
-    marginBottom: 16,
+    marginTop: 12,
+    marginBottom: 10,
   },
   dotActive: {
     width: 28,
@@ -176,48 +176,48 @@ const styles = StyleSheet.create({
   },
   title: {
     ...type.title,
-    fontSize: 28,
-    lineHeight: 33,
+    fontSize: 25,
+    lineHeight: 30,
     textAlign: 'center',
     marginTop: 7,
   },
   subtitle: {
     ...type.body,
     textAlign: 'center',
-    lineHeight: 23,
-    marginTop: 9,
+    lineHeight: 21,
+    marginTop: 7,
   },
   cards: {
-    gap: 9,
-    marginTop: 16,
+    gap: 8,
+    marginTop: 12,
   },
   card: {
     borderRadius: 22,
     borderWidth: 1,
-    padding: 14,
+    padding: 12,
     flexDirection: 'row',
     gap: 12,
   },
   cardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 19,
+    width: 42,
+    height: 42,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
     ...type.bodyStrong,
-    fontSize: 16,
+    fontSize: 15,
   },
   cardCopy: {
     ...type.small,
-    lineHeight: 19,
-    marginTop: 3,
+    lineHeight: 17,
+    marginTop: 2,
   },
   primaryButton: {
     height: 60,
     borderRadius: 30,
-    marginTop: 20,
+    marginTop: 16,
     marginBottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
