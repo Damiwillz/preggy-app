@@ -1,13 +1,13 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
-import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
+import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 
 type Medication = {
@@ -15,108 +15,112 @@ type Medication = {
   user_id: string;
   name: string;
   dosage: string | null;
-  schedule: string | null;
-  time_label: string | null;
-  taken: boolean;
-  created_at: string;
+  frequency: string | null;
+  instructions: string | null;
+  taken: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
-const defaultMedications = [
-  {
-    name: 'Prenatal Multi Vitamin',
-    dosage: '1 capsule',
-    schedule: 'Daily',
-    time_label: '8:00 AM',
-    taken: true,
-  },
-  {
-    name: 'Folic Acid',
-    dosage: '400mcg',
-    schedule: 'Daily',
-    time_label: '8:00 AM',
-    taken: true,
-  },
-  {
-    name: 'DHA Supplement',
-    dosage: '200mg',
-    schedule: 'Once daily',
-    time_label: '12:30 PM',
-    taken: false,
-  },
-  {
-    name: 'Iron Supplement',
-    dosage: '1 tablet',
-    schedule: 'Daily',
-    time_label: '12:30 PM',
-    taken: false,
-  },
-];
+function displayFrequency(medication: Medication) {
+  return medication.frequency || 'Daily';
+}
+
+function displayDosage(medication: Medication) {
+  return medication.dosage || 'As directed';
+}
 
 export default function MedicationScreen() {
+  const { palette } = useAppTheme();
+
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
-  const loadMedications = useCallback(async () => {
-    try {
-      setLoading(true);
+  async function getUserId() {
+    const { data, error } = await supabase.auth.getUser();
 
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (error) throw error;
 
-      if (userError) throw userError;
+    const userId = data.user?.id;
 
-      const userId = userData.user?.id;
-
-      if (!userId) {
-        Alert.alert('Login needed', 'Please log in to view your medications.');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('medications')
-        .select('id,user_id,name,dosage,schedule,time_label,taken,created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setMedications(data as Medication[]);
-        return;
-      }
-
-      const seedRows = defaultMedications.map((item) => ({
-        user_id: userId,
-        ...item,
-      }));
-
-      const { data: created, error: createError } = await supabase
-        .from('medications')
-        .insert(seedRows)
-        .select('id,user_id,name,dosage,schedule,time_label,taken,created_at')
-        .order('created_at', { ascending: true });
-
-      if (createError) throw createError;
-
-      setMedications((created as Medication[]) ?? []);
-    } catch (error) {
-      console.log('Medication load error:', error);
-      Alert.alert('Medication error', 'We could not load your medications.');
-    } finally {
-      setLoading(false);
+    if (!userId) {
+      throw new Error('No logged in user.');
     }
-  }, []);
+
+    return userId;
+  }
+
+  async function loadMedications() {
+    const userId = await getUserId();
+
+    const { data, error } = await supabase
+      .from('medications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    setMedications((data ?? []) as Medication[]);
+  }
 
   useFocusEffect(
     useCallback(() => {
-      loadMedications();
-    }, [loadMedications])
+      let mounted = true;
+
+      setLoading(true);
+
+      loadMedications()
+        .catch((error) => {
+          console.log('Medication load error:', error);
+          Alert.alert('Medication', 'Could not load medications.');
+        })
+        .finally(() => {
+          if (mounted) setLoading(false);
+        });
+
+      return () => {
+        mounted = false;
+      };
+    }, [])
   );
 
-  const toggleMedication = async (medication: Medication) => {
+  async function addMedication() {
+    setAdding(true);
+
+    try {
+      const userId = await getUserId();
+
+      const { error } = await supabase.from('medications').insert({
+        user_id: userId,
+        name: 'Prenatal vitamin',
+        dosage: '1 tablet',
+        frequency: 'Daily',
+        instructions: 'Take with food and water.',
+        taken: false,
+      });
+
+      if (error) throw error;
+
+      await loadMedications();
+    } catch (error) {
+      console.log('Add medication error:', error);
+      Alert.alert('Medication', 'Could not add medication.');
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function toggleMedication(medication: Medication) {
+    setSavingId(medication.id);
+
+    const previous = medications;
     const nextTaken = !medication.taken;
 
-    setMedications((current) =>
-      current.map((item) =>
+    setMedications((old) =>
+      old.map((item) =>
         item.id === medication.id
           ? {
               ...item,
@@ -126,245 +130,266 @@ export default function MedicationScreen() {
       )
     );
 
-    const { error } = await supabase
-      .from('medications')
-      .update({
-        taken: nextTaken,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', medication.id);
+    try {
+      const { error } = await supabase
+        .from('medications')
+        .update({
+          taken: nextTaken,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', medication.id);
 
-    if (error) {
-      console.log('Medication update error:', error);
-      Alert.alert('Update failed', 'We could not update this medication.');
+      if (error) throw error;
+    } catch (error) {
+      console.log('Toggle medication error:', error);
 
-      setMedications((current) =>
-        current.map((item) =>
-          item.id === medication.id
-            ? {
-                ...item,
-                taken: medication.taken,
-              }
-            : item
-        )
-      );
+      setMedications(previous);
+      Alert.alert('Medication', 'Could not update medication.');
+    } finally {
+      setSavingId(null);
     }
-  };
+  }
 
-  const takenCount = medications.filter((item) => item.taken).length;
-  const totalCount = medications.length || 4;
+  const total = medications.length;
+  const taken = medications.filter((item) => item.taken).length;
+  const progress = total > 0 ? Math.round((taken / total) * 100) : 0;
 
   return (
-    <Screen bottomSpace={40}>
-      <Header title="Medication & Supplements" back />
+    <Screen bottomSpace={120}>
+      <Header title="Medication" back />
 
-      <Text style={styles.title}>Medication &{`\n`}Supplements</Text>
-      <Text style={styles.sub}>Keep track of your daily wellness routine.</Text>
-
-      <View style={styles.progress}>
-        <View>
-          <Text style={styles.label}>DAILY PROGRESS</Text>
-          <Text style={styles.big}>
-            {loading ? '...' : takenCount}{' '}
-            <Text style={styles.small}>of {totalCount} taken</Text>
-          </Text>
-        </View>
-
-        <View style={styles.ring}>
-          <Ionicons name="checkmark-circle" size={34} color="#765B60" />
-        </View>
-      </View>
-
-      <View style={styles.headingRow}>
-        <Text style={styles.heading}>Upcoming Doses</Text>
-        <Text style={styles.link}>Live Routine</Text>
-      </View>
-
-      <View style={styles.doses}>
-        <View style={styles.dose}>
-          <Text style={styles.time}>12:30 PM</Text>
-          <Text style={styles.doseTitle}>Iron Supplement</Text>
-          <Text style={styles.doseSub}>💊 1 Tablet</Text>
-        </View>
-
-        <View style={[styles.dose, { backgroundColor: '#FFF4EB' }]}>
-          <Text style={styles.time}>8:00 PM</Text>
-          <Text style={styles.doseTitle}>Calcium</Text>
-          <Text style={styles.doseSub}>⊞ 2 Softgels</Text>
-        </View>
-      </View>
-
-      <Text style={styles.heading}>Your Regimen</Text>
-
-      {medications.map((item) => (
-        <AnimatedPressable
-          key={item.id}
-          onPress={() => toggleMedication(item)}
-          style={styles.regimen}
-        >
-          <View style={styles.medIcon}>
-            <Ionicons name="medical-outline" size={22} color="#765B60" />
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Text style={styles.doseTitle}>{item.name}</Text>
-            <Text style={styles.doseSub}>
-              {item.dosage || 'Dose not set'} • {item.schedule || 'Schedule not set'}
-              {item.time_label ? ` at ${item.time_label}` : ''}
-            </Text>
-          </View>
-
-          <View style={[styles.check, item.taken && styles.checkOn]}>
-            <Ionicons name="checkmark" size={24} color={item.taken ? '#fff' : '#765B60'} />
-          </View>
-        </AnimatedPressable>
-      ))}
-
-      <View style={styles.tip}>
-        <Ionicons name="bulb-outline" size={24} color="#765B60" />
-
+      <View style={styles.heading}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.tipTitle}>Tip for today</Text>
-          <Text style={styles.tipCopy}>
-            Taking your iron supplement with a glass of orange juice can help improve absorption.
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>DAILY ROUTINE</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>Medication & Supplements</Text>
+          <Text style={[styles.subtitle, { color: palette.text }]}>
+            Track your prenatal vitamins, supplements, and care routines.
           </Text>
         </View>
+
+        <AnimatedPressable
+          onPress={addMedication}
+          disabled={adding}
+          style={[styles.addButton, { backgroundColor: palette.accent }]}
+        >
+          {adding ? (
+            <ActivityIndicator color={palette.onAccent} />
+          ) : (
+            <Ionicons name="add" size={26} color={palette.onAccent} />
+          )}
+        </AnimatedPressable>
       </View>
+
+      <View style={[styles.summary, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+        <View>
+          <Text style={[styles.summaryLabel, { color: palette.accent }]}>TODAY’S PROGRESS</Text>
+          <Text style={[styles.summaryTitle, { color: palette.ink }]}>
+            {taken}/{total} completed
+          </Text>
+        </View>
+
+        <View style={[styles.progressCircle, { backgroundColor: palette.surface }]}>
+          <Text style={[styles.progressText, { color: palette.accent }]}>{progress}%</Text>
+        </View>
+      </View>
+
+      {loading ? (
+        <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <ActivityIndicator color={palette.accent} />
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>Loading routine...</Text>
+        </View>
+      ) : medications.length === 0 ? (
+        <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="medkit-outline" size={34} color={palette.accent} />
+          </View>
+
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>No routine yet</Text>
+          <Text style={[styles.emptyCopy, { color: palette.text }]}>
+            Tap the plus button to add a sample prenatal vitamin.
+          </Text>
+        </View>
+      ) : (
+        medications.map((medication) => {
+          const isTaken = !!medication.taken;
+
+          return (
+            <AnimatedPressable
+              key={medication.id}
+              onPress={() => toggleMedication(medication)}
+              disabled={savingId === medication.id}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: isTaken ? palette.success : palette.line,
+                },
+              ]}
+            >
+              <View style={[styles.medIcon, { backgroundColor: isTaken ? palette.success + '22' : palette.accentSoft }]}>
+                {savingId === medication.id ? (
+                  <ActivityIndicator color={palette.accent} />
+                ) : (
+                  <Ionicons
+                    name={isTaken ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={30}
+                    color={isTaken ? palette.success : palette.accent}
+                  />
+                )}
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.medTitle, { color: palette.ink }]}>{medication.name}</Text>
+
+                <Text style={[styles.medMeta, { color: palette.text }]}>
+                  {displayDosage(medication)} • {displayFrequency(medication)}
+                </Text>
+
+                {medication.instructions ? (
+                  <Text style={[styles.instructions, { color: palette.muted }]}>{medication.instructions}</Text>
+                ) : null}
+              </View>
+
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: isTaken ? palette.success + '22' : palette.softSurface },
+                ]}
+              >
+                <Text style={[styles.statusText, { color: isTaken ? palette.success : palette.text }]}>
+                  {isTaken ? 'Taken' : 'Due'}
+                </Text>
+              </View>
+            </AnimatedPressable>
+          );
+        })
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  heading: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'flex-start',
+    marginTop: 22,
+    marginBottom: 18,
+  },
+  eyebrow: {
+    ...type.section,
+  },
   title: {
     ...type.title,
-    fontSize: 31,
-    color: '#201A1A',
-    marginTop: 20,
+    fontSize: 30,
+    lineHeight: 36,
+    marginTop: 3,
   },
-  sub: {
+  subtitle: {
     ...type.body,
-    color: '#51484A',
-    marginTop: 5,
+    lineHeight: 23,
+    marginTop: 7,
   },
-  progress: {
-    backgroundColor: colors.surface,
-    borderRadius: 25,
-    padding: 24,
-    marginTop: 22,
-    flexDirection: 'row',
+  addButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  label: {
-    ...type.section,
-    color: '#755F64',
-  },
-  big: {
-    ...type.hero,
-    fontSize: 44,
-    color: '#765B60',
+    justifyContent: 'center',
     marginTop: 4,
   },
-  small: {
-    ...type.body,
-    fontSize: 18,
-  },
-  ring: {
-    width: 92,
-    height: 72,
-    borderRadius: 46,
-    borderWidth: 10,
-    borderColor: '#765B60',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headingRow: {
+  summary: {
+    borderRadius: 28,
+    padding: 18,
+    borderWidth: 1,
+    marginBottom: 16,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 24,
   },
-  heading: {
-    ...type.body,
-    fontSize: 21,
-    color: '#2D2525',
-    marginTop: 24,
-    marginBottom: 12,
+  summaryLabel: {
+    ...type.section,
   },
-  link: {
-    ...type.body,
-    color: '#58494C',
-    marginTop: 24,
+  summaryTitle: {
+    ...type.title,
+    fontSize: 26,
+    marginTop: 4,
   },
-  doses: {
-    flexDirection: 'row',
-    gap: 14,
+  progressCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dose: {
-    flex: 1,
-    backgroundColor: '#F0EEFF',
-    borderRadius: 18,
-    padding: 18,
-  },
-  time: {
-    ...type.body,
-    color: '#6A677D',
-  },
-  doseTitle: {
+  progressText: {
     ...type.bodyStrong,
-    color: '#2B2425',
-    marginTop: 6,
+    fontSize: 17,
   },
-  doseSub: {
-    ...type.small,
-    color: '#665B5D',
-    marginTop: 2,
-  },
-  regimen: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  medIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.softSurface,
+  empty: {
+    minHeight: 240,
+    borderRadius: 28,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 24,
   },
-  check: {
-    width: 48,
-    height: 38,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#D8C8CB',
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 14,
   },
-  checkOn: {
-    backgroundColor: '#765B60',
-    borderColor: '#765B60',
-  },
-  tip: {
-    backgroundColor: '#FFF0E7',
-    borderRadius: 20,
-    padding: 18,
-    flexDirection: 'row',
-    gap: 14,
+  emptyTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    textAlign: 'center',
     marginTop: 10,
   },
-  tipTitle: {
+  emptyCopy: {
     ...type.body,
-    fontSize: 19,
-    color: '#5A474B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: 6,
   },
-  tipCopy: {
-    ...type.body,
-    color: '#5A474B',
-    marginTop: 3,
+  card: {
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  medIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  medTitle: {
+    ...type.bodyStrong,
+    fontSize: 17,
+  },
+  medMeta: {
+    ...type.small,
+    marginTop: 4,
+  },
+  instructions: {
+    ...type.small,
+    marginTop: 5,
+    lineHeight: 18,
+  },
+  statusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusText: {
+    ...type.tiny,
+    fontWeight: '900',
   },
 });
