@@ -17,58 +17,68 @@ type TimelineItem = {
   copy: string;
   image?: number;
   icon: keyof typeof Ionicons.glyphMap;
+  trimester: string;
 };
 
 const items: TimelineItem[] = [
   {
     week: 8,
-    title: 'First Heartbeat',
-    copy: 'A magical moment as you may hear that tiny, rapid pulse for the very first time. Baby is now growing quickly.',
+    title: 'First heartbeat',
+    copy: 'A beautiful moment when you may hear that tiny, rapid pulse for the first time.',
     image: require('../assets/images/timeline-heartbeat.jpg'),
     icon: 'heart',
+    trimester: 'First trimester',
   },
   {
     week: 12,
-    title: 'First Trimester Checkup',
-    copy: 'You are moving toward the second trimester. Baby’s vital organs are formed, and nausea may begin to ease.',
+    title: 'First trimester checkup',
+    copy: 'Baby’s vital organs are formed, and you are moving toward the second trimester.',
+    image: require('../assets/images/week12-baby.jpg'),
     icon: 'medkit',
+    trimester: 'First trimester',
   },
   {
     week: 20,
-    title: 'Anatomy Scan',
-    copy: 'The mid pregnancy ultrasound checks baby’s development in detail and may reveal baby’s sex if you want to know.',
+    title: 'Anatomy scan',
+    copy: 'A detailed ultrasound checks baby’s development and growth.',
     image: require('../assets/images/timeline-ultrasound.jpg'),
     icon: 'eye',
+    trimester: 'Second trimester',
   },
   {
     week: 24,
-    title: 'Viability Milestone',
-    copy: 'Baby is becoming more responsive. You may notice stronger kicks, rolls, and more regular movement patterns.',
+    title: 'Viability milestone',
+    copy: 'Baby is more responsive, and movements may become stronger and more regular.',
     icon: 'sparkles',
+    trimester: 'Second trimester',
   },
   {
     week: 28,
-    title: 'Third Trimester Begins',
-    copy: 'The home stretch begins. Baby is opening their eyes, practicing breathing, and gaining weight steadily.',
+    title: 'Third trimester begins',
+    copy: 'Baby is opening their eyes, practicing breathing, and gaining weight steadily.',
     icon: 'sunny',
+    trimester: 'Third trimester',
   },
   {
     week: 32,
-    title: 'Growth & Position Check',
-    copy: 'Baby is filling out and may start settling into a head down position. Rest, hydration, and comfort matter more now.',
+    title: 'Growth and position check',
+    copy: 'Baby is filling out and may begin settling into a head-down position.',
     icon: 'body',
+    trimester: 'Third trimester',
   },
   {
     week: 36,
-    title: 'Baby Drops Lower',
-    copy: 'Engagement or lightening may happen as baby moves lower into the pelvis, preparing for birth.',
+    title: 'Baby drops lower',
+    copy: 'Baby may move lower into the pelvis as your body prepares for birth.',
     icon: 'happy',
+    trimester: 'Third trimester',
   },
   {
     week: 40,
-    title: 'Due Date Week',
-    copy: 'The big week is here. Keep your hospital bag ready and contact your maternity care team with any concerns.',
+    title: 'Due date week',
+    copy: 'The big week is here. Keep your bag ready and stay close to your care team.',
     icon: 'briefcase',
+    trimester: 'Birth window',
   },
 ];
 
@@ -145,16 +155,22 @@ export default function Timeline() {
   );
 
   const progress = useMemo(() => getPregnancyProgress(profile), [profile]);
-  const babyName = profile?.baby_nickname || 'Baby';
+  const babyName = profile?.baby_nickname || 'baby';
 
   return (
-    <Screen bottomSpace={40}>
+    <Screen bottomSpace={44}>
       <Header title="Timeline" back />
 
-      <Text style={[styles.title, { color: palette.ink }]}>Pregnancy Timeline</Text>
-      <Text style={[styles.sub, { color: palette.text }]}>
-        Your live journey with {babyName}, updated from your saved pregnancy profile.
-      </Text>
+      <View style={styles.hero}>
+        <Image source={require('../assets/images/timeline-ultrasound.jpg')} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+        <View style={styles.heroShade} />
+
+        <View style={styles.heroText}>
+          <Text style={styles.eyebrow}>PREGNANCY TIMELINE</Text>
+          <Text style={styles.title}>Your journey with {babyName}</Text>
+          <Text style={styles.sub}>Track meaningful milestones from early heartbeat to due date week.</Text>
+        </View>
+      </View>
 
       <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         {loading ? (
@@ -165,15 +181,20 @@ export default function Timeline() {
         ) : (
           <>
             <View style={styles.summaryTop}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={[styles.summaryLabel, { color: palette.accent }]}>CURRENT STAGE</Text>
                 <Text style={[styles.summaryTitle, { color: palette.ink }]}>
                   Week {progress.week}, Day {progress.day}
                 </Text>
+                <Text style={[styles.summaryNote, { color: palette.text }]}>
+                  {progress.daysRemaining > 0
+                    ? `${progress.daysRemaining} days until your estimated due date`
+                    : 'You have reached your due date window'}
+                </Text>
               </View>
 
-              <View style={[styles.percentBadge, { backgroundColor: palette.accentSoft }]}>
-                <Text style={[styles.percentText, { color: palette.accent }]}>{progress.progress}%</Text>
+              <View style={[styles.percentBadge, { backgroundColor: palette.accent }]}>
+                <Text style={[styles.percentText, { color: palette.onAccent }]}>{progress.progress}%</Text>
               </View>
             </View>
 
@@ -182,108 +203,130 @@ export default function Timeline() {
             </View>
 
             <View style={styles.summaryBottom}>
-              <Text style={[styles.summaryNote, { color: palette.text }]}>
-                {progress.daysRemaining > 0
-                  ? `${progress.daysRemaining} days until your estimated due date`
-                  : 'You have reached your due date window'}
-              </Text>
-
+              <Text style={[styles.progressMini, { color: palette.muted }]}>Week 1</Text>
               <AnimatedPressable onPress={() => router.push('/calculator/result' as never)}>
                 <Text style={[styles.updateLink, { color: palette.accent }]}>Update due date</Text>
               </AnimatedPressable>
+              <Text style={[styles.progressMini, { color: palette.muted }]}>Week 40</Text>
             </View>
           </>
         )}
       </View>
 
-      <View style={[styles.line, { backgroundColor: palette.accentSoft }]} />
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Milestone path</Text>
 
-      {items.map((item, index) => {
-        const status = getStatus(item.week, progress.week);
-        const isCompleted = status === 'Completed';
-        const isCurrent = status === 'This week';
+      <View style={styles.timelineWrap}>
+        <View style={[styles.line, { backgroundColor: palette.accentSoft }]} />
 
-        return (
-          <View key={item.week} style={styles.item}>
-            <View
-              style={[
-                styles.icon,
-                { backgroundColor: palette.accentSoft },
-                isCompleted && { backgroundColor: palette.success },
-                isCurrent && { backgroundColor: palette.accent },
-              ]}
-            >
-              <Ionicons
-                name={isCompleted ? 'checkmark' : item.icon}
-                size={22}
-                color={isCompleted || isCurrent ? palette.onAccent : palette.accent}
-              />
-            </View>
+        {items.map((item) => {
+          const status = getStatus(item.week, progress.week);
+          const isCompleted = status === 'Completed';
+          const isCurrent = status === 'This week';
 
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: isCurrent ? palette.accentSoft : palette.surface,
-                  borderColor: isCurrent ? palette.accent : palette.line,
-                },
-                index === items.length - 1 && { backgroundColor: palette.softSurface },
-              ]}
-            >
-              <View style={styles.cardTop}>
-                <Text style={[styles.week, { color: palette.accent }]}>WEEK {item.week}</Text>
-
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: palette.softSurface },
-                    isCompleted && { backgroundColor: palette.success + '22' },
-                    isCurrent && { backgroundColor: palette.accent },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      { color: palette.text },
-                      isCompleted && { color: palette.success },
-                      isCurrent && { color: palette.onAccent },
-                    ]}
-                  >
-                    {status}
-                  </Text>
-                </View>
+          return (
+            <View key={item.week} style={styles.item}>
+              <View
+                style={[
+                  styles.icon,
+                  { backgroundColor: palette.accentSoft },
+                  isCompleted && { backgroundColor: '#CE6F79' },
+                  isCurrent && { backgroundColor: palette.accent },
+                ]}
+              >
+                <Ionicons
+                  name={isCompleted ? 'checkmark' : item.icon}
+                  size={21}
+                  color={isCompleted || isCurrent ? palette.onAccent : palette.accent}
+                />
               </View>
 
-              <Text style={[styles.itemTitle, { color: palette.ink }]}>{item.title}</Text>
-              <Text style={[styles.copy, { color: palette.text }]}>{item.copy}</Text>
+              <View
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: isCurrent ? palette.accentSoft : palette.surface,
+                    borderColor: isCurrent ? palette.accent : palette.line,
+                  },
+                ]}
+              >
+                {item.image ? <Image source={item.image} style={styles.image} resizeMode="cover" /> : null}
 
-              {item.image ? <Image source={item.image} style={styles.image} /> : null}
+                <View style={styles.cardTop}>
+                  <Text style={[styles.week, { color: palette.accent }]}>WEEK {item.week}</Text>
+
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: palette.softSurface },
+                      isCompleted && { backgroundColor: '#FFF0F1' },
+                      isCurrent && { backgroundColor: palette.accent },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: palette.text },
+                        isCompleted && { color: '#CE6F79' },
+                        isCurrent && { color: palette.onAccent },
+                      ]}
+                    >
+                      {status}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={[styles.trimester, { color: palette.muted }]}>{item.trimester}</Text>
+                <Text style={[styles.itemTitle, { color: palette.ink }]}>{item.title}</Text>
+                <Text style={[styles.copy, { color: palette.text }]}>{item.copy}</Text>
+              </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })}
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  hero: {
+    height: 285,
+    borderRadius: 32,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    marginTop: 14,
+    backgroundColor: '#FFF0F1',
+  },
+  heroShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(42,20,27,0.54)',
+  },
+  heroText: {
+    padding: 24,
+  },
+  eyebrow: {
+    ...type.tiny,
+    color: '#FFE7EC',
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
   title: {
     ...type.title,
-    fontSize: 30,
-    textAlign: 'center',
-    marginTop: 22,
+    fontSize: 31,
+    lineHeight: 36,
+    color: '#fff',
+    marginTop: 7,
   },
   sub: {
     ...type.body,
-    textAlign: 'center',
-    marginTop: 7,
-    marginBottom: 18,
+    color: '#FFF4F5',
+    marginTop: 8,
     lineHeight: 23,
   },
   summaryCard: {
-    borderRadius: 26,
+    borderRadius: 28,
     padding: 20,
-    marginBottom: 24,
+    marginTop: 16,
+    marginBottom: 22,
     borderWidth: 1,
   },
   loadingRow: {
@@ -298,112 +341,132 @@ const styles = StyleSheet.create({
   summaryTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 14,
   },
   summaryLabel: {
     ...type.section,
   },
   summaryTitle: {
     ...type.title,
-    fontSize: 25,
+    fontSize: 26,
     marginTop: 5,
+  },
+  summaryNote: {
+    ...type.small,
+    marginTop: 6,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   percentBadge: {
     width: 62,
     height: 62,
-    borderRadius: 31,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
   },
   percentText: {
     ...type.bodyStrong,
+    fontSize: 17,
   },
   progressTrack: {
-    height: 11,
-    borderRadius: 20,
+    height: 13,
+    borderRadius: 999,
     marginTop: 18,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 20,
+    borderRadius: 999,
   },
   summaryBottom: {
-    marginTop: 13,
+    marginTop: 9,
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
+    alignItems: 'center',
   },
-  summaryNote: {
-    ...type.small,
-    flex: 1,
-    lineHeight: 19,
+  progressMini: {
+    ...type.tiny,
+    fontWeight: '900',
   },
   updateLink: {
     ...type.small,
     fontWeight: '900',
   },
+  sectionTitle: {
+    ...type.title,
+    fontSize: 25,
+    marginBottom: 14,
+  },
+  timelineWrap: {
+    position: 'relative',
+  },
   line: {
     position: 'absolute',
-    left: 53,
-    top: 326,
-    bottom: 50,
+    left: 24,
+    top: 8,
+    bottom: 30,
     width: 3,
+    borderRadius: 99,
   },
   item: {
     flexDirection: 'row',
-    gap: 18,
-    marginBottom: 22,
+    gap: 16,
+    marginBottom: 18,
     zIndex: 2,
   },
   icon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   card: {
     flex: 1,
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 28,
+    padding: 16,
     borderWidth: 1,
+  },
+  image: {
+    height: 145,
+    width: '100%',
+    borderRadius: 22,
+    marginBottom: 14,
   },
   cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 12,
     alignItems: 'center',
   },
   week: {
-    ...type.body,
-    fontWeight: '900',
+    ...type.section,
   },
   statusBadge: {
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
   },
   statusText: {
     ...type.tiny,
     fontWeight: '900',
   },
-  itemTitle: {
-    ...type.body,
-    fontSize: 20,
+  trimester: {
+    ...type.tiny,
     marginTop: 8,
-    fontWeight: '800',
+    fontWeight: '900',
+  },
+  itemTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    marginTop: 4,
   },
   copy: {
-    ...type.body,
-    marginTop: 8,
-    lineHeight: 23,
-  },
-  image: {
-    width: '100%',
-    height: 135,
-    borderRadius: 14,
-    marginTop: 14,
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 5,
   },
 });
