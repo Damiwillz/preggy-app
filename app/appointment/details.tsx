@@ -118,6 +118,45 @@ export default function AppointmentDetailsScreen() {
     }
   };
 
+  const deleteAppointment = async () => {
+    if (!appointment) return;
+
+    Alert.alert(
+      'Delete appointment?',
+      'This will permanently remove this appointment from Preggy.',
+      [
+        {
+          text: 'Keep it',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('appointments')
+                .delete()
+                .eq('id', appointment.id);
+
+              if (error) throw error;
+
+              Alert.alert('Appointment deleted', 'This appointment has been removed.', [
+                {
+                  text: 'OK',
+                  onPress: () => router.replace('/(tabs)/appointments' as never),
+                },
+              ]);
+            } catch (error) {
+              console.log('Delete appointment error:', error);
+              Alert.alert('Delete failed', 'We could not delete this appointment.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <Screen>
       <Header title="Appointment" back />
@@ -184,6 +223,12 @@ export default function AppointmentDetailsScreen() {
         label="Cancel Appointment"
         variant="ghost"
         onPress={cancelAppointment}
+      />
+
+      <Button
+        label="Delete Appointment"
+        variant="ghost"
+        onPress={deleteAppointment}
       />
     </Screen>
   );
