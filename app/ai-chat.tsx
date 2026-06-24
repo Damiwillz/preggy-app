@@ -188,6 +188,19 @@ export default function PreggyAIChatScreen() {
             </View>
           </View>
 
+          <View style={[styles.safetyCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <View style={[styles.safetyIcon, { backgroundColor: palette.accentSoft }]}>
+              <Ionicons name="medkit-outline" size={20} color={palette.accent} />
+            </View>
+
+            <View style={styles.safetyTextWrap}>
+              <Text style={[styles.safetyTitle, { color: palette.ink }]}>Wellness support only</Text>
+              <Text style={[styles.safetyCopy, { color: palette.text }]}>
+                Preggy AI does not replace medical advice. For urgent symptoms, contact your doctor, midwife, or emergency services.
+              </Text>
+            </View>
+          </View>
+
           <Text style={[styles.today, { backgroundColor: palette.softSurface, color: palette.text }]}>Today</Text>
 
           {messages.map((message) => {
@@ -475,5 +488,33 @@ const styles = StyleSheet.create({
   },
   sendDisabled: {
     opacity: 0.7,
+  },
+
+  safetyCard: {
+    flexDirection: 'row',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 14,
+    marginBottom: 16,
+  },
+  safetyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  safetyTextWrap: {
+    flex: 1,
+  },
+  safetyTitle: {
+    ...type.bodyStrong,
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  safetyCopy: {
+    ...type.small,
+    lineHeight: 19,
   },
 });
