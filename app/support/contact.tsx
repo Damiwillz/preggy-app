@@ -18,14 +18,11 @@ export default function ContactSupportScreen() {
 
     const url = `mailto:${supportEmail}?subject=${subject}&body=${body}`;
 
-    const canOpen = await Linking.canOpenURL(url);
-
-    if (!canOpen) {
-      Alert.alert('Email unavailable', `Please email us at ${supportEmail}`);
-      return;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Email unavailable', `Please email us directly at ${supportEmail}`);
     }
-
-    await Linking.openURL(url);
   }
 
   return (
@@ -52,6 +49,14 @@ export default function ContactSupportScreen() {
           <AnimatedPressable style={styles.button} onPress={emailSupport}>
             <Ionicons name="mail-outline" size={21} color="#FFFFFF" />
             <Text style={styles.buttonText}>Email Support</Text>
+          </AnimatedPressable>
+
+          <AnimatedPressable
+            style={styles.secondaryButton}
+            onPress={() => Alert.alert('Support email', supportEmail)}
+          >
+            <Ionicons name="information-circle-outline" size={20} color="#CE6F79" />
+            <Text style={styles.secondaryButtonText}>Show Email Address</Text>
           </AnimatedPressable>
         </View>
 
@@ -147,5 +152,23 @@ const styles = StyleSheet.create({
     ...type.bodyStrong,
     color: '#FFFFFF',
     fontSize: 16,
+  },
+
+  secondaryButton: {
+    minHeight: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFF0F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#F1CDD2',
+  },
+  secondaryButtonText: {
+    ...type.bodyStrong,
+    color: '#CE6F79',
+    fontSize: 15,
   },
 });
