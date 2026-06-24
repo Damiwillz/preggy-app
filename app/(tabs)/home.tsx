@@ -289,19 +289,34 @@ export default function HomeScreen() {
         </View>
       </AnimatedPressable>
 
-      <View style={[styles.progressPanel, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View>
-          <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGNANCY PROGRESS</Text>
-          <Text style={[styles.progressTitle, { color: palette.ink }]}>
-            {progress.progress}% complete
-          </Text>
-          <Text style={[styles.progressCopy, { color: palette.text }]}>
-            {progress.daysRemaining > 0 ? `${progress.daysRemaining} days until your estimated due date.` : 'You are in your due date window.'}
-          </Text>
+      <View style={[styles.progressPanel, { borderColor: palette.line }]}>
+        <View style={styles.progressTop}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGNANCY PROGRESS</Text>
+            <Text style={[styles.progressTitle, { color: palette.ink }]}>
+              {progress.progress}% complete
+            </Text>
+            <Text style={[styles.progressCopy, { color: palette.text }]}>
+              {progress.daysRemaining > 0 ? `${progress.daysRemaining} days until your estimated due date.` : 'You are in your due date window.'}
+            </Text>
+          </View>
+
+          <View style={[styles.progressBadge, { backgroundColor: palette.accent }]}>
+            <Text style={[styles.progressBadgeText, { color: palette.onAccent }]}>
+              {progress.week}w
+            </Text>
+          </View>
         </View>
 
-        <View style={[styles.track, { backgroundColor: palette.softSurface }]}>
-          <View style={[styles.fill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
+        <View style={styles.progressTrackWrap}>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
+          </View>
+
+          <View style={styles.progressLabels}>
+            <Text style={styles.progressMiniText}>Start</Text>
+            <Text style={styles.progressMiniText}>Due date</Text>
+          </View>
         </View>
       </View>
 
@@ -573,25 +588,72 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   progressPanel: {
-    borderRadius: 28,
+    borderRadius: 30,
     borderWidth: 1,
-    padding: 18,
+    padding: 20,
     marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#2A151B',
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
+  },
+  progressTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  progressBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressBadgeText: {
+    ...type.bodyStrong,
+    fontSize: 16,
   },
   eyebrow: {
     ...type.section,
     letterSpacing: 1.2,
   },
   progressTitle: {
-    ...type.bodyStrong,
-    fontSize: 21,
+    ...type.title,
+    fontSize: 27,
+    lineHeight: 32,
     marginTop: 5,
+    letterSpacing: -0.6,
   },
   progressCopy: {
     ...type.small,
-    lineHeight: 19,
-    marginTop: 5,
-    fontWeight: '700',
+    lineHeight: 20,
+    marginTop: 7,
+    fontWeight: '800',
+  },
+  progressTrackWrap: {
+    marginTop: 18,
+  },
+  progressTrack: {
+    height: 13,
+    borderRadius: 999,
+    backgroundColor: '#FFF0F1',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  progressLabels: {
+    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressMiniText: {
+    ...type.tiny,
+    color: '#A98C93',
+    fontWeight: '900',
   },
   track: {
     height: 11,
