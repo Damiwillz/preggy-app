@@ -215,6 +215,13 @@ export default function DataPrivacyScreen() {
               copy="Export your profile, symptoms, appointments, medications, and privacy settings."
               onPress={() => router.push('/privacy/download-data' as never)}
             />
+
+            <LinkRow
+              icon="person-remove-outline"
+              title="Delete My Account"
+              copy="Request permanent deletion of your Preggy account and saved data."
+              onPress={() => router.push('/privacy/delete-account' as never)}
+            />
           </View>
         </>
       )}
