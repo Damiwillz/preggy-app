@@ -1,46 +1,300 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Card } from '@/components/cards/Card';
-import { Button } from '@/components/ui/Button';
-import { CalendarIcon, GrowthIcon, HeartIcon } from '@/components/ui/icons';
+import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 
+function getParam(value: string | string[] | undefined, fallback: string) {
+  if (Array.isArray(value)) return value[0] ?? fallback;
+  return value ?? fallback;
+}
+
+function getTrimester(week: number) {
+  if (week <= 13) return 'Trimester 1';
+  if (week <= 27) return 'Trimester 2';
+  return 'Trimester 3';
+}
+
 export default function DueDateResultScreen() {
+  const params = useLocalSearchParams();
+
+  const dueDate = getParam(params.dueDate, 'Your saved due date');
+  const method = getParam(params.method, 'Pregnancy dates');
+  const week = Number(getParam(params.week, '12'));
+  const day = Number(getParam(params.day, '0'));
+  const progress = Number(getParam(params.progress, '30'));
+  const remaining = Number(getParam(params.remaining, '196'));
+  const trimester = getTrimester(week);
+
   return (
-    <Screen>
-      <Header title="Preggers" back />
-      <Text style={styles.eyebrow}>THE BIG DAY</Text>
-      <Text style={styles.title}>Your estimated due date is</Text>
-      <Card style={styles.dateCard}><Text style={styles.date}>March 18, 2027</Text><Text style={styles.trimester}>Trimester 1</Text><Text style={styles.copy}>You are 12 weeks, 4 days pregnant</Text></Card>
-      <Card style={styles.cardRow}><View style={styles.icon}><GrowthIcon color={colors.plum} /></View><View style={{ flex: 1 }}><Text style={styles.section}>GROWTH MILESTONE</Text><Text style={styles.strong}>Baby is the size of a lime</Text><Text style={styles.copy}>Approximately 5.4 cm long</Text></View></Card>
-      <Card style={styles.journey}><Text style={styles.section}>YOUR JOURNEY</Text><View style={styles.progressBar}><View style={styles.progressFill} /></View><View style={styles.split}><Text style={styles.percent}>31%</Text><Text style={styles.copy}>193 days remaining</Text></View></Card>
-      <Text style={styles.heading}>Next Steps</Text>
-      <Card style={styles.step}><CalendarIcon color={colors.plum}/><View style={{flex:1}}><Text style={styles.strong}>12-Week Ultrasound</Text><Text style={styles.copy}>Schedule your Nuchal Scan</Text></View></Card>
-      <Card style={styles.step}><HeartIcon color={colors.plum}/><View style={{flex:1}}><Text style={styles.strong}>Prenatal Vitamins</Text><Text style={styles.copy}>Don’t forget your morning dose</Text></View></Card>
-      <Button label="Back to Calculator" variant="secondary" onPress={() => router.back()} style={{ marginTop: 18 }} />
+    <Screen bottomSpace={44}>
+      <Header title="Due Date Result" back />
+
+      <View style={styles.heroCard}>
+        <Text style={styles.eyebrow}>THE BIG DAY</Text>
+        <Text style={styles.title}>Your estimated due date is</Text>
+        <Text style={styles.date}>{dueDate}</Text>
+
+        <View style={styles.badgeRow}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{trimester}</Text>
+          </View>
+
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{method}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.progressCard}>
+        <View style={styles.progressTop}>
+          <View>
+            <Text style={styles.section}>YOUR JOURNEY</Text>
+            <Text style={styles.strong}>Week {week}, Day {day}</Text>
+          </View>
+
+          <View style={styles.percentCircle}>
+            <Text style={styles.percent}>{progress}%</Text>
+          </View>
+        </View>
+
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, progress))}%` }]} />
+        </View>
+
+        <View style={styles.split}>
+          <Text style={styles.copy}>Week 1</Text>
+          <Text style={styles.copy}>{remaining} days remaining</Text>
+          <Text style={styles.copy}>Week 40</Text>
+        </View>
+      </View>
+
+      <Text style={styles.heading}>Next steps</Text>
+
+      <View style={styles.step}>
+        <View style={styles.icon}>
+          <Ionicons name="calendar-outline" size={23} color={colors.plum} />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.stepTitle}>Book or confirm your next visit</Text>
+          <Text style={styles.stepCopy}>Keep your prenatal appointment schedule up to date.</Text>
+        </View>
+      </View>
+
+      <View style={styles.step}>
+        <View style={styles.icon}>
+          <Ionicons name="nutrition-outline" size={23} color={colors.plum} />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.stepTitle}>Keep taking prenatal vitamins</Text>
+          <Text style={styles.stepCopy}>Follow your clinician’s supplement guidance.</Text>
+        </View>
+      </View>
+
+      <View style={styles.step}>
+        <View style={styles.icon}>
+          <Ionicons name="heart-outline" size={23} color={colors.plum} />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.stepTitle}>Track how you feel</Text>
+          <Text style={styles.stepCopy}>Log symptoms, mood, and changes as your journey continues.</Text>
+        </View>
+      </View>
+
+      <View style={styles.actionRow}>
+        <AnimatedPressable onPress={() => router.push('/(tabs)/home' as never)} style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>Go to dashboard</Text>
+        </AnimatedPressable>
+
+        <AnimatedPressable onPress={() => router.back()} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>Recalculate</Text>
+        </AnimatedPressable>
+      </View>
     </Screen>
   );
 }
+
 const styles = StyleSheet.create({
-  eyebrow: { ...type.section, color: colors.rose, marginTop: 28, textAlign: 'center' },
-  title: { ...type.title, color: colors.ink, marginTop: 8, textAlign: 'center' },
-  dateCard: { alignItems: 'center', marginTop: 22, paddingVertical: 26 },
-  date: { ...type.hero, color: colors.plum, textAlign: 'center' },
-  trimester: { ...type.bodyStrong, color: colors.rose, marginTop: 12 },
-  copy: { ...type.small, color: colors.text },
-  cardRow: { marginTop: 18, flexDirection: 'row', gap: 14, alignItems: 'center' },
-  icon: { width: 54, height: 54, borderRadius: 20, backgroundColor: colors.softSurface, alignItems: 'center', justifyContent: 'center' },
-  section: { ...type.section, color: colors.rose, marginBottom: 6 },
-  strong: { ...type.bodyStrong, color: colors.ink },
-  journey: { marginTop: 18 },
-  progressBar: { height: 12, borderRadius: 99, backgroundColor: colors.softSurface, overflow: 'hidden', marginTop: 12 },
-  progressFill: { width: '31%', backgroundColor: colors.plum, height: '100%' },
-  split: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  percent: { ...type.bodyStrong, color: colors.plum },
-  heading: { ...type.bodyStrong, color: colors.ink, marginTop: 24, marginBottom: 12 },
-  step: { flexDirection: 'row', gap: 14, alignItems: 'center', marginBottom: 12 }
+  heroCard: {
+    marginTop: 16,
+    backgroundColor: '#CE6F79',
+    borderRadius: 34,
+    padding: 24,
+    minHeight: 255,
+    justifyContent: 'center',
+  },
+  eyebrow: {
+    ...type.tiny,
+    color: '#FFE7EC',
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    textAlign: 'center',
+  },
+  title: {
+    ...type.bodyStrong,
+    color: '#FFF4F5',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  date: {
+    ...type.title,
+    fontSize: 36,
+    lineHeight: 42,
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 18,
+  },
+  badge: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  badgeText: {
+    ...type.tiny,
+    color: '#fff',
+    fontWeight: '900',
+  },
+  progressCard: {
+    marginTop: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 28,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  progressTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 14,
+    alignItems: 'center',
+  },
+  section: {
+    ...type.section,
+    color: '#CE6F79',
+  },
+  strong: {
+    ...type.title,
+    color: colors.ink,
+    fontSize: 25,
+    marginTop: 5,
+  },
+  percentCircle: {
+    width: 62,
+    height: 62,
+    borderRadius: 23,
+    backgroundColor: '#FFF0F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  percent: {
+    ...type.bodyStrong,
+    color: '#CE6F79',
+    fontSize: 17,
+  },
+  progressBar: {
+    height: 13,
+    borderRadius: 999,
+    backgroundColor: '#FFF0F1',
+    overflow: 'hidden',
+    marginTop: 18,
+  },
+  progressFill: {
+    backgroundColor: '#CE6F79',
+    height: '100%',
+    borderRadius: 999,
+  },
+  split: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 9,
+    gap: 8,
+  },
+  copy: {
+    ...type.tiny,
+    color: colors.text,
+    fontWeight: '900',
+  },
+  heading: {
+    ...type.title,
+    color: colors.ink,
+    fontSize: 25,
+    marginTop: 26,
+    marginBottom: 12,
+  },
+  step: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    marginBottom: 12,
+  },
+  icon: {
+    width: 50,
+    height: 50,
+    borderRadius: 20,
+    backgroundColor: '#FFF0F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepTitle: {
+    ...type.bodyStrong,
+    color: colors.ink,
+  },
+  stepCopy: {
+    ...type.small,
+    color: colors.text,
+    marginTop: 3,
+    lineHeight: 20,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  primaryButton: {
+    flex: 1.2,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: '#CE6F79',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    ...type.bodyStrong,
+    color: '#fff',
+  },
+  secondaryButton: {
+    flex: 1,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: '#FFF0F1',
+    borderWidth: 1,
+    borderColor: '#EFDCDD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    ...type.bodyStrong,
+    color: colors.plum,
+  },
 });
