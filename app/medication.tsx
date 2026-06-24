@@ -241,18 +241,18 @@ export default function MedicationScreen() {
                 styles.card,
                 {
                   backgroundColor: palette.surface,
-                  borderColor: isTaken ? palette.success : palette.line,
+                  borderColor: isTaken ? palette.accent : palette.line,
                 },
               ]}
             >
-              <View style={[styles.medIcon, { backgroundColor: isTaken ? palette.success + '22' : palette.accentSoft }]}>
+              <View style={[styles.medIcon, { backgroundColor: isTaken ? palette.accent + '22' : palette.accentSoft }]}>
                 {savingId === medication.id ? (
                   <ActivityIndicator color={palette.accent} />
                 ) : (
                   <Ionicons
                     name={isTaken ? 'checkmark-circle' : 'ellipse-outline'}
                     size={30}
-                    color={isTaken ? palette.success : palette.accent}
+                    color={isTaken ? palette.accent : palette.accent}
                   />
                 )}
               </View>
@@ -273,10 +273,10 @@ export default function MedicationScreen() {
                 <View
                   style={[
                     styles.statusBadge,
-                    { backgroundColor: isTaken ? palette.success + '22' : palette.softSurface },
+                    { backgroundColor: isTaken ? palette.accent + '22' : palette.softSurface },
                   ]}
                 >
-                  <Text style={[styles.statusText, { color: isTaken ? palette.success : palette.text }]}>
+                  <Text style={[styles.statusText, { color: isTaken ? palette.accent : palette.text }]}>
                     {isTaken ? 'Taken' : 'Due'}
                   </Text>
                 </View>
