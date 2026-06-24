@@ -254,7 +254,10 @@ export default function HomeScreen() {
         })}
       </View>
 
-      <View style={[styles.babyCard, { backgroundColor: '#FFD5DC', borderColor: palette.line }]}>
+      <AnimatedPressable
+        onPress={() => router.push('/timeline' as never)}
+        style={[styles.babyCard, { backgroundColor: '#FFD5DC', borderColor: palette.line }]}
+      >
         <View style={styles.blobOne} />
         <View style={styles.blobTwo} />
 
@@ -274,7 +277,7 @@ export default function HomeScreen() {
 
           <View style={{ flex: 1 }}>
             <Text style={styles.journeyLabel}>Your Pregnancy Journey</Text>
-            <Text style={styles.journeySub}>Week {progress.week}, Day {progress.day}</Text>
+            <Text style={styles.journeySub}>Tap to view timeline • Week {progress.week}, Day {progress.day}</Text>
           </View>
 
           <AnimatedPressable
@@ -284,7 +287,7 @@ export default function HomeScreen() {
             <Ionicons name="arrow-forward" size={19} color={palette.ink} />
           </AnimatedPressable>
         </View>
-      </View>
+      </AnimatedPressable>
 
       <View style={[styles.progressPanel, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View>
