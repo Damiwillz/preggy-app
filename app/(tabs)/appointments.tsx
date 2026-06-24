@@ -126,7 +126,7 @@ export default function AppointmentsScreen() {
 
   return (
     <Screen bottomSpace={120}>
-      <Header />
+      <Header title="Appointments" back />
 
       <View style={styles.heading}>
         <View style={{ flex: 1 }}>
