@@ -208,6 +208,20 @@ export default function ProfileScreen() {
         />
 
         <Row
+          icon="mail-outline"
+          label="Contact Support"
+          detail="Get help or send feedback"
+          onPress={() => router.push('/support/contact' as never)}
+        />
+
+        <Row
+          icon="heart-outline"
+          label="About Preggy"
+          detail="Version, purpose and app information"
+          onPress={() => router.push('/support/about' as never)}
+        />
+
+        <Row
           icon="log-out-outline"
           label={`Log out ${firstName}`}
           onPress={handleLogout}
