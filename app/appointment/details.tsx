@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -41,6 +41,9 @@ function formatAppointmentDate(value?: string | null, time?: string | null) {
 }
 
 export default function AppointmentDetailsScreen() {
+  const params = useLocalSearchParams<{ id?: string }>();
+  const appointmentId = typeof params.id === 'string' ? params.id : null;
+
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -59,12 +62,17 @@ export default function AppointmentDetailsScreen() {
         return;
       }
 
+      if (!appointmentId) {
+        Alert.alert('Appointment missing', 'Please open this appointment from the appointment list.');
+        router.back();
+        return;
+      }
+
       const { data, error } = await supabase
         .from('appointments')
         .select('id,user_id,title,doctor_name,clinic_name,appointment_date,appointment_time,status,notes,created_at')
         .eq('user_id', userId)
-        .order('appointment_date', { ascending: true })
-        .limit(1)
+        .eq('id', appointmentId)
         .maybeSingle();
 
       if (error) throw error;
@@ -76,7 +84,7 @@ export default function AppointmentDetailsScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [appointmentId]);
 
   useFocusEffect(
     useCallback(() => {

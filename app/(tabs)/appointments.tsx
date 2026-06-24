@@ -121,10 +121,7 @@ export default function AppointmentsScreen() {
   );
 
   async function addAppointment() {
-    Alert.alert(
-      'Add appointment',
-      'A full appointment form is coming soon. For now, your saved appointments will appear here once added.'
-    );
+    router.push('/appointment/add' as never);
   }
 
   return (
@@ -176,7 +173,7 @@ export default function AppointmentsScreen() {
           return (
             <AnimatedPressable
               key={appointment.id}
-              onPress={() => router.push('/appointment/details' as never)}
+              onPress={() => router.push(`/appointment/details?id=${appointment.id}` as never)}
               style={[
                 styles.card,
                 {

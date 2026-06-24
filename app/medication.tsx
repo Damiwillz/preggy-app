@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
@@ -88,10 +89,7 @@ export default function MedicationScreen() {
   );
 
   async function addMedication() {
-    Alert.alert(
-      'Add medication',
-      'A full medication form is coming soon. For now, your saved medications and supplements will appear here once added.'
-    );
+    router.push('/medication/add' as never);
   }
 
   async function deleteMedication(medication: Medication) {
