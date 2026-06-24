@@ -201,6 +201,13 @@ export default function ProfileScreen() {
         <Row icon="help-circle-outline" label="Help & FAQ" />
 
         <Row
+          icon="medkit-outline"
+          label="Medical Disclaimer"
+          detail="Preggy is not medical advice"
+          onPress={() => router.push('/legal/medical-disclaimer' as never)}
+        />
+
+        <Row
           icon="log-out-outline"
           label={`Log out ${firstName}`}
           onPress={handleLogout}
