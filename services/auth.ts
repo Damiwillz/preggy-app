@@ -45,7 +45,19 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function sendPasswordReset(email: string) {
-  const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'preggy://auth/update-password',
+  });
+
+  if (error) throw error;
+
+  return data;
+}
+
+export async function updatePassword(newPassword: string) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
 
   if (error) throw error;
 
