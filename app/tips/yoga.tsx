@@ -2,110 +2,256 @@ import React, { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 
-const benefits = [
-  ['leaf-outline', 'Stress Reduction', 'Lower cortisol levels through deep breathing and focused mindfulness.'],
-  ['body-outline', 'Pelvic Strength', 'Specific poses help tone the pelvic floor for comfort and labor.'],
-  ['accessibility-outline', 'Improved Flexibility', 'Gently open hips and the lower back as your belly grows.'],
-] as const;
+const poses = [
+  {
+    title: 'Cat-cow stretch',
+    time: '3 min',
+    image: require('../../assets/images/tips-yoga-catcow.jpg'),
+    copy: 'Move slowly with your breath to ease back tension.',
+  },
+  {
+    title: 'Child’s pose support',
+    time: '4 min',
+    image: require('../../assets/images/tips-yoga-childpose.jpg'),
+    copy: 'Use pillows or blocks to create space and comfort.',
+  },
+  {
+    title: 'Supported warrior',
+    time: '5 min',
+    image: require('../../assets/images/tips-yoga-warrior.jpg'),
+    copy: 'Build gentle strength while keeping your stance steady.',
+  },
+];
 
-const sequence = [
-  [require('../../assets/images/tips-yoga-catcow.jpg'), '1. Cat-Cow Stretch', 'Gently move between arching and rounding your back to wake up the spine.'],
-  [require('../../assets/images/tips-yoga-childpose.jpg'), '2. Wide-Knee Child’s Pose', 'Create space for the belly while stretching the lower back and hips.'],
-  [require('../../assets/images/tips-yoga-warrior.jpg'), '3. Modified Warrior II', 'Build leg strength and focus with a wider stance for balance.'],
-] as const;
-
-export default function YogaArticleScreen() {
-  const [saved, setSaved] = useState(false);
-  const [started, setStarted] = useState(false);
+export default function YogaScreen() {
+  const [selectedPose, setSelectedPose] = useState(poses[0].title);
 
   return (
     <Screen bottomSpace={44}>
-      <Header title="Preggers" back />
+      <Header title="Prenatal Yoga" back />
+
       <View style={styles.hero}>
         <Image source={require('../../assets/images/tips-yoga-hero.jpg')} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-        <LinearGradient colors={['transparent', 'rgba(38,24,27,.65)']} style={StyleSheet.absoluteFillObject} />
-        <View style={styles.heroMeta}><Text style={styles.heroMetaText}>WELLNESS • 8 MIN READ</Text></View>
+        <LinearGradient colors={['rgba(40,20,26,0.04)', 'rgba(40,20,26,0.74)']} style={StyleSheet.absoluteFillObject} />
+
+        <View style={styles.heroText}>
+          <Text style={styles.kicker}>GENTLE MOVEMENT</Text>
+          <Text style={styles.heroTitle}>Move softly with your changing body</Text>
+          <Text style={styles.heroCopy}>Short prenatal-friendly poses for comfort, breath, and calm.</Text>
+        </View>
       </View>
 
-      <Text style={styles.title}>Gentle Yoga: Flowing with Pregnancy</Text>
-      <Text style={styles.lead}>Embrace the changes of your body through mindful movement and breath. Yoga can become a quiet sanctuary for both you and your baby.</Text>
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryValue}>12</Text>
+          <Text style={styles.summaryLabel}>Minutes</Text>
+        </View>
 
-      <Text style={styles.sectionTitle}>Why Yoga?</Text>
-      <View style={styles.card}>
-        {benefits.map(([icon, title, copy], index) => (
-          <View key={title} style={[styles.benefit, index < benefits.length - 1 && styles.divider]}>
-            <View style={styles.iconBubble}><Ionicons name={icon} size={20} color={colors.plum} /></View>
-            <View style={{ flex: 1 }}><Text style={styles.benefitTitle}>{title}</Text><Text style={styles.copy}>{copy}</Text></View>
-          </View>
-        ))}
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryValue}>3</Text>
+          <Text style={styles.summaryLabel}>Gentle poses</Text>
+        </View>
+
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryValue}>Low</Text>
+          <Text style={styles.summaryLabel}>Intensity</Text>
+        </View>
       </View>
 
-      <View style={styles.safety}>
-        <View style={styles.safetyHeading}><Ionicons name="shield-checkmark-outline" size={24} color={colors.plum} /><Text style={styles.sectionTitleInline}>Safety First</Text></View>
-        {[
-          'Stay hydrated before, during and after your flow.',
-          'Avoid deep twists or lying flat on your back after the first trimester.',
-          'Listen to your body. Stop immediately if anything feels uncomfortable.',
-        ].map(item => <View key={item} style={styles.bullet}><Ionicons name="checkmark-circle" size={18} color={colors.rose} /><Text style={styles.copy}>{item}</Text></View>)}
+      <Text style={styles.sectionTitle}>Today’s flow</Text>
+
+      <View style={styles.poseList}>
+        {poses.map((pose, index) => {
+          const active = selectedPose === pose.title;
+
+          return (
+            <AnimatedPressable
+              key={pose.title}
+              onPress={() => setSelectedPose(pose.title)}
+              style={[styles.poseCard, active && styles.poseCardActive]}
+            >
+              <View style={styles.poseImageWrap}>
+                <Image source={pose.image} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <View style={styles.poseTop}>
+                  <Text style={styles.poseStep}>POSE {index + 1}</Text>
+                  <Text style={styles.poseTime}>{pose.time}</Text>
+                </View>
+
+                <Text style={styles.poseTitle}>{pose.title}</Text>
+                <Text style={styles.poseCopy}>{pose.copy}</Text>
+              </View>
+
+              <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={23} color={active ? '#CE6F79' : colors.muted} />
+            </AnimatedPressable>
+          );
+        })}
       </View>
 
-      <Text style={styles.sectionTitle}>Morning Flow Sequence</Text>
-      <View style={styles.sequenceList}>
-        {sequence.map(([image, title, copy]) => (
-          <View key={title} style={styles.sequenceRow}>
-            <Image source={image} style={styles.sequenceImage} resizeMode="cover" />
-            <View style={{ flex: 1 }}><Text style={styles.benefitTitle}>{title}</Text><Text style={styles.copy}>{copy}</Text></View>
-          </View>
-        ))}
+      <View style={styles.note}>
+        <Ionicons name="alert-circle-outline" size={21} color={colors.plum} />
+        <Text style={styles.noteText}>
+          Move within comfort only. Stop if you feel pain, dizziness, bleeding, contractions, or shortness of breath, and check with your clinician.
+        </Text>
       </View>
 
-      <AnimatedPressable onPress={() => setStarted(v => !v)} style={[styles.session, started && styles.sessionActive]}>
-        <View style={styles.play}><Ionicons name={started ? 'pause' : 'play'} size={22} color="#fff" /></View>
-        <View style={{ flex: 1 }}><Text style={styles.sessionTitle}>{started ? 'Session in progress' : 'Try a 10-minute Guided Session'}</Text><Text style={styles.sessionCopy}>Led by Sarah, Prenatal Specialist</Text></View>
-        <Text style={styles.sessionTime}>{started ? '03:42' : '10:00'}</Text>
-      </AnimatedPressable>
-
-      <AnimatedPressable onPress={() => setSaved(v => !v)} style={[styles.save, saved && styles.saveActive]}>
-        <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={20} color={saved ? '#fff' : colors.plum} />
-        <Text style={[styles.saveText, saved && { color: '#fff' }]}>{saved ? 'Saved for Later' : 'Save for Later'}</Text>
+      <AnimatedPressable style={styles.completeButton}>
+        <Ionicons name="play" size={20} color="#fff" />
+        <Text style={styles.completeText}>Start gentle flow</Text>
       </AnimatedPressable>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 240, borderRadius: 24, overflow: 'hidden', marginTop: 14, justifyContent: 'flex-end' },
-  heroMeta: { alignSelf: 'flex-start', margin: 18, backgroundColor: '#FFF5F1', paddingHorizontal: 13, paddingVertical: 6, borderRadius: 14 },
-  heroMetaText: { ...type.tiny, color: colors.plum },
-  title: { ...type.title, color: colors.ink, marginTop: 20 },
-  lead: { ...type.body, color: colors.text, marginTop: 8 },
-  sectionTitle: { ...type.title, fontSize: 24, color: colors.ink, marginTop: 26, marginBottom: 12 },
-  sectionTitleInline: { ...type.title, fontSize: 22, color: colors.ink },
-  card: { backgroundColor: colors.surface, borderRadius: 24, paddingHorizontal: 18, borderWidth: 1, borderColor: colors.line },
-  benefit: { flexDirection: 'row', gap: 14, paddingVertical: 16 },
-  divider: { borderBottomWidth: 1, borderBottomColor: colors.line },
-  iconBubble: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.softSurface, alignItems: 'center', justifyContent: 'center' },
-  benefitTitle: { ...type.bodyStrong, color: colors.ink },
-  copy: { ...type.small, color: colors.text, marginTop: 2, flex: 1 },
-  safety: { marginTop: 22, padding: 20, borderRadius: 24, backgroundColor: '#FFF0F0', borderWidth: 1, borderColor: '#F0D4D6' },
-  safetyHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 10 },
-  sequenceList: { gap: 14 },
-  sequenceRow: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.surface, borderRadius: 18, padding: 10, borderWidth: 1, borderColor: colors.line },
-  sequenceImage: { width: 92, height: 72, borderRadius: 13 },
-  session: { marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 22, backgroundColor: colors.plum },
-  sessionActive: { backgroundColor: colors.rose },
-  play: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,.18)', alignItems: 'center', justifyContent: 'center' },
-  sessionTitle: { ...type.bodyStrong, color: '#fff' },
-  sessionCopy: { ...type.small, color: '#F4E8EE' },
-  sessionTime: { ...type.small, color: '#fff' },
-  save: { marginTop: 14, height: 54, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#F8DDE0' },
-  saveActive: { backgroundColor: colors.plum },
-  saveText: { ...type.bodyStrong, color: colors.plum },
+  hero: {
+    height: 300,
+    borderRadius: 32,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    marginTop: 14,
+  },
+  heroText: {
+    padding: 24,
+  },
+  kicker: {
+    ...type.tiny,
+    color: '#FFE7EC',
+    fontWeight: '900',
+    letterSpacing: 1.3,
+  },
+  heroTitle: {
+    ...type.title,
+    fontSize: 31,
+    lineHeight: 36,
+    color: '#fff',
+    marginTop: 7,
+  },
+  heroCopy: {
+    ...type.body,
+    color: '#FFF4F5',
+    marginTop: 8,
+    maxWidth: 310,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+  },
+  summaryValue: {
+    ...type.bodyStrong,
+    color: colors.plum,
+    fontSize: 20,
+  },
+  summaryLabel: {
+    ...type.tiny,
+    color: colors.text,
+    marginTop: 3,
+    fontWeight: '900',
+  },
+  sectionTitle: {
+    ...type.title,
+    fontSize: 25,
+    color: colors.ink,
+    marginTop: 26,
+    marginBottom: 12,
+  },
+  poseList: {
+    gap: 12,
+  },
+  poseCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 12,
+    flexDirection: 'row',
+    gap: 13,
+    alignItems: 'center',
+  },
+  poseCardActive: {
+    backgroundColor: '#FFF0F1',
+    borderColor: '#EFDCDD',
+  },
+  poseImageWrap: {
+    width: 78,
+    height: 82,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#FFF0F1',
+  },
+  poseTop: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  poseStep: {
+    ...type.tiny,
+    color: '#CE6F79',
+    fontWeight: '900',
+  },
+  poseTime: {
+    ...type.tiny,
+    color: colors.muted,
+    fontWeight: '900',
+  },
+  poseTitle: {
+    ...type.bodyStrong,
+    color: colors.ink,
+    marginTop: 4,
+  },
+  poseCopy: {
+    ...type.small,
+    color: colors.text,
+    marginTop: 3,
+    lineHeight: 19,
+  },
+  note: {
+    marginTop: 20,
+    backgroundColor: '#FFF0F1',
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#EFDCDD',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  noteText: {
+    ...type.small,
+    color: colors.text,
+    lineHeight: 20,
+    flex: 1,
+    fontWeight: '700',
+  },
+  completeButton: {
+    marginTop: 24,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: '#CE6F79',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+  },
+  completeText: {
+    ...type.bodyStrong,
+    color: '#fff',
+  },
 });
