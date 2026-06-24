@@ -88,29 +88,10 @@ export default function MedicationScreen() {
   );
 
   async function addMedication() {
-    setAdding(true);
-
-    try {
-      const userId = await getUserId();
-
-      const { error } = await supabase.from('medications').insert({
-        user_id: userId,
-        name: 'Prenatal vitamin',
-        dosage: '1 tablet',
-        frequency: 'Daily',
-        instructions: 'Take with food and water.',
-        taken: false,
-      });
-
-      if (error) throw error;
-
-      await loadMedications();
-    } catch (error) {
-      console.log('Add medication error:', error);
-      Alert.alert('Medication', 'Could not add medication.');
-    } finally {
-      setAdding(false);
-    }
+    Alert.alert(
+      'Add medication',
+      'A full medication form is coming soon. For now, your saved medications and supplements will appear here once added.'
+    );
   }
 
   async function deleteMedication(medication: Medication) {
@@ -244,9 +225,9 @@ export default function MedicationScreen() {
             <Ionicons name="medkit-outline" size={34} color={palette.accent} />
           </View>
 
-          <Text style={[styles.emptyTitle, { color: palette.ink }]}>No routine yet</Text>
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>No medications yet</Text>
           <Text style={[styles.emptyCopy, { color: palette.text }]}>
-            Tap the plus button to add a sample prenatal vitamin.
+            Tap the plus button to add your vitamins, supplements, or medication reminders.
           </Text>
         </View>
       ) : (

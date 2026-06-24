@@ -121,44 +121,10 @@ export default function AppointmentsScreen() {
   );
 
   async function addAppointment() {
-    setAdding(true);
-
-    try {
-      const userId = await getUserId();
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 7);
-
-      const date = tomorrow.toISOString().slice(0, 10);
-      const time = '10:00 AM';
-      const appointmentAt = new Date(`${date}T10:00:00`).toISOString();
-
-      const { error } = await supabase.from('appointments').insert({
-        user_id: userId,
-        title: 'Prenatal checkup',
-        type: 'Prenatal checkup',
-        doctor: 'Dr. Grace',
-        doctor_name: 'Dr. Grace',
-        clinic: 'Women’s Wellness Clinic',
-        clinic_name: 'Women’s Wellness Clinic',
-        location: 'Women’s Wellness Clinic',
-        appointment_date: date,
-        appointment_time: time,
-        date,
-        time,
-        appointment_at: appointmentAt,
-        status: 'Upcoming',
-        notes: 'Bring your questions and any recent symptom notes.',
-      });
-
-      if (error) throw error;
-
-      await loadAppointments();
-    } catch (error) {
-      console.log('Add appointment error:', error);
-      Alert.alert('Appointment', 'Could not add appointment.');
-    } finally {
-      setAdding(false);
-    }
+    Alert.alert(
+      'Add appointment',
+      'A full appointment form is coming soon. For now, your saved appointments will appear here once added.'
+    );
   }
 
   return (
@@ -200,7 +166,7 @@ export default function AppointmentsScreen() {
 
           <Text style={[styles.emptyTitle, { color: palette.ink }]}>No appointments yet</Text>
           <Text style={[styles.emptyCopy, { color: palette.text }]}>
-            Tap the plus button to add a sample prenatal appointment.
+            Tap the plus button to add your next checkup, scan, or maternity visit.
           </Text>
         </View>
       ) : (
