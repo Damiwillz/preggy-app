@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Keyboard, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Header } from '@/components/layout/Header';
@@ -10,6 +10,9 @@ import { type } from '@/constants/typography';
 import { supabase } from '@/lib/supabase';
 
 export default function AddAppointmentScreen() {
+  const params = useLocalSearchParams<{ id?: string }>();
+  const appointmentId = typeof params.id === 'string' ? params.id : null;
+  const isEditing = !!appointmentId;
   const [title, setTitle] = useState('');
   const [doctor, setDoctor] = useState('');
   const [clinic, setClinic] = useState('');
@@ -17,6 +20,36 @@ export default function AddAppointmentScreen() {
   const [time, setTime] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    async function loadAppointment() {
+      if (!appointmentId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('id', appointmentId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setTitle(data.title || data.type || '');
+          setDoctor(data.doctor_name || data.doctor || '');
+          setClinic(data.clinic_name || data.clinic || data.location || '');
+          setDate(data.appointment_date || data.date || '');
+          setTime(data.appointment_time || data.time || '');
+          setNotes(data.notes || '');
+        }
+      } catch (error) {
+        console.log('Load appointment edit error:', error);
+        Alert.alert('Appointment', 'Could not load this appointment.');
+      }
+    }
+
+    void loadAppointment();
+  }, [appointmentId]);
 
   async function saveAppointment() {
     Keyboard.dismiss();
@@ -50,7 +83,7 @@ export default function AddAppointmentScreen() {
           ? new Date(`${cleanDate}T09:00:00`).toISOString()
           : null;
 
-      const { error } = await supabase.from('appointments').insert({
+      const payload = {
         user_id: userId,
         title: title.trim(),
         type: title.trim(),
@@ -66,16 +99,27 @@ export default function AddAppointmentScreen() {
         appointment_at: appointmentAt,
         status: 'Upcoming',
         notes: notes.trim() || null,
-      });
+        updated_at: new Date().toISOString(),
+      };
+
+      const query = isEditing && appointmentId
+        ? supabase.from('appointments').update(payload).eq('id', appointmentId).eq('user_id', userId)
+        : supabase.from('appointments').insert(payload);
+
+      const { error } = await query;
 
       if (error) throw error;
 
-      Alert.alert('Appointment added', 'Your appointment has been saved.', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
+      Alert.alert(
+        isEditing ? 'Appointment updated' : 'Appointment added',
+        isEditing ? 'Your appointment has been updated.' : 'Your appointment has been saved.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ]
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please try again.';
       Alert.alert('Could not save appointment', message);
@@ -86,7 +130,7 @@ export default function AddAppointmentScreen() {
 
   return (
     <Screen bottomSpace={36} style={styles.screen}>
-      <Header title="Add Appointment" back />
+      <Header title={isEditing ? "Edit Appointment" : "Add Appointment"} back />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.hero}>
@@ -94,7 +138,7 @@ export default function AddAppointmentScreen() {
             <Ionicons name="calendar-outline" size={34} color="#CE6F79" />
           </View>
 
-          <Text style={styles.title}>New appointment</Text>
+          <Text style={styles.title}>{isEditing ? 'Edit appointment' : 'New appointment'}</Text>
           <Text style={styles.subtitle}>Save your next checkup, scan, clinic visit, or maternity appointment.</Text>
         </View>
 
@@ -117,7 +161,7 @@ export default function AddAppointmentScreen() {
             onPress={saveAppointment}
             disabled={saving}
           >
-            <Text style={styles.buttonText}>{saving ? 'Saving...' : 'Save Appointment'}</Text>
+            <Text style={styles.buttonText}>{saving ? 'Saving...' : isEditing ? 'Update Appointment' : 'Save Appointment'}</Text>
           </AnimatedPressable>
         </View>
       </ScrollView>

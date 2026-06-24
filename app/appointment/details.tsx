@@ -213,9 +213,19 @@ export default function AppointmentDetailsScreen() {
       ))}
 
       <Button
+        label="Edit Appointment"
+        style={{ marginTop: 18 }}
+        onPress={() => {
+          if (appointment?.id) {
+            router.push(`/appointment/add?id=${appointment.id}` as never);
+          }
+        }}
+      />
+
+      <Button
         label="Back to Appointments"
         variant="secondary"
-        style={{ marginTop: 18 }}
+        style={{ marginTop: 12 }}
         onPress={() => router.push('/(tabs)/appointments' as never)}
       />
 

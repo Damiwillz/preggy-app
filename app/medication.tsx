@@ -282,6 +282,14 @@ export default function MedicationScreen() {
                 </View>
 
                 <AnimatedPressable
+                  onPress={() => router.push(`/medication/edit?id=${medication.id}` as never)}
+                  disabled={savingId === medication.id}
+                  style={[styles.deleteButton, { backgroundColor: palette.accentSoft }]}
+                >
+                  <Ionicons name="create-outline" size={18} color={palette.accent} />
+                </AnimatedPressable>
+
+                <AnimatedPressable
                   onPress={() => deleteMedication(medication)}
                   disabled={savingId === medication.id}
                   style={[styles.deleteButton, { backgroundColor: palette.danger + '20' }]}
