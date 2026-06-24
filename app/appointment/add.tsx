@@ -78,9 +78,13 @@ export default function AddAppointmentScreen() {
       const cleanDate = date.trim();
       const cleanTime = time.trim() || 'Time not set';
 
+      const timeForDate = cleanTime !== 'Time not set'
+        ? cleanTime.replace(/\s+/g, '').toUpperCase()
+        : '';
+
       const appointmentAt =
-        cleanDate && cleanTime !== 'Time not set'
-          ? new Date(`${cleanDate}T09:00:00`).toISOString()
+        cleanDate && timeForDate
+          ? new Date(`${cleanDate}T${timeForDate.includes('PM') || timeForDate.includes('AM') ? '09:00:00' : `${timeForDate}:00`}`).toISOString()
           : null;
 
       const payload = {

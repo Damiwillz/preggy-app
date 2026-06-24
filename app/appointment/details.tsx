@@ -1,12 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Card } from '@/components/cards/Card';
-import { Button } from '@/components/ui/Button';
-import { CalendarIcon, PinIcon } from '@/components/ui/icons';
+import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 import { supabase } from '@/lib/supabase';
@@ -14,24 +13,51 @@ import { supabase } from '@/lib/supabase';
 type Appointment = {
   id: string;
   user_id: string;
-  title: string;
+  title: string | null;
+  doctor: string | null;
+  clinic: string | null;
   doctor_name: string | null;
   clinic_name: string | null;
   appointment_date: string | null;
   appointment_time: string | null;
+  date: string | null;
+  time: string | null;
+  location: string | null;
+  type: string | null;
   status: string | null;
   notes: string | null;
   created_at: string;
 };
 
+function displayTitle(appointment: Appointment | null) {
+  return appointment?.title || appointment?.type || 'Prenatal appointment';
+}
+
+function displayDoctor(appointment: Appointment | null) {
+  return appointment?.doctor_name || appointment?.doctor || 'Care team not set';
+}
+
+function displayClinic(appointment: Appointment | null) {
+  return appointment?.clinic_name || appointment?.location || appointment?.clinic || 'Clinic not set';
+}
+
+function displayDate(appointment: Appointment | null) {
+  return appointment?.appointment_date || appointment?.date || null;
+}
+
+function displayTime(appointment: Appointment | null) {
+  return appointment?.appointment_time || appointment?.time || null;
+}
+
 function formatAppointmentDate(value?: string | null, time?: string | null) {
   if (!value) return time || 'Date not set';
 
-  const date = new Date(`${value}T00:00:00`);
+  const date = new Date(`${value}T12:00:00`);
 
   if (Number.isNaN(date.getTime())) return time || 'Date not set';
 
   const label = date.toLocaleDateString('en-US', {
+    weekday: 'long',
     month: 'long',
     day: 'numeric',
     year: 'numeric',
@@ -70,7 +96,7 @@ export default function AppointmentDetailsScreen() {
 
       const { data, error } = await supabase
         .from('appointments')
-        .select('id,user_id,title,doctor_name,clinic_name,appointment_date,appointment_time,status,notes,created_at')
+        .select('*')
         .eq('user_id', userId)
         .eq('id', appointmentId)
         .maybeSingle();
@@ -95,27 +121,41 @@ export default function AppointmentDetailsScreen() {
   const cancelAppointment = async () => {
     if (!appointment) return;
 
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'Cancelled',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', appointment.id);
+    Alert.alert(
+      'Cancel appointment?',
+      'This will mark the appointment as cancelled. You can still keep it in your records.',
+      [
+        { text: 'Keep it', style: 'cancel' },
+        {
+          text: 'Cancel appointment',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('appointments')
+                .update({
+                  status: 'Cancelled',
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', appointment.id)
+                .eq('user_id', appointment.user_id);
 
-      if (error) throw error;
+              if (error) throw error;
 
-      setAppointment({
-        ...appointment,
-        status: 'Cancelled',
-      });
+              setAppointment({
+                ...appointment,
+                status: 'Cancelled',
+              });
 
-      Alert.alert('Appointment cancelled', 'This appointment has been marked as cancelled.');
-    } catch (error) {
-      console.log('Cancel appointment error:', error);
-      Alert.alert('Cancel failed', 'We could not cancel this appointment.');
-    }
+              Alert.alert('Appointment cancelled', 'This appointment has been marked as cancelled.');
+            } catch (error) {
+              console.log('Cancel appointment error:', error);
+              Alert.alert('Cancel failed', 'We could not cancel this appointment.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const deleteAppointment = async () => {
@@ -125,10 +165,7 @@ export default function AppointmentDetailsScreen() {
       'Delete appointment?',
       'This will permanently remove this appointment from Preggy.',
       [
-        {
-          text: 'Keep it',
-          style: 'cancel',
-        },
+        { text: 'Keep it', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
@@ -137,7 +174,8 @@ export default function AppointmentDetailsScreen() {
               const { error } = await supabase
                 .from('appointments')
                 .delete()
-                .eq('id', appointment.id);
+                .eq('id', appointment.id)
+                .eq('user_id', appointment.user_id);
 
               if (error) throw error;
 
@@ -157,165 +195,353 @@ export default function AppointmentDetailsScreen() {
     );
   };
 
+  const isCancelled = appointment?.status === 'Cancelled';
+
   return (
-    <Screen>
+    <Screen bottomSpace={44}>
       <Header title="Appointment" back />
 
-      <Card style={styles.hero}>
-        <Text style={styles.badge}>{appointment?.status || (loading ? 'Loading' : 'No appointment')}</Text>
-        <Text style={styles.title}>{appointment?.title || 'No appointment found'}</Text>
-
-        <View style={styles.infoRow}>
-          <CalendarIcon color={colors.plum} />
-          <Text style={styles.copy}>
-            {formatAppointmentDate(appointment?.appointment_date, appointment?.appointment_time)}
-          </Text>
+      {loading ? (
+        <View style={styles.loadingCard}>
+          <ActivityIndicator color="#CE6F79" />
+          <Text style={styles.loadingText}>Loading appointment...</Text>
         </View>
+      ) : (
+        <>
+          <View style={[styles.heroCard, isCancelled && styles.cancelledHero]}>
+            <View style={styles.heroTop}>
+              <View style={styles.heroIcon}>
+                <Ionicons name="calendar-outline" size={31} color="#fff" />
+              </View>
 
-        <Text style={styles.doctor}>{appointment?.doctor_name || 'Doctor not set'}</Text>
+              <View style={[styles.statusBadge, isCancelled && styles.cancelledBadge]}>
+                <Text style={[styles.statusText, isCancelled && styles.cancelledBadgeText]}>
+                  {appointment?.status || 'Upcoming'}
+                </Text>
+              </View>
+            </View>
 
-        <View style={styles.infoRow}>
-          <PinIcon color={colors.plum} />
-          <Text style={styles.copy}>{appointment?.clinic_name || 'Clinic not set'}</Text>
-        </View>
+            <Text style={styles.eyebrow}>CARE VISIT</Text>
+            <Text style={styles.title}>{displayTitle(appointment)}</Text>
+            <Text style={styles.heroDate}>
+              {formatAppointmentDate(displayDate(appointment), displayTime(appointment))}
+            </Text>
+          </View>
 
-        {appointment?.notes ? <Text style={styles.notes}>{appointment.notes}</Text> : null}
+          <View style={styles.infoGrid}>
+            <View style={styles.infoCard}>
+              <View style={styles.infoIcon}>
+                <Ionicons name="person-outline" size={22} color={colors.plum} />
+              </View>
+              <Text style={styles.infoLabel}>Doctor</Text>
+              <Text style={styles.infoValue}>{displayDoctor(appointment)}</Text>
+            </View>
 
-        <Button label="Get Directions" variant="secondary" style={{ marginTop: 18 }} />
-      </Card>
+            <View style={styles.infoCard}>
+              <View style={styles.infoIcon}>
+                <Ionicons name="location-outline" size={22} color={colors.plum} />
+              </View>
+              <Text style={styles.infoLabel}>Clinic</Text>
+              <Text style={styles.infoValue}>{displayClinic(appointment)}</Text>
+            </View>
+          </View>
 
-      <Text style={styles.heading}>Preparation Checklist</Text>
+          <View style={styles.notesCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Notes</Text>
+              <Ionicons name="document-text-outline" size={21} color="#CE6F79" />
+            </View>
 
-      {[
-        'Drink 32oz of water 1 hour before',
-        'Bring insurance card',
-        'Wear comfortable clothing',
-      ].map((item) => (
-        <Card key={item} style={styles.check}>
-          <View style={styles.checkDot} />
-          <Text style={styles.checkText}>{item}</Text>
-        </Card>
-      ))}
+            <Text style={styles.notesText}>
+              {appointment?.notes || 'No notes yet. Add questions, reminders, or anything you want to discuss at this appointment.'}
+            </Text>
+          </View>
 
-      <View style={styles.sectionRow}>
-        <Text style={styles.heading}>Notes & Questions</Text>
-        <Text style={styles.add}>Synced</Text>
-      </View>
+          <Text style={styles.heading}>Preparation checklist</Text>
 
-      {[
-        'Ask about prenatal vitamin adjustments.',
-        'Can I continue my yoga routine?',
-        'When should we schedule the next screening?',
-      ].map((item) => (
-        <Card key={item} style={styles.note}>
-          <Text style={styles.copy}>{item}</Text>
-        </Card>
-      ))}
+          {[
+            'Bring your questions and symptom notes',
+            'Take any reports or test results with you',
+            'Confirm clinic address and appointment time',
+          ].map((item) => (
+            <View key={item} style={styles.checkCard}>
+              <View style={styles.checkIcon}>
+                <Ionicons name="checkmark" size={18} color="#fff" />
+              </View>
+              <Text style={styles.checkText}>{item}</Text>
+            </View>
+          ))}
 
-      <Button
-        label="Edit Appointment"
-        style={{ marginTop: 18 }}
-        onPress={() => {
-          if (appointment?.id) {
-            router.push(`/appointment/add?id=${appointment.id}` as never);
-          }
-        }}
-      />
+          <View style={styles.actionRow}>
+            <AnimatedPressable
+              onPress={() => {
+                if (appointment?.id) {
+                  router.push(`/appointment/add?id=${appointment.id}` as never);
+                }
+              }}
+              style={styles.primaryButton}
+            >
+              <Ionicons name="create-outline" size={20} color="#fff" />
+              <Text style={styles.primaryButtonText}>Edit</Text>
+            </AnimatedPressable>
 
-      <Button
-        label="Back to Appointments"
-        variant="secondary"
-        style={{ marginTop: 12 }}
-        onPress={() => router.push('/(tabs)/appointments' as never)}
-      />
+            <AnimatedPressable
+              onPress={() => router.push('/(tabs)/appointments' as never)}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryButtonText}>Back</Text>
+            </AnimatedPressable>
+          </View>
 
-      <Button
-        label="Cancel Appointment"
-        variant="ghost"
-        onPress={cancelAppointment}
-      />
+          {!isCancelled && (
+            <AnimatedPressable onPress={cancelAppointment} style={styles.warningButton}>
+              <Ionicons name="close-circle-outline" size={20} color="#A45A62" />
+              <Text style={styles.warningButtonText}>Cancel appointment</Text>
+            </AnimatedPressable>
+          )}
 
-      <Button
-        label="Delete Appointment"
-        variant="ghost"
-        onPress={deleteAppointment}
-      />
+          <AnimatedPressable onPress={deleteAppointment} style={styles.deleteButton}>
+            <Ionicons name="trash-outline" size={20} color="#B84D57" />
+            <Text style={styles.deleteButtonText}>Delete appointment</Text>
+          </AnimatedPressable>
+        </>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
+  loadingCard: {
+    minHeight: 220,
+    borderRadius: 30,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
     marginTop: 24,
   },
-  badge: {
-    ...type.section,
-    color: colors.rose,
-    marginBottom: 12,
+  loadingText: {
+    ...type.small,
+    color: colors.text,
+  },
+  heroCard: {
+    marginTop: 18,
+    backgroundColor: '#CE6F79',
+    borderRadius: 34,
+    padding: 24,
+    minHeight: 260,
+    justifyContent: 'space-between',
+  },
+  cancelledHero: {
+    backgroundColor: '#A45A62',
+  },
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroIcon: {
+    width: 62,
+    height: 62,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusBadge: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 999,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  cancelledBadge: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  statusText: {
+    ...type.tiny,
+    color: '#fff',
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  cancelledBadgeText: {
+    color: '#fff',
+  },
+  eyebrow: {
+    ...type.tiny,
+    color: '#FFE7EC',
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    marginTop: 24,
   },
   title: {
     ...type.title,
-    color: colors.ink,
-    marginBottom: 18,
+    color: '#fff',
+    fontSize: 33,
+    lineHeight: 38,
+    marginTop: 8,
   },
-  infoRow: {
+  heroDate: {
+    ...type.bodyStrong,
+    color: '#FFF4F5',
+    marginTop: 12,
+    lineHeight: 22,
+  },
+  infoGrid: {
     flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  infoCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    minHeight: 145,
+  },
+  infoIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 18,
+    backgroundColor: '#FFF0F1',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 10,
+    justifyContent: 'center',
   },
-  copy: {
-    ...type.body,
-    color: colors.text,
+  infoLabel: {
+    ...type.tiny,
+    color: '#CE6F79',
+    fontWeight: '900',
+    marginTop: 13,
+    textTransform: 'uppercase',
   },
-  notes: {
-    ...type.body,
-    color: colors.text,
-    marginTop: 14,
-  },
-  doctor: {
+  infoValue: {
     ...type.bodyStrong,
     color: colors.ink,
-    marginTop: 18,
+    marginTop: 4,
+    lineHeight: 21,
+  },
+  notesCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 18,
+    marginTop: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    ...type.title,
+    color: colors.ink,
+    fontSize: 24,
+  },
+  notesText: {
+    ...type.body,
+    color: colors.text,
+    marginTop: 10,
+    lineHeight: 23,
   },
   heading: {
-    ...type.bodyStrong,
+    ...type.title,
     color: colors.ink,
+    fontSize: 24,
     marginTop: 24,
     marginBottom: 12,
   },
-  check: {
+  checkCard: {
     flexDirection: 'row',
+    gap: 13,
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 10,
-    paddingVertical: 16,
-  },
-  checkDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 6,
-    borderColor: colors.plum,
     backgroundColor: colors.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 15,
+    marginBottom: 10,
+  },
+  checkIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 12,
+    backgroundColor: '#CE6F79',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkText: {
     ...type.bodyStrong,
     color: colors.ink,
     flex: 1,
+    lineHeight: 21,
   },
-  sectionRow: {
+  actionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 14,
+  },
+  primaryButton: {
+    flex: 1.2,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: '#CE6F79',
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
-  add: {
-    ...type.small,
+  primaryButtonText: {
+    ...type.bodyStrong,
+    color: '#fff',
+  },
+  secondaryButton: {
+    flex: 1,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: '#FFF0F1',
+    borderWidth: 1,
+    borderColor: '#EFDCDD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    ...type.bodyStrong,
     color: colors.plum,
-    marginTop: 16,
   },
-  note: {
-    marginBottom: 10,
-    backgroundColor: colors.cream,
+  warningButton: {
+    height: 54,
+    borderRadius: 20,
+    backgroundColor: '#FFF7F4',
+    borderWidth: 1,
+    borderColor: '#F0D4D7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  warningButtonText: {
+    ...type.bodyStrong,
+    color: '#A45A62',
+  },
+  deleteButton: {
+    height: 54,
+    borderRadius: 20,
+    backgroundColor: '#FFF4F4',
+    borderWidth: 1,
+    borderColor: '#F1C9CD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  deleteButtonText: {
+    ...type.bodyStrong,
+    color: '#B84D57',
   },
 });
