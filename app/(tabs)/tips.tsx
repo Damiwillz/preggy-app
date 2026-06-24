@@ -12,13 +12,41 @@ import { getPublishedArticles, type Article } from '@/services/articles';
 
 const articleImages: Record<string, number> = {
   status: require('../../assets/images/tips-status-hero.jpg'),
+  'status-baby': require('../../assets/images/tips-status-baby.jpg'),
+
   yoga: require('../../assets/images/tips-yoga-hero.jpg'),
+  'yoga-hero': require('../../assets/images/tips-yoga-hero.jpg'),
+  'yoga-catcow': require('../../assets/images/tips-yoga-catcow.jpg'),
+  'yoga-childpose': require('../../assets/images/tips-yoga-childpose.jpg'),
+  'yoga-warrior': require('../../assets/images/tips-yoga-warrior.jpg'),
+
   sanctuary: require('../../assets/images/tips-sanctuary-hero.jpg'),
+
+  bag: require('../../assets/images/tips-bag.jpg'),
   'hospital-bag': require('../../assets/images/tips-bag-baby.jpg'),
+  'bag-baby': require('../../assets/images/tips-bag-baby.jpg'),
+  'what-to-pack': require('../../assets/images/tips-bag.jpg'),
+
+  exercise: require('../../assets/images/tips-exercise.jpg'),
+  symptoms: require('../../assets/images/tips-symptoms.jpg'),
+  foods: require('../../assets/images/tips-featured.jpg'),
+  food: require('../../assets/images/tips-featured.jpg'),
+  featured: require('../../assets/images/tips-featured.jpg'),
+  pregnancy: require('../../assets/images/week12-baby.jpg'),
 };
 
+function normalizeImageKey(imageKey?: string | null) {
+  return String(imageKey ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, '-')
+    .replace(/\s+/g, '-');
+}
+
 function getArticleImage(imageKey: string) {
-  return articleImages[imageKey] ?? articleImages.status;
+  const key = normalizeImageKey(imageKey);
+
+  return articleImages[key] ?? articleImages.featured;
 }
 
 export default function TipsScreen() {
