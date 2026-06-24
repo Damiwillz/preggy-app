@@ -170,7 +170,7 @@ export default function ProfileScreen() {
         <Row
           icon="notifications-outline"
           label="Notification settings"
-          detail="Test and schedule app reminders"
+          detail="Manage appointment and medication reminders"
           onPress={() => router.push('/reminders' as never)}
         />
 
