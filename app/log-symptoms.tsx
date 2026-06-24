@@ -43,7 +43,7 @@ export default function LogSymptomsScreen() {
   const { palette } = useAppTheme();
 
   const [mood, setMood] = useState('Calm');
-  const [symptoms, setSymptoms] = useState<string[]>(['Baby kicks']);
+  const [symptoms, setSymptoms] = useState<string[]>([]);
   const [intensity, setIntensity] = useState(2);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -210,7 +210,7 @@ export default function LogSymptomsScreen() {
         <TextInput
           value={notes}
           onChangeText={setNotes}
-          placeholder="Add anything you want to remember..."
+          placeholder="Add anything you want to remember, such as when symptoms started or what helped..."
           placeholderTextColor={palette.muted}
           style={[styles.notesInput, { color: palette.ink }]}
           multiline
