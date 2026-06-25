@@ -9,6 +9,7 @@ import { TextField } from '@/components/forms/TextField';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { updateMyProfile } from '@/services/profile';
 
 function parseDate(value: string) {
@@ -66,6 +67,8 @@ function getPregnancyProgress(lastPeriodDate: Date) {
 }
 
 export default function CalculatorScreen() {
+  const { palette } = useAppTheme();
+
   const [lastPeriod, setLastPeriod] = useState('');
   const [cycleLength, setCycleLength] = useState('28');
   const [conceptionDate, setConceptionDate] = useState('');
@@ -138,7 +141,7 @@ export default function CalculatorScreen() {
     <Screen bottomSpace={44}>
       <Header title="Due Date Calculator" />
 
-      <View style={styles.hero}>
+      <View style={[styles.hero, { backgroundColor: '#FFF0F1' }]}>
         <Image source={require('../../assets/images/week12-baby.jpg')} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
         <View style={styles.heroShade} />
 
@@ -151,20 +154,20 @@ export default function CalculatorScreen() {
         </View>
       </View>
 
-      <View style={styles.tipCard}>
-        <View style={styles.tipIcon}>
-          <Ionicons name="calendar-outline" size={22} color={colors.plum} />
+      <View style={[styles.tipCard, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
+        <View style={[styles.tipIcon, { backgroundColor: '#FFF0F1' }]}>
+          <Ionicons name="calendar-outline" size={22} color={palette.accent} />
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.tipTitle}>Use one method</Text>
-          <Text style={styles.tipCopy}>
+          <Text style={[styles.tipTitle, { color: '#2A151B' }]}>Use one method</Text>
+          <Text style={[styles.tipCopy, { color: '#765B60' }]}>
             Last period is most common. Use conception or IVF date only if you know it.
           </Text>
         </View>
       </View>
 
-      <View style={styles.form}>
+      <View style={[styles.form, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
         <TextField
           label="First day of last period"
           helper="The start of your last menstrual cycle"
@@ -184,9 +187,9 @@ export default function CalculatorScreen() {
         />
 
         <View style={styles.dividerRow}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: palette.line }]} />
+          <Text style={[styles.dividerText, { color: '#9C7B82' }]}>or</Text>
+          <View style={[styles.divider, { backgroundColor: palette.line }]} />
         </View>
 
         <TextField
@@ -208,10 +211,10 @@ export default function CalculatorScreen() {
         <AnimatedPressable
           onPress={calculateDueDate}
           disabled={saving}
-          style={[styles.calculateButton, saving && { opacity: 0.7 }]}
+          style={[styles.calculateButton, { backgroundColor: '#CE6F79' }, saving && { opacity: 0.7 }]}
         >
-          <Ionicons name="sparkles-outline" size={21} color="#fff" />
-          <Text style={styles.calculateText}>{saving ? 'Saving...' : 'Calculate and save'}</Text>
+          <Ionicons name="sparkles-outline" size={21} color={palette.onAccent} />
+          <Text style={[styles.calculateText, { color: '#FFFFFF' }]}>{saving ? 'Saving...' : 'Calculate and save'}</Text>
         </AnimatedPressable>
       </View>
     </Screen>

@@ -172,51 +172,51 @@ export default function Timeline() {
         </View>
       </View>
 
-      <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+      <View style={[styles.summaryCard, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
         {loading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={palette.accent} />
-            <Text style={[styles.loadingText, { color: palette.text }]}>Loading timeline...</Text>
+            <Text style={[styles.loadingText, { color: '#765B60' }]}>Loading timeline...</Text>
           </View>
         ) : (
           <>
             <View style={styles.summaryTop}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.summaryLabel, { color: palette.accent }]}>CURRENT STAGE</Text>
-                <Text style={[styles.summaryTitle, { color: palette.ink }]}>
+                <Text style={[styles.summaryLabel, { color: '#CE6F79' }]}>CURRENT STAGE</Text>
+                <Text style={[styles.summaryTitle, { color: '#2A151B' }]}>
                   Week {progress.week}, Day {progress.day}
                 </Text>
-                <Text style={[styles.summaryNote, { color: palette.text }]}>
+                <Text style={[styles.summaryNote, { color: '#765B60' }]}>
                   {progress.daysRemaining > 0
                     ? `${progress.daysRemaining} days until your estimated due date`
                     : 'You have reached your due date window'}
                 </Text>
               </View>
 
-              <View style={[styles.percentBadge, { backgroundColor: palette.accent }]}>
-                <Text style={[styles.percentText, { color: palette.onAccent }]}>{progress.progress}%</Text>
+              <View style={[styles.percentBadge, { backgroundColor: '#CE6F79' }]}>
+                <Text style={[styles.percentText, { color: '#FFFFFF' }]}>{progress.progress}%</Text>
               </View>
             </View>
 
             <View style={[styles.progressTrack, { backgroundColor: palette.softSurface }]}>
-              <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
+              <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: '#CE6F79' }]} />
             </View>
 
             <View style={styles.summaryBottom}>
-              <Text style={[styles.progressMini, { color: palette.muted }]}>Week 1</Text>
+              <Text style={[styles.progressMini, { color: '#9C7B82' }]}>Week 1</Text>
               <AnimatedPressable onPress={() => router.push('/calculator/result' as never)}>
-                <Text style={[styles.updateLink, { color: palette.accent }]}>Update due date</Text>
+                <Text style={[styles.updateLink, { color: '#CE6F79' }]}>Update due date</Text>
               </AnimatedPressable>
-              <Text style={[styles.progressMini, { color: palette.muted }]}>Week 40</Text>
+              <Text style={[styles.progressMini, { color: '#9C7B82' }]}>Week 40</Text>
             </View>
           </>
         )}
       </View>
 
-      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Milestone path</Text>
+      <Text style={[styles.sectionTitle, { color: '#2A151B' }]}>Milestone path</Text>
 
       <View style={styles.timelineWrap}>
-        <View style={[styles.line, { backgroundColor: palette.accentSoft }]} />
+        <View style={[styles.line, { backgroundColor: '#FFF0F1' }]} />
 
         {items.map((item) => {
           const status = getStatus(item.week, progress.week);
@@ -228,9 +228,9 @@ export default function Timeline() {
               <View
                 style={[
                   styles.icon,
-                  { backgroundColor: palette.accentSoft },
+                  { backgroundColor: '#FFF0F1' },
                   isCompleted && { backgroundColor: '#CE6F79' },
-                  isCurrent && { backgroundColor: palette.accent },
+                  isCurrent && { backgroundColor: '#CE6F79' },
                 ]}
               >
                 <Ionicons
@@ -252,22 +252,22 @@ export default function Timeline() {
                 {item.image ? <Image source={item.image} style={styles.image} resizeMode="cover" /> : null}
 
                 <View style={styles.cardTop}>
-                  <Text style={[styles.week, { color: palette.accent }]}>WEEK {item.week}</Text>
+                  <Text style={[styles.week, { color: '#CE6F79' }]}>WEEK {item.week}</Text>
 
                   <View
                     style={[
                       styles.statusBadge,
                       { backgroundColor: palette.softSurface },
                       isCompleted && { backgroundColor: '#FFF0F1' },
-                      isCurrent && { backgroundColor: palette.accent },
+                      isCurrent && { backgroundColor: '#CE6F79' },
                     ]}
                   >
                     <Text
                       style={[
                         styles.statusText,
-                        { color: palette.text },
+                        { color: '#765B60' },
                         isCompleted && { color: '#CE6F79' },
-                        isCurrent && { color: palette.onAccent },
+                        isCurrent && { color: '#FFFFFF' },
                       ]}
                     >
                       {status}
@@ -275,9 +275,9 @@ export default function Timeline() {
                   </View>
                 </View>
 
-                <Text style={[styles.trimester, { color: palette.muted }]}>{item.trimester}</Text>
-                <Text style={[styles.itemTitle, { color: palette.ink }]}>{item.title}</Text>
-                <Text style={[styles.copy, { color: palette.text }]}>{item.copy}</Text>
+                <Text style={[styles.trimester, { color: '#9C7B82' }]}>{item.trimester}</Text>
+                <Text style={[styles.itemTitle, { color: '#2A151B' }]}>{item.title}</Text>
+                <Text style={[styles.copy, { color: '#765B60' }]}>{item.copy}</Text>
               </View>
             </View>
           );

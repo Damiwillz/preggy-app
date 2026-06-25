@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
 function getParam(value: string | string[] | undefined, fallback: string) {
   if (Array.isArray(value)) return value[0] ?? fallback;
@@ -21,6 +22,8 @@ function getTrimester(week: number) {
 }
 
 export default function DueDateResultScreen() {
+  const { palette } = useAppTheme();
+
   const params = useLocalSearchParams();
 
   const dueDate = getParam(params.dueDate, 'Your saved due date');
@@ -35,87 +38,87 @@ export default function DueDateResultScreen() {
     <Screen bottomSpace={44}>
       <Header title="Due Date Result" back />
 
-      <View style={styles.heroCard}>
+      <View style={[styles.heroCard, { backgroundColor: '#CE6F79' }]}>
         <Text style={styles.eyebrow}>THE BIG DAY</Text>
-        <Text style={styles.title}>Your estimated due date is</Text>
-        <Text style={styles.date}>{dueDate}</Text>
+        <Text style={[styles.title, { color: '#FFFFFF' }]}>Your estimated due date is</Text>
+        <Text style={[styles.date, { color: '#FFFFFF' }]}>{dueDate}</Text>
 
         <View style={styles.badgeRow}>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{trimester}</Text>
+            <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>{trimester}</Text>
           </View>
 
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{method}</Text>
+            <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>{method}</Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.progressCard}>
+      <View style={[styles.progressCard, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
         <View style={styles.progressTop}>
           <View>
-            <Text style={styles.section}>YOUR JOURNEY</Text>
-            <Text style={styles.strong}>Week {week}, Day {day}</Text>
+            <Text style={[styles.section, { color: '#CE6F79' }]}>YOUR JOURNEY</Text>
+            <Text style={[styles.strong, { color: '#2A151B' }]}>Week {week}, Day {day}</Text>
           </View>
 
-          <View style={styles.percentCircle}>
-            <Text style={styles.percent}>{progress}%</Text>
+          <View style={[styles.percentCircle, { backgroundColor: '#FFF0F1' }]}>
+            <Text style={[styles.percent, { color: '#CE6F79' }]}>{progress}%</Text>
           </View>
         </View>
 
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, progress))}%` }]} />
+        <View style={[styles.progressBar, { backgroundColor: '#FFF0F1' }]}>
+          <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, progress))}%`, backgroundColor: '#CE6F79' }]} />
         </View>
 
         <View style={styles.split}>
-          <Text style={styles.copy}>Week 1</Text>
-          <Text style={styles.copy}>{remaining} days remaining</Text>
-          <Text style={styles.copy}>Week 40</Text>
+          <Text style={[styles.copy, { color: '#765B60' }]}>Week 1</Text>
+          <Text style={[styles.copy, { color: '#765B60' }]}>{remaining} days remaining</Text>
+          <Text style={[styles.copy, { color: '#765B60' }]}>Week 40</Text>
         </View>
       </View>
 
-      <Text style={styles.heading}>Next steps</Text>
+      <Text style={[styles.heading, { color: '#2A151B' }]}>Next steps</Text>
 
-      <View style={styles.step}>
-        <View style={styles.icon}>
-          <Ionicons name="calendar-outline" size={23} color={colors.plum} />
+      <View style={[styles.step, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
+        <View style={[styles.icon, { backgroundColor: '#FFF0F1' }]}>
+          <Ionicons name="calendar-outline" size={23} color={palette.accent} />
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.stepTitle}>Book or confirm your next visit</Text>
-          <Text style={styles.stepCopy}>Keep your prenatal appointment schedule up to date.</Text>
+          <Text style={[styles.stepTitle, { color: '#2A151B' }]}>Book or confirm your next visit</Text>
+          <Text style={[styles.stepCopy, { color: '#765B60' }]}>Keep your prenatal appointment schedule up to date.</Text>
         </View>
       </View>
 
-      <View style={styles.step}>
-        <View style={styles.icon}>
-          <Ionicons name="nutrition-outline" size={23} color={colors.plum} />
+      <View style={[styles.step, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
+        <View style={[styles.icon, { backgroundColor: '#FFF0F1' }]}>
+          <Ionicons name="nutrition-outline" size={23} color={palette.accent} />
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.stepTitle}>Keep taking prenatal vitamins</Text>
-          <Text style={styles.stepCopy}>Follow your clinician’s supplement guidance.</Text>
+          <Text style={[styles.stepTitle, { color: '#2A151B' }]}>Keep taking prenatal vitamins</Text>
+          <Text style={[styles.stepCopy, { color: '#765B60' }]}>Follow your clinician’s supplement guidance.</Text>
         </View>
       </View>
 
-      <View style={styles.step}>
-        <View style={styles.icon}>
-          <Ionicons name="heart-outline" size={23} color={colors.plum} />
+      <View style={[styles.step, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
+        <View style={[styles.icon, { backgroundColor: '#FFF0F1' }]}>
+          <Ionicons name="heart-outline" size={23} color={palette.accent} />
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.stepTitle}>Track how you feel</Text>
-          <Text style={styles.stepCopy}>Log symptoms, mood, and changes as your journey continues.</Text>
+          <Text style={[styles.stepTitle, { color: '#2A151B' }]}>Track how you feel</Text>
+          <Text style={[styles.stepCopy, { color: '#765B60' }]}>Log symptoms, mood, and changes as your journey continues.</Text>
         </View>
       </View>
 
       <View style={styles.actionRow}>
-        <AnimatedPressable onPress={() => router.push('/(tabs)/home' as never)} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Go to dashboard</Text>
+        <AnimatedPressable onPress={() => router.push('/(tabs)/home' as never)} style={[styles.primaryButton, { backgroundColor: '#CE6F79' }]}>
+          <Text style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>Go to dashboard</Text>
         </AnimatedPressable>
 
-        <AnimatedPressable onPress={() => router.back()} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Recalculate</Text>
+        <AnimatedPressable onPress={() => router.back()} style={[styles.secondaryButton, { backgroundColor: '#FFF0F1', borderColor: '#EFDCDD' }]}>
+          <Text style={[styles.secondaryButtonText, { color: palette.accentStrong }]}>Recalculate</Text>
         </AnimatedPressable>
       </View>
     </Screen>
