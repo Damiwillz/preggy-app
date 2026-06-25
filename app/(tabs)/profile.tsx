@@ -1,6 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Easing,
   Image,
   ImageSourcePropType,
   StyleSheet,
@@ -14,10 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { AppSwitch } from '@/components/ui/AppSwitch';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
-import { useAppTheme } from '@/context/AppThemeContext';
 import { signOut } from '@/services/auth';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 
@@ -28,22 +28,24 @@ function Row({
   label,
   detail,
   onPress,
+  danger = false,
   right,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   detail?: string;
   onPress?: () => void;
+  danger?: boolean;
   right?: React.ReactNode;
 }) {
   return (
     <AnimatedPressable onPress={onPress} style={styles.row}>
-      <View style={styles.rowIcon}>
-        <Ionicons name={icon} size={22} color="#735D62" />
+      <View style={[styles.rowIcon, danger && styles.dangerIcon]}>
+        <Ionicons name={icon} size={22} color={danger ? '#B84D57' : '#735D62'} />
       </View>
 
       <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowLabel, danger && styles.dangerText]}>{label}</Text>
         {detail ? <Text style={styles.rowDetail}>{detail}</Text> : null}
       </View>
 
@@ -57,7 +59,7 @@ function Row({
 function formatDueDate(value?: string | null) {
   if (!value) return 'Not set';
 
-  const date = new Date(`${value}T00:00:00`);
+  const date = new Date(`${value}T12:00:00`);
 
   if (Number.isNaN(date.getTime())) return 'Not set';
 
@@ -68,12 +70,15 @@ function formatDueDate(value?: string | null) {
   });
 }
 
-export default function ProfileScreen() {
-  const [notifications, setNotifications] = useState(true);
-  const { palette, mode, accentColor } = useAppTheme();
+function getProgress(week: number, days: number) {
+  const pregnancyDay = Math.min(280, Math.max(0, (week - 1) * 7 + days));
+  return Math.round((pregnancyDay / 280) * 100);
+}
 
+export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const heroAnim = useRef(new Animated.Value(0)).current;
 
   const scheme = useColorScheme() ?? 'light';
 
@@ -89,11 +94,38 @@ export default function ProfileScreen() {
     }
   }, []);
 
+  useEffect(() => {
+    Animated.timing(heroAnim, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [heroAnim]);
+
   useFocusEffect(
     useCallback(() => {
       loadProfile();
     }, [loadProfile])
   );
+
+  const heroAnimatedStyle = {
+    opacity: heroAnim,
+    transform: [
+      {
+        translateY: heroAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [18, 0],
+        }),
+      },
+      {
+        scale: heroAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.97, 1],
+        }),
+      },
+    ],
+  };
 
   const displayName = profile?.full_name || 'Sarah Miller';
   const firstName = displayName.split(' ')[0] || 'Sarah';
@@ -101,12 +133,13 @@ export default function ProfileScreen() {
   const days = profile?.pregnancy_days ?? 0;
   const nickname = profile?.baby_nickname || 'Peanut';
   const dueDate = formatDueDate(profile?.due_date);
+  const progress = getProgress(week, days);
 
   const avatarSource: ImageSourcePropType = profile?.avatar_url
     ? { uri: profile.avatar_url }
     : fallbackAvatar;
 
-  const pregnancyLabel = days > 0 ? `${week} Weeks, ${days} Days Pregnant` : `${week} Weeks Pregnant`;
+  const pregnancyLabel = days > 0 ? `${week} weeks, ${days} days pregnant` : `${week} weeks pregnant`;
 
   const handleLogout = async () => {
     try {
@@ -121,40 +154,55 @@ export default function ProfileScreen() {
     <Screen bottomSpace={105}>
       <Header />
 
-      <View style={styles.profile}>
-        <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
+      <Animated.View style={[styles.heroCard, heroAnimatedStyle]}>
+        <View style={styles.heroTop}>
+          <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
 
-        <View style={styles.profileText}>
-          <Text style={styles.name}>{loadingProfile ? 'Loading...' : displayName}</Text>
-          <Text style={styles.pregnant}>♡ {pregnancyLabel}</Text>
-        </View>
-      </View>
-
-      <View style={styles.two}>
-        <View style={styles.info}>
-          <Text style={styles.infoLabel}>DUE DATE</Text>
-          <Text style={styles.infoValue}>{dueDate}</Text>
-          <View style={styles.line} />
+          <AnimatedPressable onPress={() => router.push('/edit-profile' as never)} style={styles.editPill}>
+            <Ionicons name="create-outline" size={17} color="#fff" />
+            <Text style={styles.editPillText}>Edit</Text>
+          </AnimatedPressable>
         </View>
 
-        <View style={[styles.info, { backgroundColor: colors.softSurface }]}>
-          <Text style={styles.infoLabel}>NICKNAME</Text>
-          <Text style={styles.infoValue}>{nickname}</Text>
-          <Text style={{ fontSize: 18, marginTop: 6 }}>👶</Text>
-        </View>
-      </View>
+        <Text style={styles.eyebrow}>MY PROFILE</Text>
+        <Text style={styles.name}>{loadingProfile ? 'Loading...' : displayName}</Text>
+        <Text style={styles.pregnant}>♡ {pregnancyLabel}</Text>
 
-      <View style={styles.progress}>
-        <View style={styles.rowIcon}>
-          <Ionicons name="calendar-outline" size={22} color="#735D62" />
+        <View style={styles.heroStats}>
+          <View style={styles.heroStat}>
+            <Text style={styles.heroStatLabel}>BABY</Text>
+            <Text style={styles.heroStatValue}>{nickname}</Text>
+          </View>
+
+          <View style={styles.heroDivider} />
+
+          <View style={styles.heroStat}>
+            <Text style={styles.heroStatLabel}>DUE DATE</Text>
+            <Text style={styles.heroStatValue}>{dueDate}</Text>
+          </View>
+        </View>
+      </Animated.View>
+
+      <View style={styles.progressCard}>
+        <View style={styles.progressTop}>
+          <View style={styles.progressIcon}>
+            <Ionicons name="calendar-outline" size={23} color="#CE6F79" />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.progressLabel}>Pregnancy progress</Text>
+            <Text style={styles.progressTitle}>{progress}% complete</Text>
+            <Text style={styles.progressCopy}>Your profile is synced securely.</Text>
+          </View>
+
+          <View style={styles.weekBadge}>
+            <Text style={styles.weekBadgeText}>{week}w</Text>
+          </View>
         </View>
 
-        <View style={{ flex: 1 }}>
-          <Text style={styles.rowLabel}>Pregnancy Progress</Text>
-          <Text style={styles.rowDetail}>Your profile is synced securely</Text>
+        <View style={styles.track}>
+          <View style={[styles.fill, { width: `${progress}%` }]} />
         </View>
-
-        <Text style={styles.percent}>{week}w</Text>
       </View>
 
       <Text style={styles.section}>GENERAL SETTINGS</Text>
@@ -177,28 +225,35 @@ export default function ProfileScreen() {
         <Row
           icon="lock-closed-outline"
           label="Data privacy"
-          onPress={() => router.push('/privacy')}
+          detail="Privacy controls and account deletion"
+          onPress={() => router.push('/privacy' as never)}
         />
 
         <Row
           icon="moon-outline"
           label="Appearance"
-          detail={`${scheme === 'dark' ? 'Dark' : 'Light'} Mode active`}
-          onPress={() => router.push('/appearance')}
+          detail={`${scheme === 'dark' ? 'Dark' : 'Light'} mode active`}
+          onPress={() => router.push('/appearance' as never)}
           right={<Text style={styles.change}>Change</Text>}
         />
       </View>
 
-      <Text style={styles.section}>SUPPORT</Text>
+      <Text style={styles.section}>SUPPORT & SAFETY</Text>
 
       <View style={styles.card}>
         <Row
           icon="sparkles-outline"
           label="Chat with Preggy AI"
-          onPress={() => router.push('/ai-chat')}
+          detail="Ask pregnancy and app questions"
+          onPress={() => router.push('/ai-chat' as never)}
         />
 
-        <Row icon="help-circle-outline" label="Help & FAQ" />
+        <Row
+          icon="help-circle-outline"
+          label="Help & FAQ"
+          detail="Common questions and guidance"
+          onPress={() => Alert.alert('Help & FAQ', 'Help content is coming next.')}
+        />
 
         <Row
           icon="medkit-outline"
@@ -220,124 +275,208 @@ export default function ProfileScreen() {
           detail="Version, purpose and app information"
           onPress={() => router.push('/support/about' as never)}
         />
-
-        <Row
-          icon="log-out-outline"
-          label={`Log out ${firstName}`}
-          onPress={handleLogout}
-          right={<View />}
-        />
       </View>
 
       <View style={styles.insight}>
-        <Text style={styles.insightBadge}>DAILY INSIGHT</Text>
-        <Text style={styles.insightTitle}>{nickname} is now the size of a grapefruit!</Text>
+        <View style={styles.insightTop}>
+          <Text style={styles.insightBadge}>DAILY INSIGHT</Text>
+          <Text style={styles.insightEmoji}>👶</Text>
+        </View>
+
+        <Text style={styles.insightTitle}>{nickname} is growing every day</Text>
         <Text style={styles.insightCopy}>
-          Their hearing is becoming more acute, they can now hear your heartbeat and voice clearly.
+          Keep logging your symptoms, appointments, and routines so Preggy can help you stay organized.
         </Text>
 
         <AnimatedPressable
-          onPress={() => Alert.alert('Daily Insight', 'More weekly insight content is coming next.')}
+          onPress={() => router.push('/(tabs)/growth' as never)}
           style={styles.learn}
         >
-          <Text style={styles.learnText}>Learn more</Text>
+          <Text style={styles.learnText}>View growth</Text>
+          <Ionicons name="arrow-forward" size={18} color="#4B3028" />
         </AnimatedPressable>
       </View>
+
+      <AnimatedPressable onPress={handleLogout} style={styles.logoutButton}>
+        <Ionicons name="log-out-outline" size={21} color="#B84D57" />
+        <Text style={styles.logoutText}>Log out {firstName}</Text>
+      </AnimatedPressable>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  profile: {
-    backgroundColor: colors.surface,
-    borderRadius: 26,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginTop: 16,
+  heroCard: {
+    marginTop: 12,
+    backgroundColor: '#CE6F79',
+    borderRadius: 30,
+    padding: 20,
+    minHeight: 260,
+    justifyContent: 'space-between',
   },
-  profileText: {
-    flex: 1,
-    minWidth: 0,
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 68,
+    height: 68,
+    borderRadius: 25,
     borderWidth: 3,
-    borderColor: '#FFE7E8',
+    borderColor: 'rgba(255,255,255,0.48)',
+  },
+  editPill: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  editPillText: {
+    ...type.small,
+    color: '#fff',
+    fontWeight: '900',
+  },
+  eyebrow: {
+    ...type.tiny,
+    color: '#FFE7EC',
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    marginTop: 17,
   },
   name: {
     ...type.title,
-    fontSize: 29,
-    color: colors.ink,
+    fontSize: 30,
+    lineHeight: 35,
+    color: '#fff',
+    marginTop: 6,
   },
   pregnant: {
-    ...type.body,
-    color: colors.text,
+    ...type.bodyStrong,
+    color: '#FFF4F5',
+    marginTop: 6,
+    fontSize: 15,
   },
-  two: {
-    flexDirection: 'row',
-    gap: 14,
-    marginTop: 16,
-  },
-  info: {
-    flex: 1,
-    backgroundColor: colors.surface,
+  heroStats: {
+    marginTop: 18,
+    backgroundColor: 'rgba(255,255,255,0.16)',
     borderRadius: 22,
-    padding: 18,
-  },
-  infoLabel: {
-    ...type.section,
-    color: '#6E5C60',
-  },
-  infoValue: {
-    ...type.title,
-    fontSize: 22,
-    color: colors.ink,
-    marginTop: 7,
-  },
-  line: {
-    height: 3,
-    borderRadius: 3,
-    backgroundColor: '#8B7378',
-    marginTop: 8,
-    width: '70%',
-  },
-  progress: {
-    backgroundColor: colors.surface,
-    borderRadius: 22,
-    padding: 17,
-    marginTop: 16,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
   },
-  percent: {
-    ...type.body,
-    fontSize: 20,
-    color: '#614D53',
+  heroStat: {
+    flex: 1,
+  },
+  heroStatLabel: {
+    ...type.tiny,
+    color: '#FFE7EC',
+    fontWeight: '900',
+    letterSpacing: 0.9,
+  },
+  heroStatValue: {
+    ...type.bodyStrong,
+    color: '#fff',
+    marginTop: 5,
+  },
+  heroDivider: {
+    width: 1,
+    height: 46,
+    backgroundColor: 'rgba(255,255,255,0.26)',
+    marginHorizontal: 14,
+  },
+  progressCard: {
+    marginTop: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 30,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#EFDCDD',
+    shadowColor: '#2A151B',
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 2,
+  },
+  progressTop: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+  },
+  progressIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 21,
+    backgroundColor: '#FFF0F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressLabel: {
+    ...type.section,
+    color: '#CE6F79',
+  },
+  progressTitle: {
+    ...type.title,
+    color: colors.ink,
+    fontSize: 24,
+    marginTop: 3,
+  },
+  progressCopy: {
+    ...type.small,
+    color: colors.text,
+    marginTop: 3,
+    fontWeight: '800',
+  },
+  weekBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 21,
+    backgroundColor: '#FFF0F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekBadgeText: {
+    ...type.bodyStrong,
+    color: '#CE6F79',
+    fontSize: 17,
+  },
+  track: {
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: '#FFF0F1',
+    overflow: 'hidden',
+    marginTop: 16,
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#CE6F79',
   },
   section: {
     ...type.section,
     color: '#6B565B',
-    marginTop: 20,
-    marginBottom: 8,
+    marginTop: 22,
+    marginBottom: 9,
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
+    borderRadius: 28,
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#EFDCDD',
+    overflow: 'hidden',
   },
   row: {
-    minHeight: 70,
+    minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F2E9E6',
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   rowText: {
     flex: 1,
@@ -345,7 +484,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowAction: {
-    minWidth: 60,
+    minWidth: 56,
     alignItems: 'flex-end',
     justifyContent: 'center',
     flexShrink: 0,
@@ -353,64 +492,101 @@ const styles = StyleSheet.create({
   rowIcon: {
     width: 46,
     height: 46,
-    borderRadius: 23,
-    backgroundColor: '#F9EEEC',
+    borderRadius: 18,
+    backgroundColor: '#FFF0F1',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dangerIcon: {
+    backgroundColor: '#FFF4F4',
   },
   rowLabel: {
     ...type.bodyStrong,
     color: colors.ink,
   },
+  dangerText: {
+    color: '#B84D57',
+  },
   rowDetail: {
     ...type.small,
     color: colors.text,
+    marginTop: 2,
   },
   change: {
-    ...type.body,
+    ...type.small,
     color: '#725F64',
     backgroundColor: '#EFE6E1',
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 18,
+    fontWeight: '900',
   },
   insight: {
     marginTop: 18,
-    borderRadius: 28,
+    borderRadius: 30,
     backgroundColor: '#2C1609',
     padding: 24,
     overflow: 'hidden',
+  },
+  insightTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   insightBadge: {
     alignSelf: 'flex-start',
     backgroundColor: '#FFE3DC',
     paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 15,
+    paddingVertical: 6,
+    borderRadius: 999,
     ...type.tiny,
     color: '#4F342A',
+    fontWeight: '900',
+  },
+  insightEmoji: {
+    fontSize: 28,
   },
   insightTitle: {
     ...type.title,
-    fontSize: 26,
+    fontSize: 27,
     color: '#fff',
-    marginTop: 10,
+    marginTop: 13,
   },
   insightCopy: {
     ...type.body,
     color: '#E9DBD5',
     marginTop: 8,
+    lineHeight: 23,
   },
   learn: {
     alignSelf: 'flex-start',
     backgroundColor: colors.surface,
     borderRadius: 22,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    marginTop: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    marginTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   learnText: {
     ...type.bodyStrong,
     color: '#4B3028',
+  },
+  logoutButton: {
+    marginTop: 18,
+    height: 56,
+    borderRadius: 22,
+    backgroundColor: '#FFF4F4',
+    borderWidth: 1,
+    borderColor: '#F1C9CD',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+  },
+  logoutText: {
+    ...type.bodyStrong,
+    color: '#B84D57',
   },
 });
