@@ -24,6 +24,22 @@ import {
   scheduleMedicationReminders,
 } from '@/services/reminders';
 
+function normalizePermissionStatus(value: unknown) {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'boolean') return value ? 'granted' : 'denied';
+
+  if (
+    value &&
+    typeof value === 'object' &&
+    'status' in value &&
+    typeof (value as { status?: unknown }).status === 'string'
+  ) {
+    return (value as { status: string }).status;
+  }
+
+  return 'unknown';
+}
+
 export default function RemindersScreen() {
   const [permissionStatus, setPermissionStatus] = useState<string>('checking');
   const [scheduledCount, setScheduledCount] = useState(0);
@@ -32,7 +48,7 @@ export default function RemindersScreen() {
 
   async function refreshStatus() {
     try {
-      const status = await getReminderPermissionStatus();
+      const status = normalizePermissionStatus(await getReminderPermissionStatus());
       const count = await getPreggyScheduledReminderCount();
 
       setPermissionStatus(status);
@@ -52,7 +68,7 @@ export default function RemindersScreen() {
     setBusy(true);
 
     try {
-      const status = await requestReminderPermission();
+      const status = normalizePermissionStatus(await requestReminderPermission());
       setPermissionStatus(status);
 
       if (status === 'granted') {
@@ -76,7 +92,7 @@ export default function RemindersScreen() {
     setBusy(true);
 
     try {
-      const status = await requestReminderPermission();
+      const status = normalizePermissionStatus(await requestReminderPermission());
 
       if (status !== 'granted') {
         setPermissionStatus(status);
@@ -137,7 +153,7 @@ export default function RemindersScreen() {
 
     try {
       if (value) {
-        const status = await requestReminderPermission();
+        const status = normalizePermissionStatus(await requestReminderPermission());
 
         setPermissionStatus(status);
 
