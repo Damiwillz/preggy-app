@@ -28,24 +28,22 @@ function Row({
   label,
   detail,
   onPress,
-  danger = false,
   right,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   detail?: string;
   onPress?: () => void;
-  danger?: boolean;
   right?: React.ReactNode;
 }) {
   return (
     <AnimatedPressable onPress={onPress} style={styles.row}>
-      <View style={[styles.rowIcon, danger && styles.dangerIcon]}>
-        <Ionicons name={icon} size={22} color={danger ? '#B84D57' : '#735D62'} />
+      <View style={styles.rowIcon}>
+        <Ionicons name={icon} size={22} color="#735D62" />
       </View>
 
       <View style={styles.rowText}>
-        <Text style={[styles.rowLabel, danger && styles.dangerText]}>{label}</Text>
+        <Text style={styles.rowLabel}>{label}</Text>
         {detail ? <Text style={styles.rowDetail}>{detail}</Text> : null}
       </View>
 
@@ -78,7 +76,9 @@ function getProgress(week: number, days: number) {
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [openingDetails, setOpeningDetails] = useState(false);
   const heroAnim = useRef(new Animated.Value(0)).current;
+  const flipAnim = useRef(new Animated.Value(0)).current;
 
   const scheme = useColorScheme() ?? 'light';
 
@@ -109,24 +109,6 @@ export default function ProfileScreen() {
     }, [loadProfile])
   );
 
-  const heroAnimatedStyle = {
-    opacity: heroAnim,
-    transform: [
-      {
-        translateY: heroAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [18, 0],
-        }),
-      },
-      {
-        scale: heroAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.97, 1],
-        }),
-      },
-    ],
-  };
-
   const displayName = profile?.full_name || 'Sarah Miller';
   const firstName = displayName.split(' ')[0] || 'Sarah';
   const week = profile?.pregnancy_week ?? 24;
@@ -141,6 +123,58 @@ export default function ProfileScreen() {
 
   const pregnancyLabel = days > 0 ? `${week} weeks, ${days} days pregnant` : `${week} weeks pregnant`;
 
+  function openProfileDetails() {
+    if (openingDetails) return;
+
+    setOpeningDetails(true);
+    flipAnim.setValue(0);
+
+    Animated.timing(flipAnim, {
+      toValue: 1,
+      duration: 720,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) {
+        setOpeningDetails(false);
+        return;
+      }
+
+      router.push('/profile/details' as never);
+
+      setTimeout(() => {
+        flipAnim.setValue(0);
+        setOpeningDetails(false);
+      }, 450);
+    });
+  }
+
+  const heroAnimatedStyle = {
+    opacity: heroAnim,
+    backfaceVisibility: 'hidden' as const,
+    transform: [
+      {
+        translateY: heroAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [18, 0],
+        }),
+      },
+      {
+        scale: heroAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.97, 1],
+        }),
+      },
+      { perspective: 1400 },
+      {
+        rotateY: flipAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: ['0deg', '180deg'],
+        }),
+      },
+    ],
+  };
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -154,34 +188,36 @@ export default function ProfileScreen() {
     <Screen bottomSpace={105}>
       <Header />
 
-      <Animated.View style={[styles.heroCard, heroAnimatedStyle]}>
-        <View style={styles.heroTop}>
-          <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
+      <AnimatedPressable onPress={openProfileDetails} disabled={openingDetails}>
+        <Animated.View style={[styles.heroCard, heroAnimatedStyle]}>
+          <View style={styles.heroTop}>
+            <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
 
-          <AnimatedPressable onPress={() => router.push('/edit-profile' as never)} style={styles.editPill}>
-            <Ionicons name="create-outline" size={17} color="#fff" />
-            <Text style={styles.editPillText}>Edit</Text>
-          </AnimatedPressable>
-        </View>
-
-        <Text style={styles.eyebrow}>MY PROFILE</Text>
-        <Text style={styles.name}>{loadingProfile ? 'Loading...' : displayName}</Text>
-        <Text style={styles.pregnant}>♡ {pregnancyLabel}</Text>
-
-        <View style={styles.heroStats}>
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatLabel}>BABY</Text>
-            <Text style={styles.heroStatValue}>{nickname}</Text>
+            <View style={styles.editPill}>
+              <Ionicons name="expand-outline" size={17} color="#fff" />
+              <Text style={styles.editPillText}>Details</Text>
+            </View>
           </View>
 
-          <View style={styles.heroDivider} />
+          <Text style={styles.eyebrow}>MY PROFILE</Text>
+          <Text style={styles.name}>{loadingProfile ? 'Loading...' : displayName}</Text>
+          <Text style={styles.pregnant}>♡ {pregnancyLabel}</Text>
 
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatLabel}>DUE DATE</Text>
-            <Text style={styles.heroStatValue}>{dueDate}</Text>
+          <View style={styles.heroStats}>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatLabel}>BABY</Text>
+              <Text style={styles.heroStatValue}>{nickname}</Text>
+            </View>
+
+            <View style={styles.heroDivider} />
+
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatLabel}>DUE DATE</Text>
+              <Text style={styles.heroStatValue}>{dueDate}</Text>
+            </View>
           </View>
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </AnimatedPressable>
 
       <View style={styles.progressCard}>
         <View style={styles.progressTop}>
@@ -497,15 +533,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dangerIcon: {
-    backgroundColor: '#FFF4F4',
-  },
   rowLabel: {
     ...type.bodyStrong,
     color: colors.ink,
-  },
-  dangerText: {
-    color: '#B84D57',
   },
   rowDetail: {
     ...type.small,
