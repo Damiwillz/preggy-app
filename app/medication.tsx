@@ -199,15 +199,24 @@ export default function MedicationScreen() {
         </AnimatedPressable>
       </View>
 
-      <View style={[styles.summary, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
-        <View>
-          <Text style={[styles.summaryLabel, { color: palette.accent }]}>TODAY’S PROGRESS</Text>
-          <Text style={[styles.summaryTitle, { color: palette.ink }]}>
-            {taken}/{total} completed
-          </Text>
+      <View style={[styles.summary, { borderColor: palette.line }]}>
+        <View style={styles.summaryLeft}>
+          <View style={[styles.summaryIcon, { backgroundColor: palette.accent }]}>
+            <Ionicons name="medkit-outline" size={25} color={palette.onAccent} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.summaryLabel, { color: palette.accent }]}>TODAY’S PROGRESS</Text>
+            <Text style={[styles.summaryTitle, { color: palette.ink }]}>
+              {taken}/{total} completed
+            </Text>
+            <Text style={[styles.summaryCopy, { color: palette.text }]}>
+              Tap a routine item to mark it taken.
+            </Text>
+          </View>
         </View>
 
-        <View style={[styles.progressCircle, { backgroundColor: palette.surface }]}>
+        <View style={[styles.progressCircle, { backgroundColor: palette.accentSoft }]}>
           <Text style={[styles.progressText, { color: palette.accent }]}>{progress}%</Text>
         </View>
       </View>
@@ -336,13 +345,32 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   summary: {
-    borderRadius: 28,
+    borderRadius: 30,
     padding: 18,
     borderWidth: 1,
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#2A151B',
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 2,
+  },
+  summaryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  summaryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   summaryLabel: {
     ...type.section,
@@ -351,6 +379,12 @@ const styles = StyleSheet.create({
     ...type.title,
     fontSize: 26,
     marginTop: 4,
+  },
+  summaryCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 4,
+    fontWeight: '800',
   },
   progressCircle: {
     width: 68,
