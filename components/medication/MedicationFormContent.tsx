@@ -8,6 +8,7 @@ import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
 const frequencyOptions = ['Daily', 'Morning', 'Night', 'Weekly'];
 
 export function MedicationFormContent({ medicationId = null }: Props) {
+  const { palette } = useAppTheme();
   const isEditing = !!medicationId;
 
   const [name, setName] = useState('');
@@ -117,47 +119,47 @@ export function MedicationFormContent({ medicationId = null }: Props) {
   }
 
   return (
-    <Screen bottomSpace={36} style={styles.screen}>
+    <Screen bottomSpace={36} style={[styles.screen, { backgroundColor: palette.canvas }]}>
       <Header title={isEditing ? 'Edit Medication' : 'Add Medication'} back />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { backgroundColor: palette.accent }]}>
           <View style={styles.iconCircle}>
-            <Ionicons name="medkit-outline" size={34} color="#fff" />
+            <Ionicons name="medkit-outline" size={34} color={palette.onAccent} />
           </View>
 
           <Text style={styles.eyebrow}>DAILY ROUTINE</Text>
-          <Text style={styles.title}>{isEditing ? 'Update your routine' : 'Add to your routine'}</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: palette.onAccent }]}>{isEditing ? 'Update your routine' : 'Add to your routine'}</Text>
+          <Text style={[styles.subtitle, { color: palette.onAccent }]}>
             Track prenatal vitamins, supplements, prescriptions, and care instructions.
           </Text>
         </View>
 
         {loading ? (
-          <View style={styles.loadingCard}>
-            <ActivityIndicator color="#CE6F79" />
-            <Text style={styles.loadingText}>Loading medication...</Text>
+          <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <ActivityIndicator color={palette.accent} />
+            <Text style={[styles.loadingText, { color: palette.text }]}>Loading medication...</Text>
           </View>
         ) : (
           <>
-            <View style={styles.quickCard}>
-              <View style={styles.quickIcon}>
-                <Ionicons name="shield-checkmark-outline" size={22} color={colors.plum} />
+            <View style={[styles.quickCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+              <View style={[styles.quickIcon, { backgroundColor: palette.accentSoft }]}>
+                <Ionicons name="shield-checkmark-outline" size={22} color={palette.accent} />
               </View>
 
               <View style={{ flex: 1 }}>
-                <Text style={styles.quickTitle}>Safety note</Text>
-                <Text style={styles.quickCopy}>
+                <Text style={[styles.quickTitle, { color: palette.ink }]}>Safety note</Text>
+                <Text style={[styles.quickCopy, { color: palette.text }]}>
                   Always follow your clinician’s medication advice, especially during pregnancy.
                 </Text>
               </View>
             </View>
 
-            <View style={styles.card}>
-              <Field label="Name" placeholder="Prenatal vitamin" value={name} onChangeText={setName} />
-              <Field label="Dosage" placeholder="1 tablet" value={dosage} onChangeText={setDosage} />
+            <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+              <Field palette={palette} label="Name" placeholder="Prenatal vitamin" value={name} onChangeText={setName} />
+              <Field palette={palette} label="Dosage" placeholder="1 tablet" value={dosage} onChangeText={setDosage} />
 
-              <Text style={styles.label}>Frequency</Text>
+              <Text style={[styles.label, { color: palette.ink }]}>Frequency</Text>
               <View style={styles.frequencyWrap}>
                 {frequencyOptions.map((item) => {
                   const selected = frequency === item;
@@ -166,9 +168,13 @@ export function MedicationFormContent({ medicationId = null }: Props) {
                     <AnimatedPressable
                       key={item}
                       onPress={() => setFrequency(item)}
-                      style={[styles.frequencyChip, selected && styles.frequencyChipActive]}
+                      style={[
+                        styles.frequencyChip,
+                        { backgroundColor: palette.canvas, borderColor: palette.line },
+                        selected && { backgroundColor: palette.accent, borderColor: palette.accent },
+                      ]}
                     >
-                      <Text style={[styles.frequencyText, selected && styles.frequencyTextActive]}>
+                      <Text style={[styles.frequencyText, { color: palette.ink }, selected && { color: palette.onAccent }]}>
                         {item}
                       </Text>
                     </AnimatedPressable>
@@ -177,6 +183,7 @@ export function MedicationFormContent({ medicationId = null }: Props) {
               </View>
 
               <Field
+                palette={palette}
                 label="Custom frequency"
                 placeholder="Every 12 hours, with breakfast..."
                 value={frequencyOptions.includes(frequency) ? '' : frequency}
@@ -184,6 +191,7 @@ export function MedicationFormContent({ medicationId = null }: Props) {
               />
 
               <Field
+                palette={palette}
                 label="Instructions"
                 placeholder="Take with food and water"
                 value={instructions}
@@ -192,16 +200,16 @@ export function MedicationFormContent({ medicationId = null }: Props) {
               />
 
               <AnimatedPressable
-                style={[styles.button, saving && styles.disabled]}
+                style={[styles.button, { backgroundColor: palette.accent }, saving && styles.disabled]}
                 onPress={saveMedication}
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={palette.onAccent} />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle" size={22} color="#fff" />
-                    <Text style={styles.buttonText}>
+                    <Ionicons name="checkmark-circle" size={22} color={palette.onAccent} />
+                    <Text style={[styles.buttonText, { color: palette.onAccent }]}>
                       {isEditing ? 'Update medication' : 'Save medication'}
                     </Text>
                   </>
@@ -217,6 +225,7 @@ export function MedicationFormContent({ medicationId = null }: Props) {
 
 function Field({
   label,
+  palette,
   ...props
 }: {
   label: string;
@@ -224,14 +233,19 @@ function Field({
   value: string;
   onChangeText: (value: string) => void;
   multiline?: boolean;
+  palette: ReturnType<typeof useAppTheme>['palette'];
 }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: palette.ink }]}>{label}</Text>
       <TextInput
         {...props}
-        placeholderTextColor="#A98C93"
-        style={[styles.input, props.multiline && styles.textarea]}
+        placeholderTextColor={palette.muted}
+        style={[
+          styles.input,
+          { backgroundColor: palette.canvas, borderColor: palette.line, color: palette.ink },
+          props.multiline && styles.textarea,
+        ]}
       />
     </View>
   );

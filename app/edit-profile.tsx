@@ -17,6 +17,7 @@ import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { getMyProfile, updateMyProfile } from '@/services/profile';
 
 function cleanDate(value: string) {
@@ -50,6 +51,7 @@ function getProgress(week: string, days: string) {
 }
 
 export default function EditProfileScreen() {
+  const { palette } = useAppTheme();
   const [fullName, setFullName] = useState('');
   const [babyNickname, setBabyNickname] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -158,38 +160,39 @@ export default function EditProfileScreen() {
       <Header title="Edit Profile" back />
 
       {loading ? (
-        <View style={styles.loadingCard}>
-          <ActivityIndicator color="#CE6F79" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+        <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <ActivityIndicator color={palette.accent} />
+          <Text style={[styles.loadingText, { color: palette.text }]}>Loading profile...</Text>
         </View>
       ) : (
         <Animated.View style={animatedStyle}>
-          <View style={styles.hero}>
+          <View style={[styles.hero, { backgroundColor: palette.accent }]}>
             <View style={styles.heroIcon}>
-              <Ionicons name="person-circle-outline" size={38} color="#fff" />
+              <Ionicons name="person-circle-outline" size={38} color={palette.onAccent} />
             </View>
 
             <Text style={styles.eyebrow}>PROFILE SETUP</Text>
-            <Text style={styles.title}>Personalize your Preggy journey</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: palette.onAccent }]}>Personalize your Preggy journey</Text>
+            <Text style={[styles.subtitle, { color: palette.onAccent }]}>
               Update your name, baby nickname, due date, and pregnancy progress.
             </Text>
           </View>
 
-          <View style={styles.previewCard}>
-            <View style={styles.previewAvatar}>
-              <Text style={styles.previewInitial}>{previewName.charAt(0).toUpperCase()}</Text>
+          <View style={[styles.previewCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <View style={[styles.previewAvatar, { backgroundColor: palette.accentSoft }]}>
+              <Text style={[styles.previewInitial, { color: palette.accent }]}>{previewName.charAt(0).toUpperCase()}</Text>
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.previewLabel}>LIVE PREVIEW</Text>
-              <Text style={styles.previewName}>{previewName}</Text>
-              <Text style={styles.previewCopy}>♡ {previewBaby} • {pregnancyWeek || '24'}w {pregnancyDays || '0'}d</Text>
+              <Text style={[styles.previewLabel, { color: palette.accent }]}>LIVE PREVIEW</Text>
+              <Text style={[styles.previewName, { color: palette.ink }]}>{previewName}</Text>
+              <Text style={[styles.previewCopy, { color: palette.text }]}>♡ {previewBaby} • {pregnancyWeek || '24'}w {pregnancyDays || '0'}d</Text>
             </View>
           </View>
 
-          <View style={styles.form}>
+          <View style={[styles.form, { backgroundColor: palette.surface, borderColor: palette.line }]}>
             <Field
+              palette={palette}
               icon="person-outline"
               label="Full name"
               value={fullName}
@@ -198,6 +201,7 @@ export default function EditProfileScreen() {
             />
 
             <Field
+              palette={palette}
               icon="heart-outline"
               label="Baby nickname"
               value={babyNickname}
@@ -206,6 +210,7 @@ export default function EditProfileScreen() {
             />
 
             <Field
+              palette={palette}
               icon="calendar-outline"
               label="Due date"
               helper="Use yyyy-mm-dd or mm/dd/yyyy"
@@ -215,24 +220,25 @@ export default function EditProfileScreen() {
               keyboardType="numbers-and-punctuation"
             />
 
-            <View style={styles.progressCard}>
+            <View style={[styles.progressCard, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
               <View style={styles.progressTop}>
                 <View>
-                  <Text style={styles.progressLabel}>PREGNANCY PROGRESS</Text>
-                  <Text style={styles.progressTitle}>{progress}% complete</Text>
+                  <Text style={[styles.progressLabel, { color: palette.accent }]}>PREGNANCY PROGRESS</Text>
+                  <Text style={[styles.progressTitle, { color: palette.ink }]}>{progress}% complete</Text>
                 </View>
 
-                <View style={styles.weekBadge}>
-                  <Text style={styles.weekBadgeText}>{pregnancyWeek || '24'}w</Text>
+                <View style={[styles.weekBadge, { backgroundColor: palette.accent }]}>
+                  <Text style={[styles.weekBadgeText, { color: palette.onAccent }]}>{pregnancyWeek || '24'}w</Text>
                 </View>
               </View>
 
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${progress}%` }]} />
+              <View style={[styles.track, { backgroundColor: palette.accentSoft }]}>
+                <View style={[styles.fill, { width: `${progress}%`, backgroundColor: palette.accent }]} />
               </View>
 
               <View style={styles.two}>
                 <Field
+                  palette={palette}
                   icon="analytics-outline"
                   label="Week"
                   value={pregnancyWeek}
@@ -243,6 +249,7 @@ export default function EditProfileScreen() {
                 />
 
                 <Field
+                  palette={palette}
                   icon="calendar-number-outline"
                   label="Days"
                   value={pregnancyDays}
@@ -254,9 +261,9 @@ export default function EditProfileScreen() {
               </View>
             </View>
 
-            <View style={styles.noteCard}>
-              <Ionicons name="shield-checkmark-outline" size={21} color="#75595E" />
-              <Text style={styles.noteText}>
+            <View style={[styles.noteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+              <Ionicons name="shield-checkmark-outline" size={21} color={palette.accentStrong} />
+              <Text style={[styles.noteText, { color: palette.text }]}>
                 These details help personalize your dashboard, timeline, growth screen, and daily guidance.
               </Text>
             </View>
@@ -264,14 +271,14 @@ export default function EditProfileScreen() {
             <AnimatedPressable
               onPress={saveProfile}
               disabled={saving}
-              style={[styles.saveButton, saving && styles.disabled]}
+              style={[styles.saveButton, { backgroundColor: palette.accent }, saving && styles.disabled]}
             >
               {saving ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={palette.onAccent} />
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle" size={22} color="#fff" />
-                  <Text style={styles.saveText}>Save profile</Text>
+                  <Ionicons name="checkmark-circle" size={22} color={palette.onAccent} />
+                  <Text style={[styles.saveText, { color: palette.onAccent }]}>Save profile</Text>
                 </>
               )}
             </AnimatedPressable>
@@ -287,6 +294,7 @@ function Field({
   label,
   helper,
   compact = false,
+  palette,
   ...props
 }: {
   icon: keyof typeof Ionicons.glyphMap;
@@ -297,24 +305,25 @@ function Field({
   placeholder: string;
   keyboardType?: 'default' | 'number-pad' | 'numbers-and-punctuation';
   compact?: boolean;
+  palette: ReturnType<typeof useAppTheme>['palette'];
 }) {
   return (
     <View style={[styles.field, compact && styles.compactField]}>
       <View style={styles.fieldTop}>
-        <View style={styles.fieldIcon}>
-          <Ionicons name={icon} size={19} color="#CE6F79" />
+        <View style={[styles.fieldIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name={icon} size={19} color={palette.accent} />
         </View>
 
         <View>
-          <Text style={styles.label}>{label}</Text>
-          {helper ? <Text style={styles.helper}>{helper}</Text> : null}
+          <Text style={[styles.label, { color: palette.ink }]}>{label}</Text>
+          {helper ? <Text style={[styles.helper, { color: palette.text }]}>{helper}</Text> : null}
         </View>
       </View>
 
       <TextInput
         {...props}
-        placeholderTextColor="#A98C93"
-        style={styles.input}
+        placeholderTextColor={palette.muted}
+        style={[styles.input, { backgroundColor: palette.canvas, borderColor: palette.line, color: palette.ink }]}
       />
     </View>
   );

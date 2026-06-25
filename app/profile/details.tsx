@@ -18,6 +18,7 @@ import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 
 const fallbackAvatar = require('../../assets/images/profile-avatar.jpg');
@@ -46,24 +47,27 @@ function DetailCard({
   icon,
   label,
   value,
+  palette,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
+  palette: ReturnType<typeof useAppTheme>['palette'];
 }) {
   return (
-    <View style={styles.detailCard}>
-      <View style={styles.detailIcon}>
-        <Ionicons name={icon} size={22} color="#CE6F79" />
+    <View style={[styles.detailCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+      <View style={[styles.detailIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={icon} size={22} color={palette.accent} />
       </View>
 
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
+      <Text style={[styles.detailLabel, { color: palette.accent }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: palette.ink }]}>{value}</Text>
     </View>
   );
 }
 
 export default function ProfileDetailsScreen() {
+  const { palette } = useAppTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const entrance = useRef(new Animated.Value(0)).current;
@@ -131,81 +135,81 @@ export default function ProfileDetailsScreen() {
       <Header title="Full Profile" back />
 
       {loading ? (
-        <View style={styles.loadingCard}>
-          <ActivityIndicator color="#CE6F79" />
-          <Text style={styles.loadingText}>Loading full profile...</Text>
+        <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <ActivityIndicator color={palette.accent} />
+          <Text style={[styles.loadingText, { color: palette.text }]}>Loading full profile...</Text>
         </View>
       ) : (
         <Animated.View style={animatedStyle}>
-          <View style={styles.hero}>
+          <View style={[styles.hero, { backgroundColor: palette.accent }]}>
             <View style={styles.glowCircle} />
 
             <Image source={avatarSource} style={styles.bigAvatar} resizeMode="cover" />
 
             <Text style={styles.eyebrow}>FULL PROFILE</Text>
-            <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.username}>@{username}</Text>
+            <Text style={[styles.name, { color: palette.onAccent }]}>{displayName}</Text>
+            <Text style={[styles.username, { color: palette.onAccent }]}>@{username}</Text>
 
             <View style={styles.pregnancyPill}>
-              <Ionicons name="heart" size={17} color="#fff" />
-              <Text style={styles.pregnancyPillText}>{pregnancyLabel}</Text>
+              <Ionicons name="heart" size={17} color={palette.onAccent} />
+              <Text style={[styles.pregnancyPillText, { color: palette.onAccent }]}>{pregnancyLabel}</Text>
             </View>
           </View>
 
-          <View style={styles.progressCard}>
+          <View style={[styles.progressCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
             <View style={styles.progressTop}>
               <View>
-                <Text style={styles.progressLabel}>Pregnancy progress</Text>
-                <Text style={styles.progressTitle}>{progress}% complete</Text>
+                <Text style={[styles.progressLabel, { color: palette.accent }]}>Pregnancy progress</Text>
+                <Text style={[styles.progressTitle, { color: palette.ink }]}>{progress}% complete</Text>
               </View>
 
-              <View style={styles.weekBadge}>
-                <Text style={styles.weekBadgeText}>{week}w</Text>
+              <View style={[styles.weekBadge, { backgroundColor: palette.accentSoft }]}>
+                <Text style={[styles.weekBadgeText, { color: palette.accent }]}>{week}w</Text>
               </View>
             </View>
 
-            <View style={styles.track}>
-              <View style={[styles.fill, { width: `${progress}%` }]} />
+            <View style={[styles.track, { backgroundColor: palette.accentSoft }]}>
+              <View style={[styles.fill, { width: `${progress}%`, backgroundColor: palette.accent }]} />
             </View>
 
             <View style={styles.progressFooter}>
-              <Text style={styles.progressMini}>Week 1</Text>
-              <Text style={styles.progressMini}>Week 40</Text>
+              <Text style={[styles.progressMini, { color: palette.muted }]}>Week 1</Text>
+              <Text style={[styles.progressMini, { color: palette.muted }]}>Week 40</Text>
             </View>
           </View>
 
-          <Text style={styles.section}>PROFILE DETAILS</Text>
+          <Text style={[styles.section, { color: palette.text }]}>PROFILE DETAILS</Text>
 
           <View style={styles.grid}>
-            <DetailCard icon="person-outline" label="Full name" value={displayName} />
-            <DetailCard icon="at-outline" label="Username" value={`@${username}`} />
-            <DetailCard icon="heart-outline" label="Baby nickname" value={nickname} />
-            <DetailCard icon="calendar-outline" label="Due date" value={dueDate} />
-            <DetailCard icon="analytics-outline" label="Pregnancy stage" value={`${week}w ${days}d`} />
-            <DetailCard icon="shield-checkmark-outline" label="Profile status" value="Synced securely" />
+            <DetailCard palette={palette} icon="person-outline" label="Full name" value={displayName} />
+            <DetailCard palette={palette} icon="at-outline" label="Username" value={`@${username}`} />
+            <DetailCard palette={palette} icon="heart-outline" label="Baby nickname" value={nickname} />
+            <DetailCard palette={palette} icon="calendar-outline" label="Due date" value={dueDate} />
+            <DetailCard palette={palette} icon="analytics-outline" label="Pregnancy stage" value={`${week}w ${days}d`} />
+            <DetailCard palette={palette} icon="shield-checkmark-outline" label="Profile status" value="Synced securely" />
           </View>
 
-          <View style={styles.noteCard}>
-            <View style={styles.noteIcon}>
-              <Ionicons name="sparkles-outline" size={23} color="#CE6F79" />
+          <View style={[styles.noteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+            <View style={[styles.noteIcon, { backgroundColor: palette.surface }]}>
+              <Ionicons name="sparkles-outline" size={23} color={palette.accent} />
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.noteTitle}>Preggy uses this profile to personalize your dashboard</Text>
-              <Text style={styles.noteCopy}>
+              <Text style={[styles.noteTitle, { color: palette.ink }]}>Preggy uses this profile to personalize your dashboard</Text>
+              <Text style={[styles.noteCopy, { color: palette.text }]}>
                 Your due date, baby nickname, and pregnancy stage help update your timeline, growth screen, and daily guidance.
               </Text>
             </View>
           </View>
 
           <View style={styles.actions}>
-            <AnimatedPressable onPress={() => router.push('/edit-profile' as never)} style={styles.primaryButton}>
-              <Ionicons name="create-outline" size={20} color="#fff" />
-              <Text style={styles.primaryButtonText}>Edit profile</Text>
+            <AnimatedPressable onPress={() => router.push('/edit-profile' as never)} style={[styles.primaryButton, { backgroundColor: palette.accent }]}>
+              <Ionicons name="create-outline" size={20} color={palette.onAccent} />
+              <Text style={[styles.primaryButtonText, { color: palette.onAccent }]}>Edit profile</Text>
             </AnimatedPressable>
 
-            <AnimatedPressable onPress={() => router.back()} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>Back</Text>
+            <AnimatedPressable onPress={() => router.back()} style={[styles.secondaryButton, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+              <Text style={[styles.secondaryButtonText, { color: palette.accentStrong }]}>Back</Text>
             </AnimatedPressable>
           </View>
         </Animated.View>
