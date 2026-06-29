@@ -3,10 +3,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
+import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 
@@ -23,7 +22,6 @@ function getTrimester(week: number) {
 
 export default function DueDateResultScreen() {
   const { palette } = useAppTheme();
-
   const params = useLocalSearchParams();
 
   const dueDate = getParam(params.dueDate, 'Your saved due date');
@@ -33,91 +31,94 @@ export default function DueDateResultScreen() {
   const progress = Number(getParam(params.progress, '30'));
   const remaining = Number(getParam(params.remaining, '196'));
   const trimester = getTrimester(week);
+  const safeProgress = Math.min(100, Math.max(0, progress));
 
   return (
     <Screen bottomSpace={44}>
       <Header title="Due Date Result" back />
 
-      <View style={[styles.heroCard, { backgroundColor: '#CE6F79' }]}>
+      <View style={[styles.heroCard, { backgroundColor: palette.accent }]}>
         <Text style={styles.eyebrow}>THE BIG DAY</Text>
-        <Text style={[styles.title, { color: '#FFFFFF' }]}>Your estimated due date is</Text>
-        <Text style={[styles.date, { color: '#FFFFFF' }]}>{dueDate}</Text>
+        <Text style={[styles.title, { color: palette.onAccent }]}>Your estimated due date is</Text>
+        <Text style={[styles.date, { color: palette.onAccent }]}>{dueDate}</Text>
 
         <View style={styles.badgeRow}>
           <View style={styles.badge}>
-            <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>{trimester}</Text>
+            <Text style={[styles.badgeText, { color: palette.onAccent }]}>{trimester}</Text>
           </View>
 
           <View style={styles.badge}>
-            <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>{method}</Text>
+            <Text style={[styles.badgeText, { color: palette.onAccent }]}>{method}</Text>
           </View>
         </View>
       </View>
 
-      <View style={[styles.progressCard, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
+      <View style={[styles.progressCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.progressTop}>
           <View>
-            <Text style={[styles.section, { color: '#CE6F79' }]}>YOUR JOURNEY</Text>
-            <Text style={[styles.strong, { color: '#2A151B' }]}>Week {week}, Day {day}</Text>
+            <Text style={[styles.section, { color: palette.accent }]}>YOUR JOURNEY</Text>
+            <Text style={[styles.strong, { color: palette.ink }]}>Week {week}, Day {day}</Text>
           </View>
 
-          <View style={[styles.percentCircle, { backgroundColor: '#FFF0F1' }]}>
-            <Text style={[styles.percent, { color: '#CE6F79' }]}>{progress}%</Text>
+          <View style={[styles.percentCircle, { backgroundColor: palette.accentSoft }]}>
+            <Text style={[styles.percent, { color: palette.accent }]}>{progress}%</Text>
           </View>
         </View>
 
-        <View style={[styles.progressBar, { backgroundColor: '#FFF0F1' }]}>
-          <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, progress))}%`, backgroundColor: '#CE6F79' }]} />
+        <View style={[styles.progressBar, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.progressFill, { width: `${safeProgress}%`, backgroundColor: palette.accent }]} />
         </View>
 
         <View style={styles.split}>
-          <Text style={[styles.copy, { color: '#765B60' }]}>Week 1</Text>
-          <Text style={[styles.copy, { color: '#765B60' }]}>{remaining} days remaining</Text>
-          <Text style={[styles.copy, { color: '#765B60' }]}>Week 40</Text>
+          <Text style={[styles.copy, { color: palette.text }]}>Week 1</Text>
+          <Text style={[styles.copy, { color: palette.text }]}>{remaining} days remaining</Text>
+          <Text style={[styles.copy, { color: palette.text }]}>Week 40</Text>
         </View>
       </View>
 
-      <Text style={[styles.heading, { color: '#2A151B' }]}>Next steps</Text>
+      <Text style={[styles.heading, { color: palette.ink }]}>Next steps</Text>
 
-      <View style={[styles.step, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
-        <View style={[styles.icon, { backgroundColor: '#FFF0F1' }]}>
-          <Ionicons name="calendar-outline" size={23} color={palette.accent} />
-        </View>
+      {[
+        {
+          icon: 'calendar-outline',
+          title: 'Book or confirm your next visit',
+          copy: 'Keep your prenatal appointment schedule up to date.',
+        },
+        {
+          icon: 'nutrition-outline',
+          title: 'Keep taking prenatal vitamins',
+          copy: 'Follow your clinician’s supplement guidance.',
+        },
+        {
+          icon: 'heart-outline',
+          title: 'Track how you feel',
+          copy: 'Log symptoms, mood, and changes as your journey continues.',
+        },
+      ].map((step) => (
+        <View key={step.title} style={[styles.step, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.icon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name={step.icon as keyof typeof Ionicons.glyphMap} size={23} color={palette.accent} />
+          </View>
 
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.stepTitle, { color: '#2A151B' }]}>Book or confirm your next visit</Text>
-          <Text style={[styles.stepCopy, { color: '#765B60' }]}>Keep your prenatal appointment schedule up to date.</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.stepTitle, { color: palette.ink }]}>{step.title}</Text>
+            <Text style={[styles.stepCopy, { color: palette.text }]}>{step.copy}</Text>
+          </View>
         </View>
-      </View>
-
-      <View style={[styles.step, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
-        <View style={[styles.icon, { backgroundColor: '#FFF0F1' }]}>
-          <Ionicons name="nutrition-outline" size={23} color={palette.accent} />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.stepTitle, { color: '#2A151B' }]}>Keep taking prenatal vitamins</Text>
-          <Text style={[styles.stepCopy, { color: '#765B60' }]}>Follow your clinician’s supplement guidance.</Text>
-        </View>
-      </View>
-
-      <View style={[styles.step, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
-        <View style={[styles.icon, { backgroundColor: '#FFF0F1' }]}>
-          <Ionicons name="heart-outline" size={23} color={palette.accent} />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.stepTitle, { color: '#2A151B' }]}>Track how you feel</Text>
-          <Text style={[styles.stepCopy, { color: '#765B60' }]}>Log symptoms, mood, and changes as your journey continues.</Text>
-        </View>
-      </View>
+      ))}
 
       <View style={styles.actionRow}>
-        <AnimatedPressable onPress={() => router.push('/(tabs)/home' as never)} style={[styles.primaryButton, { backgroundColor: '#CE6F79' }]}>
-          <Text style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>Go to dashboard</Text>
+        <AnimatedPressable
+          onPress={() => router.push('/(tabs)/home' as never)}
+          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        >
+          <Text style={[styles.primaryButtonText, { color: palette.onAccent }]}>Go to dashboard</Text>
         </AnimatedPressable>
 
-        <AnimatedPressable onPress={() => router.back()} style={[styles.secondaryButton, { backgroundColor: '#FFF0F1', borderColor: '#EFDCDD' }]}>
+        <AnimatedPressable
+          onPress={() => router.back()}
+          style={[styles.secondaryButton, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
+        >
           <Text style={[styles.secondaryButtonText, { color: palette.accentStrong }]}>Recalculate</Text>
         </AnimatedPressable>
       </View>
@@ -128,7 +129,6 @@ export default function DueDateResultScreen() {
 const styles = StyleSheet.create({
   heroCard: {
     marginTop: 16,
-    backgroundColor: '#CE6F79',
     borderRadius: 34,
     padding: 24,
     minHeight: 255,
@@ -143,7 +143,6 @@ const styles = StyleSheet.create({
   },
   title: {
     ...type.bodyStrong,
-    color: '#FFF4F5',
     textAlign: 'center',
     marginTop: 10,
   },
@@ -151,7 +150,6 @@ const styles = StyleSheet.create({
     ...type.title,
     fontSize: 36,
     lineHeight: 42,
-    color: '#fff',
     textAlign: 'center',
     marginTop: 10,
   },
@@ -170,16 +168,13 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     ...type.tiny,
-    color: '#fff',
     fontWeight: '900',
   },
   progressCard: {
     marginTop: 16,
-    backgroundColor: colors.surface,
     borderRadius: 28,
     padding: 20,
     borderWidth: 1,
-    borderColor: colors.line,
   },
   progressTop: {
     flexDirection: 'row',
@@ -189,11 +184,9 @@ const styles = StyleSheet.create({
   },
   section: {
     ...type.section,
-    color: '#CE6F79',
   },
   strong: {
     ...type.title,
-    color: colors.ink,
     fontSize: 25,
     marginTop: 5,
   },
@@ -201,24 +194,20 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 23,
-    backgroundColor: '#FFF0F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   percent: {
     ...type.bodyStrong,
-    color: '#CE6F79',
     fontSize: 17,
   },
   progressBar: {
     height: 13,
     borderRadius: 999,
-    backgroundColor: '#FFF0F1',
     overflow: 'hidden',
     marginTop: 18,
   },
   progressFill: {
-    backgroundColor: '#CE6F79',
     height: '100%',
     borderRadius: 999,
   },
@@ -230,12 +219,10 @@ const styles = StyleSheet.create({
   },
   copy: {
     ...type.tiny,
-    color: colors.text,
     fontWeight: '900',
   },
   heading: {
     ...type.title,
-    color: colors.ink,
     fontSize: 25,
     marginTop: 26,
     marginBottom: 12,
@@ -244,10 +231,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 14,
     alignItems: 'center',
-    backgroundColor: colors.surface,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.line,
     padding: 16,
     marginBottom: 12,
   },
@@ -255,17 +240,14 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 20,
-    backgroundColor: '#FFF0F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepTitle: {
     ...type.bodyStrong,
-    color: colors.ink,
   },
   stepCopy: {
     ...type.small,
-    color: colors.text,
     marginTop: 3,
     lineHeight: 20,
   },
@@ -278,26 +260,21 @@ const styles = StyleSheet.create({
     flex: 1.2,
     height: 58,
     borderRadius: 22,
-    backgroundColor: '#CE6F79',
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonText: {
     ...type.bodyStrong,
-    color: '#fff',
   },
   secondaryButton: {
     flex: 1,
     height: 58,
     borderRadius: 22,
-    backgroundColor: '#FFF0F1',
     borderWidth: 1,
-    borderColor: '#EFDCDD',
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryButtonText: {
     ...type.bodyStrong,
-    color: colors.plum,
   },
 });
