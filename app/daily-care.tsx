@@ -100,7 +100,7 @@ export default function DailyCareScreen() {
 
         if (active) {
           setCompletedCare(Array.isArray(parsedCare) ? parsedCare : []);
-          setWaterCups(Number.isFinite(parsedWater) ? Math.min(Math.max(parsedWater, 0), 20) : 0);
+          setWaterCups(Number.isFinite(parsedWater) ? Math.min(Math.max(parsedWater, 0), WATER_TARGET) : 0);
         }
       } catch (error) {
         console.log('Daily care load error:', error);
@@ -133,7 +133,7 @@ export default function DailyCareScreen() {
   }
 
   async function updateWaterCups(nextValue: number) {
-    const next = Math.min(Math.max(nextValue, 0), 20);
+    const next = Math.min(Math.max(nextValue, 0), WATER_TARGET);
     setWaterCups(next);
 
     try {
