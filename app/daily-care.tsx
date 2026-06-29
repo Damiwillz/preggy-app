@@ -192,27 +192,21 @@ export default function DailyCareScreen() {
         })}
       </View>
 
-      <View style={[styles.heroCard, { backgroundColor: palette.accent, borderColor: palette.accent }]}>
-        <View style={styles.heroBlobOne} />
-        <View style={styles.heroBlobTwo} />
-
-        <View style={styles.heroTop}>
-          <View>
-            <Text style={[styles.heroLabel, { color: palette.onAccent }]}>TODAY’S PROGRESS</Text>
-            <Text style={[styles.heroTitle, { color: palette.onAccent }]}>{totalProgress}% complete</Text>
-          </View>
-
-          <View style={styles.heroIcon}>
-            <Text style={styles.heroEmoji}>🤰</Text>
-          </View>
+      <View style={[styles.heroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.heroIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name="leaf-outline" size={27} color={palette.accent} />
         </View>
 
-        <Text style={[styles.heroCopy, { color: palette.onAccent }]}>
-          {completedCareCount}/{dailyCareItems.length} care items • {waterCups}/{WATER_TARGET} cups of water
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.heroLabel, { color: palette.accent }]}>TODAY’S PROGRESS</Text>
+          <Text style={[styles.heroTitle, { color: palette.ink }]}>{totalProgress}% complete</Text>
+          <Text style={[styles.heroCopy, { color: palette.text }]}>
+            {completedCareCount}/{dailyCareItems.length} care items • {waterCups}/{WATER_TARGET} cups of water
+          </Text>
 
-        <View style={styles.heroTrack}>
-          <View style={[styles.heroFill, { width: `${totalProgress}%` }]} />
+          <View style={[styles.heroTrack, { backgroundColor: palette.accentSoft }]}>
+            <View style={[styles.heroFill, { width: `${totalProgress}%`, backgroundColor: palette.accent }]} />
+          </View>
         </View>
       </View>
 
@@ -405,79 +399,48 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   heroCard: {
-    minHeight: 190,
-    borderRadius: 34,
+    minHeight: 146,
+    borderRadius: 30,
     borderWidth: 1,
-    overflow: 'hidden',
-    padding: 22,
+    padding: 18,
     marginBottom: 16,
-    justifyContent: 'space-between',
-  },
-  heroBlobOne: {
-    position: 'absolute',
-    width: 230,
-    height: 230,
-    borderRadius: 115,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    right: -80,
-    top: -90,
-  },
-  heroBlobTwo: {
-    position: 'absolute',
-    width: 155,
-    height: 155,
-    borderRadius: 78,
-    backgroundColor: 'rgba(255,255,255,0.13)',
-    left: -45,
-    bottom: -60,
-  },
-  heroTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 14,
   },
   heroLabel: {
     ...type.section,
     letterSpacing: 1.2,
-    opacity: 0.86,
   },
   heroTitle: {
     ...type.title,
-    fontSize: 31,
-    lineHeight: 36,
+    fontSize: 30,
+    lineHeight: 35,
     letterSpacing: -0.8,
     marginTop: 5,
-  },
-  heroIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroEmoji: {
-    fontSize: 34,
   },
   heroCopy: {
     ...type.small,
     lineHeight: 20,
     fontWeight: '900',
-    opacity: 0.9,
-    marginTop: 18,
+    marginTop: 7,
+  },
+  heroIcon: {
+    width: 62,
+    height: 62,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroTrack: {
     height: 11,
     borderRadius: 999,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.26)',
-    marginTop: 12,
+    marginTop: 14,
   },
   heroFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.9)',
   },
   waterCard: {
     borderRadius: 30,
