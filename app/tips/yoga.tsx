@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
 const poses = [
   {
@@ -31,6 +32,7 @@ const poses = [
 ];
 
 export default function YogaScreen() {
+  const { palette } = useAppTheme();
   const [selectedPose, setSelectedPose] = useState(poses[0].title);
 
   return (
@@ -49,23 +51,23 @@ export default function YogaScreen() {
       </View>
 
       <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>12</Text>
-          <Text style={styles.summaryLabel}>Minutes</Text>
+        <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.summaryValue, { color: palette.accent }]}>12</Text>
+          <Text style={[styles.summaryLabel, { color: palette.text }]}>Minutes</Text>
         </View>
 
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>3</Text>
-          <Text style={styles.summaryLabel}>Gentle poses</Text>
+        <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.summaryValue, { color: palette.accent }]}>3</Text>
+          <Text style={[styles.summaryLabel, { color: palette.text }]}>Gentle poses</Text>
         </View>
 
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>Low</Text>
-          <Text style={styles.summaryLabel}>Intensity</Text>
+        <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.summaryValue, { color: palette.accent }]}>Low</Text>
+          <Text style={[styles.summaryLabel, { color: palette.text }]}>Intensity</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Today’s flow</Text>
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Today’s flow</Text>
 
       <View style={styles.poseList}>
         {poses.map((pose, index) => {
@@ -75,7 +77,7 @@ export default function YogaScreen() {
             <AnimatedPressable
               key={pose.title}
               onPress={() => setSelectedPose(pose.title)}
-              style={[styles.poseCard, active && styles.poseCardActive]}
+              style={[styles.poseCard, { backgroundColor: active ? palette.accentSoft : palette.surface, borderColor: active ? palette.accent : palette.line }]}
             >
               <View style={styles.poseImageWrap}>
                 <Image source={pose.image} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
@@ -83,30 +85,30 @@ export default function YogaScreen() {
 
               <View style={{ flex: 1 }}>
                 <View style={styles.poseTop}>
-                  <Text style={styles.poseStep}>POSE {index + 1}</Text>
-                  <Text style={styles.poseTime}>{pose.time}</Text>
+                  <Text style={[styles.poseStep, { color: palette.accent }]}>POSE {index + 1}</Text>
+                  <Text style={[styles.poseTime, { color: palette.muted }]}>{pose.time}</Text>
                 </View>
 
-                <Text style={styles.poseTitle}>{pose.title}</Text>
-                <Text style={styles.poseCopy}>{pose.copy}</Text>
+                <Text style={[styles.poseTitle, { color: palette.ink }]}>{pose.title}</Text>
+                <Text style={[styles.poseCopy, { color: palette.text }]}>{pose.copy}</Text>
               </View>
 
-              <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={23} color={active ? '#CE6F79' : colors.muted} />
+              <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={23} color={active ? palette.accent : palette.muted} />
             </AnimatedPressable>
           );
         })}
       </View>
 
-      <View style={styles.note}>
+      <View style={[styles.note, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
         <Ionicons name="alert-circle-outline" size={21} color={colors.plum} />
-        <Text style={styles.noteText}>
+        <Text style={[styles.noteText, { color: palette.text }]}>
           Move within comfort only. Stop if you feel pain, dizziness, bleeding, contractions, or shortness of breath, and check with your clinician.
         </Text>
       </View>
 
-      <AnimatedPressable style={styles.completeButton}>
+      <AnimatedPressable style={[styles.completeButton, { backgroundColor: palette.accent }]}>
         <Ionicons name="play" size={20} color="#fff" />
-        <Text style={styles.completeText}>Start gentle flow</Text>
+        <Text style={[styles.completeText, { color: palette.onAccent }]}>Start gentle flow</Text>
       </AnimatedPressable>
     </Screen>
   );

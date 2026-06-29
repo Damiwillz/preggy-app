@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
 type BagSection = {
   title: string;
@@ -40,6 +41,7 @@ const sections: BagSection[] = [
 const initialChecked = ['Birth plan', 'Comfortable clothes', 'Car seat installed', 'Diapers and wipes', 'Camera'];
 
 export default function HospitalBagScreen() {
+  const { palette } = useAppTheme();
   const [checked, setChecked] = useState<string[]>(initialChecked);
   const allItems = useMemo(() => sections.flatMap((section) => section.items), []);
   const progress = Math.round((checked.length / allItems.length) * 100);
@@ -63,36 +65,36 @@ export default function HospitalBagScreen() {
         </View>
       </View>
 
-      <View style={styles.progressCard}>
+      <View style={[styles.progressCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.progressTop}>
           <View>
-            <Text style={styles.progressTitle}>Packing progress</Text>
-            <Text style={styles.progressCopy}>{progress >= 100 ? 'Everything is ready!' : 'Keep going, you are nearly there.'}</Text>
+            <Text style={[styles.progressTitle, { color: palette.ink }]}>Packing progress</Text>
+            <Text style={[styles.progressCopy, { color: palette.text }]}>{progress >= 100 ? 'Everything is ready!' : 'Keep going, you are nearly there.'}</Text>
           </View>
 
-          <View style={styles.percentBadge}>
-            <Text style={styles.percentText}>{progress}%</Text>
+          <View style={[styles.percentBadge, { backgroundColor: palette.accent }]}>
+            <Text style={[styles.percentText, { color: palette.onAccent }]}>{progress}%</Text>
           </View>
         </View>
 
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${progress}%` }]} />
+        <View style={[styles.track, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.fill, { width: `${progress}%`, backgroundColor: palette.accent }]} />
         </View>
 
-        <Text style={styles.count}>{checked.length} of {allItems.length} essentials packed</Text>
+        <Text style={[styles.count, { color: palette.muted }]}>{checked.length} of {allItems.length} essentials packed</Text>
       </View>
 
       {sections.map((section) => (
         <View key={section.title} style={styles.section}>
           <View style={styles.sectionHeading}>
-            <View style={[styles.sectionIcon, { backgroundColor: section.tint }]}>
-              <Ionicons name={section.icon} size={22} color={colors.plum} />
+            <View style={[styles.sectionIcon, { backgroundColor: palette.accentSoft }]}>
+              <Ionicons name={section.icon} size={22} color={palette.accent} />
             </View>
 
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>{section.title}</Text>
           </View>
 
-          <View style={styles.list}>
+          <View style={[styles.list, { backgroundColor: palette.surface, borderColor: palette.line }]}>
             {section.items.map((item, index) => {
               const isChecked = checked.includes(item);
 
@@ -100,13 +102,13 @@ export default function HospitalBagScreen() {
                 <AnimatedPressable
                   key={item}
                   onPress={() => toggle(item)}
-                  style={[styles.item, index < section.items.length - 1 && styles.itemDivider]}
+                  style={[styles.item, index < section.items.length - 1 && { borderBottomWidth: 1, borderBottomColor: palette.line }]}
                 >
-                  <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-                    {isChecked && <Ionicons name="checkmark" size={18} color="#fff" />}
+                  <View style={[styles.checkbox, { borderColor: palette.muted }, isChecked && { backgroundColor: palette.accent, borderColor: palette.accent }]}>
+                    {isChecked && <Ionicons name="checkmark" size={18} color={palette.onAccent} />}
                   </View>
 
-                  <Text style={[styles.itemText, isChecked && styles.itemTextChecked]}>{item}</Text>
+                  <Text style={[styles.itemText, { color: isChecked ? palette.text : palette.ink }]}>{item}</Text>
                 </AnimatedPressable>
               );
             })}
@@ -114,9 +116,9 @@ export default function HospitalBagScreen() {
         </View>
       ))}
 
-      <AnimatedPressable onPress={() => setChecked(allItems)} style={styles.completeButton}>
-        <Ionicons name="checkmark-done" size={21} color="#fff" />
-        <Text style={styles.completeText}>Mark everything packed</Text>
+      <AnimatedPressable onPress={() => setChecked(allItems)} style={[styles.completeButton, { backgroundColor: palette.accent }]}>
+        <Ionicons name="checkmark-done" size={21} color={palette.onAccent} />
+        <Text style={[styles.completeText, { color: palette.onAccent }]}>Mark everything packed</Text>
       </AnimatedPressable>
     </Screen>
   );

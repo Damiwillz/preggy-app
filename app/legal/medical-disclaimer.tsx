@@ -8,62 +8,64 @@ import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
 export default function MedicalDisclaimerScreen() {
+  const { palette } = useAppTheme();
   return (
-    <Screen bottomSpace={36} style={styles.screen}>
+    <Screen bottomSpace={36} style={[styles.screen, { backgroundColor: palette.canvas }]}>
       <Header title="Medical Disclaimer" back />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="medkit-outline" size={34} color="#CE6F79" />
+        <View style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.iconCircle, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="medkit-outline" size={34} color={palette.accent} />
           </View>
 
-          <Text style={styles.title}>Preggy is not medical advice</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>Preggy is not medical advice</Text>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: palette.text }]}>
             Preggy is designed to support pregnancy wellness, organization, and daily tracking.
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Important safety note</Text>
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.sectionTitle, { color: palette.ink }]}>Important safety note</Text>
 
-          <Text style={styles.copy}>
+          <Text style={[styles.copy, { color: palette.text }]}>
             Preggy does not replace professional medical advice, diagnosis, treatment, or emergency care.
           </Text>
 
-          <Text style={styles.copy}>
+          <Text style={[styles.copy, { color: palette.text }]}>
             Always speak with your doctor, midwife, nurse, or qualified healthcare provider about health questions, symptoms, medication, supplements, appointments, and pregnancy concerns.
           </Text>
         </View>
 
-        <View style={styles.warningCard}>
-          <Ionicons name="warning-outline" size={24} color="#8B3A2E" />
+        <View style={[styles.warningCard, { backgroundColor: palette.softSurface, borderColor: palette.line }]}>
+          <Ionicons name="warning-outline" size={24} color={palette.warning} />
 
           <View style={styles.warningTextWrap}>
-            <Text style={styles.warningTitle}>For urgent symptoms</Text>
-            <Text style={styles.warningText}>
+            <Text style={[styles.warningTitle, { color: palette.warning }]}>For urgent symptoms</Text>
+            <Text style={[styles.warningText, { color: palette.text }]}>
               Contact your healthcare provider or emergency services immediately if you have severe pain, heavy bleeding, breathing difficulty, fainting, severe headache, vision changes, reduced baby movement, or any urgent concern.
             </Text>
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Preggy AI</Text>
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.sectionTitle, { color: palette.ink }]}>Preggy AI</Text>
 
-          <Text style={styles.copy}>
+          <Text style={[styles.copy, { color: palette.text }]}>
             Preggy AI can provide general wellness information and help you organize questions, but it cannot diagnose medical conditions or decide treatment.
           </Text>
 
-          <Text style={styles.copy}>
+          <Text style={[styles.copy, { color: palette.text }]}>
             Do not rely on Preggy AI for emergencies or serious symptoms. Use it as a support tool, not as a medical professional.
           </Text>
         </View>
 
-        <AnimatedPressable style={styles.button} onPress={() => router.back()}>
-          <Text style={styles.buttonText}>I Understand</Text>
+        <AnimatedPressable style={[styles.button, { backgroundColor: palette.accent }]} onPress={() => router.back()}>
+          <Text style={[styles.buttonText, { color: palette.onAccent }]}>I Understand</Text>
         </AnimatedPressable>
       </ScrollView>
     </Screen>

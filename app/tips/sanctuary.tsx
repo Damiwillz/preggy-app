@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
 const moods = [
   ['Pensive', '😶‍🌫️'],
@@ -24,6 +25,7 @@ const intentions = [
 ] as const;
 
 export default function SanctuaryScreen() {
+  const { palette } = useAppTheme();
   const [mood, setMood] = useState('Calm');
   const [playing, setPlaying] = useState(false);
   const [sound, setSound] = useState('Rainfall');
@@ -43,43 +45,43 @@ export default function SanctuaryScreen() {
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>How are you feeling?</Text>
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>How are you feeling?</Text>
 
       <View style={styles.moods}>
         {moods.map(([label, emoji]) => {
           const active = mood === label;
 
           return (
-            <AnimatedPressable key={label} onPress={() => setMood(label)} style={[styles.mood, active && styles.moodActive]}>
+            <AnimatedPressable key={label} onPress={() => setMood(label)} style={[styles.mood, { backgroundColor: active ? palette.accentSoft : palette.surface, borderColor: active ? palette.accent : palette.line }]}>
               <Text style={styles.moodEmoji}>{emoji}</Text>
-              <Text style={[styles.moodLabel, active && styles.moodLabelActive]}>{label}</Text>
+              <Text style={[styles.moodLabel, { color: active ? palette.accent : palette.text }]}>{label}</Text>
             </AnimatedPressable>
           );
         })}
       </View>
 
-      <View style={styles.sessionCard}>
+      <View style={[styles.sessionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.sessionBadge}>GUIDED SESSION</Text>
-          <Text style={styles.sessionTitle}>10-minute calming breath</Text>
-          <Text style={styles.sessionNarrator}>A gentle breathing reset for pregnancy comfort.</Text>
+          <Text style={[styles.sessionBadge, { color: palette.accent }]}>GUIDED SESSION</Text>
+          <Text style={[styles.sessionTitle, { color: palette.ink }]}>10-minute calming breath</Text>
+          <Text style={[styles.sessionNarrator, { color: palette.text }]}>A gentle breathing reset for pregnancy comfort.</Text>
         </View>
 
-        <AnimatedPressable onPress={() => setPlaying((value) => !value)} style={styles.playButton}>
-          <Ionicons name={playing ? 'pause' : 'play'} size={27} color="#fff" />
+        <AnimatedPressable onPress={() => setPlaying((value) => !value)} style={[styles.playButton, { backgroundColor: palette.accent }]}>
+          <Ionicons name={playing ? 'pause' : 'play'} size={27} color={palette.onAccent} />
         </AnimatedPressable>
 
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: playing ? '54%' : '34%' }]} />
+        <View style={[styles.progressTrack, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.progressFill, { width: playing ? '54%' : '34%', backgroundColor: palette.accent }]} />
         </View>
 
         <View style={styles.timeRow}>
-          <Text style={styles.time}>3:42</Text>
-          <Text style={styles.time}>10:00</Text>
+          <Text style={[styles.time, { color: palette.text }]}>3:42</Text>
+          <Text style={[styles.time, { color: palette.text }]}>10:00</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Ambient sanctuary</Text>
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Ambient sanctuary</Text>
 
       <View style={styles.sounds}>
         {[
@@ -90,31 +92,31 @@ export default function SanctuaryScreen() {
           const active = sound === label;
 
           return (
-            <AnimatedPressable key={label} onPress={() => setSound(label)} style={[styles.sound, active && styles.soundActive]}>
-              <View style={styles.soundIcon}>
+            <AnimatedPressable key={label} onPress={() => setSound(label)} style={[styles.sound, { backgroundColor: active ? palette.accentSoft : palette.surface, borderColor: active ? palette.accent : palette.line }]}>
+              <View style={[styles.soundIcon, { backgroundColor: palette.canvas }]}>
                 <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={colors.plum} />
               </View>
 
-              <Text style={styles.soundLabel}>{label}</Text>
+              <Text style={[styles.soundLabel, { color: palette.ink }]}>{label}</Text>
 
-              {active && <Ionicons name="checkmark-circle" size={20} color="#CE6F79" />}
+              {active && <Ionicons name="checkmark-circle" size={20} color={palette.accent} />}
             </AnimatedPressable>
           );
         })}
       </View>
 
-      <Text style={styles.sectionTitle}>Daily intentions</Text>
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Daily intentions</Text>
 
       <View style={styles.intentions}>
         {intentions.map(([icon, title, copy], index) => (
-          <View key={title} style={styles.intention}>
-            <View style={[styles.intentionIcon, { backgroundColor: index === 0 ? '#E9E5FF' : index === 1 ? '#F9E0E7' : '#FFEADB' }]}>
+          <View key={title} style={[styles.intention, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <View style={[styles.intentionIcon, { backgroundColor: palette.accentSoft }]}>
               <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={21} color={colors.plum} />
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.intentionTitle}>{title}</Text>
-              <Text style={styles.intentionCopy}>{copy}</Text>
+              <Text style={[styles.intentionTitle, { color: palette.ink }]}>{title}</Text>
+              <Text style={[styles.intentionCopy, { color: palette.text }]}>{copy}</Text>
             </View>
           </View>
         ))}

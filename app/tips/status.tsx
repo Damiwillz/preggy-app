@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
 const focusItems = [
   ['water-outline', 'Hydration', 'Aim for steady water intake throughout the day.'],
@@ -17,6 +18,7 @@ const focusItems = [
 ] as const;
 
 export default function CurrentStatusScreen() {
+  const { palette } = useAppTheme();
   return (
     <Screen bottomSpace={44}>
       <Header title="Current Status" back />
@@ -37,49 +39,49 @@ export default function CurrentStatusScreen() {
       </View>
 
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>12w</Text>
-          <Text style={styles.statLabel}>Current stage</Text>
+        <View style={[styles.statCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.statValue, { color: palette.accent }]}>12w</Text>
+          <Text style={[styles.statLabel, { color: palette.text }]}>Current stage</Text>
         </View>
 
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>88</Text>
-          <Text style={styles.statLabel}>Days logged</Text>
+        <View style={[styles.statCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.statValue, { color: palette.accent }]}>88</Text>
+          <Text style={[styles.statLabel, { color: palette.text }]}>Days logged</Text>
         </View>
       </View>
 
       <View style={styles.actionRow}>
-        <AnimatedPressable onPress={() => router.push('/log-symptoms' as never)} style={styles.primaryAction}>
-          <Ionicons name="happy-outline" size={20} color="#fff" />
-          <Text style={styles.primaryActionText}>Log today</Text>
+        <AnimatedPressable onPress={() => router.push('/log-symptoms' as never)} style={[styles.primaryAction, { backgroundColor: palette.accent }]}>
+          <Ionicons name="happy-outline" size={20} color={palette.onAccent} />
+          <Text style={[styles.primaryActionText, { color: palette.onAccent }]}>Log today</Text>
         </AnimatedPressable>
 
-        <AnimatedPressable onPress={() => router.push('/(tabs)/timeline' as never)} style={styles.secondaryAction}>
-          <Ionicons name="calendar-outline" size={20} color={colors.plum} />
-          <Text style={styles.secondaryActionText}>View timeline</Text>
+        <AnimatedPressable onPress={() => router.push('/(tabs)/timeline' as never)} style={[styles.secondaryAction, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+          <Ionicons name="calendar-outline" size={20} color={palette.accent} />
+          <Text style={[styles.secondaryActionText, { color: palette.accentStrong }]}>View timeline</Text>
         </AnimatedPressable>
       </View>
 
-      <Text style={styles.sectionTitle}>Today’s gentle focus</Text>
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>Today’s gentle focus</Text>
 
       <View style={styles.focusList}>
         {focusItems.map(([icon, title, copy], index) => (
-          <View key={title} style={styles.focusCard}>
-            <View style={[styles.focusIcon, { backgroundColor: index === 0 ? '#E7F4F1' : index === 1 ? '#FFF0E7' : '#F7E8EE' }]}>
-              <Ionicons name={icon} size={22} color={colors.plum} />
+          <View key={title} style={[styles.focusCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <View style={[styles.focusIcon, { backgroundColor: palette.accentSoft }]}>
+              <Ionicons name={icon} size={22} color={palette.accent} />
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.focusTitle}>{title}</Text>
-              <Text style={styles.focusCopy}>{copy}</Text>
+              <Text style={[styles.focusTitle, { color: palette.ink }]}>{title}</Text>
+              <Text style={[styles.focusCopy, { color: palette.text }]}>{copy}</Text>
             </View>
           </View>
         ))}
       </View>
 
-      <View style={styles.note}>
-        <Ionicons name="shield-checkmark-outline" size={21} color={colors.plum} />
-        <Text style={styles.noteText}>
+      <View style={[styles.note, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+        <Ionicons name="shield-checkmark-outline" size={21} color={palette.accent} />
+        <Text style={[styles.noteText, { color: palette.text }]}>
           This guidance is supportive only. Contact your clinician for urgent symptoms, bleeding, severe pain, fever, or reduced movement later in pregnancy.
         </Text>
       </View>
