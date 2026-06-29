@@ -1,0 +1,556 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { Header } from '@/components/layout/Header';
+import { Screen } from '@/components/layout/Screen';
+import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
+
+const dailyCareItems = [
+  {
+    key: 'vitamin',
+    icon: 'medkit-outline',
+    title: 'Take prenatal vitamin',
+    copy: 'Keep your care routine steady.',
+  },
+  {
+    key: 'water',
+    icon: 'water-outline',
+    title: 'Drink water',
+    copy: 'Small sips through the day count.',
+  },
+  {
+    key: 'symptoms',
+    icon: 'heart-circle-outline',
+    title: 'Log symptoms',
+    copy: 'Note mood, symptoms, or changes.',
+  },
+  {
+    key: 'appointment',
+    icon: 'calendar-outline',
+    title: 'Check appointment',
+    copy: 'Review your next care visit.',
+  },
+  {
+    key: 'tip',
+    icon: 'sparkles-outline',
+    title: 'Read one tip',
+    copy: 'Learn one gentle thing today.',
+  },
+] as const;
+
+type DailyCareKey = (typeof dailyCareItems)[number]['key'];
+
+const WATER_TARGET = 8;
+
+function toDateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function buildDateStrip() {
+  const today = new Date();
+
+  return [-2, -1, 0, 1, 2].map((offset) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + offset);
+
+    return {
+      key: toDateKey(date),
+      day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      date: date.toLocaleDateString('en-US', { day: '2-digit' }),
+      isToday: offset === 0,
+    };
+  });
+}
+
+function getChecklistStorageKey(dateKey: string) {
+  return `preggy:daily-care:${dateKey}`;
+}
+
+function getWaterStorageKey(dateKey: string) {
+  return `preggy:water-cups:${dateKey}`;
+}
+
+export default function DailyCareScreen() {
+  const { palette } = useAppTheme();
+
+  const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
+  const [completedCare, setCompletedCare] = useState<DailyCareKey[]>([]);
+  const [waterCups, setWaterCups] = useState(0);
+
+  const dateStrip = useMemo(() => buildDateStrip(), []);
+  const completedCareCount = completedCare.length;
+  const careProgress = Math.round((completedCareCount / dailyCareItems.length) * 100);
+  const waterProgress = Math.min(Math.round((waterCups / WATER_TARGET) * 100), 100);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDailyCare() {
+      try {
+        const savedCare = await AsyncStorage.getItem(getChecklistStorageKey(selectedDateKey));
+        const parsedCare = savedCare ? (JSON.parse(savedCare) as DailyCareKey[]) : [];
+
+        const savedWater = await AsyncStorage.getItem(getWaterStorageKey(selectedDateKey));
+        const parsedWater = savedWater ? Number.parseInt(savedWater, 10) : 0;
+
+        if (active) {
+          setCompletedCare(Array.isArray(parsedCare) ? parsedCare : []);
+          setWaterCups(Number.isFinite(parsedWater) ? Math.min(Math.max(parsedWater, 0), 20) : 0);
+        }
+      } catch (error) {
+        console.log('Daily care load error:', error);
+        if (active) {
+          setCompletedCare([]);
+          setWaterCups(0);
+        }
+      }
+    }
+
+    void loadDailyCare();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedDateKey]);
+
+  async function toggleCareItem(key: DailyCareKey) {
+    setCompletedCare((current) => {
+      const next = current.includes(key)
+        ? current.filter((item) => item !== key)
+        : [...current, key];
+
+      AsyncStorage.setItem(getChecklistStorageKey(selectedDateKey), JSON.stringify(next)).catch((error) => {
+        console.log('Daily care save error:', error);
+      });
+
+      return next;
+    });
+  }
+
+  async function updateWaterCups(nextValue: number) {
+    const next = Math.min(Math.max(nextValue, 0), 20);
+    setWaterCups(next);
+
+    try {
+      await AsyncStorage.setItem(getWaterStorageKey(selectedDateKey), String(next));
+    } catch (error) {
+      console.log('Water tracker save error:', error);
+    }
+  }
+
+  return (
+    <Screen bottomSpace={120}>
+      <Header />
+
+      <View style={styles.topRow}>
+        <AnimatedPressable
+          onPress={() => router.back()}
+          style={[styles.backButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
+        >
+          <Ionicons name="chevron-back" size={22} color={palette.ink} />
+        </AnimatedPressable>
+
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>DAILY WELLNESS</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>Today’s Care</Text>
+          <Text style={[styles.subtitle, { color: palette.text }]}>
+            A gentle space for your daily checklist and hydration.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.dateRow}>
+        {dateStrip.map((item) => {
+          const active = selectedDateKey === item.key;
+
+          return (
+            <AnimatedPressable
+              key={item.key}
+              onPress={() => setSelectedDateKey(item.key)}
+              style={[
+                styles.dateChip,
+                {
+                  backgroundColor: active ? palette.accent : palette.surface,
+                  borderColor: active ? palette.accent : palette.line,
+                },
+              ]}
+            >
+              <Text style={[styles.dateDay, { color: active ? palette.onAccent : palette.text }]}>
+                {item.isToday ? 'Today' : item.day}
+              </Text>
+              <Text style={[styles.dateNumber, { color: active ? palette.onAccent : palette.ink }]}>
+                {item.date}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
+
+      <View style={[styles.heroCard, { backgroundColor: palette.accent, borderColor: palette.accent }]}>
+        <View style={styles.heroBlobOne} />
+        <View style={styles.heroBlobTwo} />
+
+        <Text style={[styles.heroEmoji, { color: palette.onAccent }]}>💧</Text>
+        <Text style={[styles.heroTitle, { color: palette.onAccent }]}>
+          {careProgress}% care routine • {waterProgress}% hydration
+        </Text>
+        <Text style={[styles.heroCopy, { color: palette.onAccent }]}>
+          Small daily steps can help you feel more prepared and supported.
+        </Text>
+      </View>
+
+      <View style={[styles.careCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.cardHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>TODAY’S CARE CHECKLIST</Text>
+            <Text style={[styles.cardTitle, { color: palette.ink }]}>
+              {completedCareCount}/{dailyCareItems.length} completed
+            </Text>
+          </View>
+
+          <View style={[styles.percentBadge, { backgroundColor: palette.accentSoft }]}>
+            <Text style={[styles.percentText, { color: palette.accent }]}>{careProgress}%</Text>
+          </View>
+        </View>
+
+        <View style={[styles.track, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.fill, { width: `${careProgress}%`, backgroundColor: palette.accent }]} />
+        </View>
+
+        <View style={styles.careList}>
+          {dailyCareItems.map((item) => {
+            const done = completedCare.includes(item.key);
+
+            return (
+              <AnimatedPressable
+                key={item.key}
+                onPress={() => toggleCareItem(item.key)}
+                style={[
+                  styles.careItem,
+                  {
+                    backgroundColor: done ? palette.accentSoft : palette.canvas,
+                    borderColor: done ? palette.accent : palette.line,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.checkCircle,
+                    {
+                      backgroundColor: done ? palette.accent : palette.surface,
+                      borderColor: done ? palette.accent : palette.line,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={done ? 'checkmark' : item.icon}
+                    size={19}
+                    color={done ? palette.onAccent : palette.accent}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.itemTitle, { color: palette.ink }]}>{item.title}</Text>
+                  <Text style={[styles.itemCopy, { color: palette.text }]}>{item.copy}</Text>
+                </View>
+              </AnimatedPressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={[styles.waterCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.cardHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>WATER INTAKE</Text>
+            <Text style={[styles.cardTitle, { color: palette.ink }]}>
+              {waterCups}/{WATER_TARGET} cups today
+            </Text>
+            <Text style={[styles.waterCopy, { color: palette.text }]}>
+              Track small sips and stay gently hydrated.
+            </Text>
+          </View>
+
+          <View style={[styles.waterIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="water-outline" size={27} color={palette.accent} />
+          </View>
+        </View>
+
+        <View style={[styles.track, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.fill, { width: `${waterProgress}%`, backgroundColor: palette.accent }]} />
+        </View>
+
+        <View style={styles.waterCupsRow}>
+          {Array.from({ length: WATER_TARGET }).map((_, index) => {
+            const active = index < Math.min(waterCups, WATER_TARGET);
+
+            return (
+              <AnimatedPressable
+                key={index}
+                onPress={() => updateWaterCups(index + 1)}
+                style={[
+                  styles.waterCup,
+                  {
+                    backgroundColor: active ? palette.accent : palette.canvas,
+                    borderColor: active ? palette.accent : palette.line,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={active ? 'water' : 'water-outline'}
+                  size={17}
+                  color={active ? palette.onAccent : palette.accent}
+                />
+              </AnimatedPressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.waterActions}>
+          <AnimatedPressable
+            onPress={() => updateWaterCups(waterCups - 1)}
+            style={[styles.waterButton, { backgroundColor: palette.canvas, borderColor: palette.line }]}
+          >
+            <Ionicons name="remove" size={19} color={palette.ink} />
+            <Text style={[styles.waterButtonText, { color: palette.ink }]}>Remove</Text>
+          </AnimatedPressable>
+
+          <AnimatedPressable
+            onPress={() => updateWaterCups(waterCups + 1)}
+            style={[styles.waterButton, { backgroundColor: palette.accent, borderColor: palette.accent }]}
+          >
+            <Ionicons name="add" size={19} color={palette.onAccent} />
+            <Text style={[styles.waterButtonText, { color: palette.onAccent }]}>Add cup</Text>
+          </AnimatedPressable>
+        </View>
+      </View>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  topRow: {
+    marginTop: 18,
+    marginBottom: 18,
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'flex-start',
+  },
+  backButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyebrow: {
+    ...type.section,
+    letterSpacing: 1.2,
+  },
+  title: {
+    ...type.title,
+    fontSize: 32,
+    lineHeight: 37,
+    letterSpacing: -0.8,
+    marginTop: 4,
+  },
+  subtitle: {
+    ...type.small,
+    lineHeight: 21,
+    marginTop: 6,
+    fontWeight: '800',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 9,
+    marginBottom: 14,
+  },
+  dateChip: {
+    width: 64,
+    height: 72,
+    borderRadius: 29,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateDay: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  dateNumber: {
+    ...type.bodyStrong,
+    fontSize: 16,
+    marginTop: 4,
+  },
+  heroCard: {
+    minHeight: 180,
+    borderRadius: 34,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 22,
+    marginBottom: 16,
+    justifyContent: 'flex-end',
+  },
+  heroBlobOne: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    right: -70,
+    top: -80,
+  },
+  heroBlobTwo: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    left: -50,
+    bottom: -50,
+  },
+  heroEmoji: {
+    fontSize: 46,
+    marginBottom: 10,
+  },
+  heroTitle: {
+    ...type.title,
+    fontSize: 25,
+    lineHeight: 30,
+    letterSpacing: -0.5,
+  },
+  heroCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 8,
+    fontWeight: '800',
+    opacity: 0.9,
+  },
+  careCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  waterCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  cardTitle: {
+    ...type.title,
+    fontSize: 24,
+    lineHeight: 29,
+    marginTop: 5,
+  },
+  percentBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  percentText: {
+    ...type.bodyStrong,
+    fontSize: 16,
+  },
+  track: {
+    height: 11,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginTop: 16,
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  careList: {
+    gap: 10,
+    marginTop: 16,
+  },
+  careItem: {
+    minHeight: 74,
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemTitle: {
+    ...type.bodyStrong,
+    fontSize: 15,
+  },
+  itemCopy: {
+    ...type.tiny,
+    lineHeight: 17,
+    marginTop: 3,
+    fontWeight: '800',
+  },
+  waterIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waterCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 6,
+    fontWeight: '800',
+  },
+  waterCupsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 16,
+  },
+  waterCup: {
+    width: 36,
+    height: 36,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waterActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  waterButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  waterButtonText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+});
