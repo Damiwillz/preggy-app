@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
@@ -40,6 +41,45 @@ type Appointment = {
   clinic_name: string | null;
   status: string | null;
 };
+
+const dailyCareItems = [
+  {
+    key: 'vitamin',
+    icon: 'medkit-outline',
+    title: 'Take prenatal vitamin',
+    copy: 'Keep your care routine steady.',
+  },
+  {
+    key: 'water',
+    icon: 'water-outline',
+    title: 'Drink water',
+    copy: 'Small sips through the day count.',
+  },
+  {
+    key: 'symptoms',
+    icon: 'heart-circle-outline',
+    title: 'Log symptoms',
+    copy: 'Note mood, symptoms, or changes.',
+  },
+  {
+    key: 'appointment',
+    icon: 'calendar-outline',
+    title: 'Check appointment',
+    copy: 'Review your next care visit.',
+  },
+  {
+    key: 'tip',
+    icon: 'sparkles-outline',
+    title: 'Read one tip',
+    copy: 'Learn one gentle thing today.',
+  },
+] as const;
+
+type DailyCareKey = (typeof dailyCareItems)[number]['key'];
+
+function getChecklistStorageKey(dateKey: string) {
+  return `preggy:daily-care:${dateKey}`;
+}
 
 function toDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -128,6 +168,45 @@ export default function HomeScreen() {
   const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
+  const [completedCare, setCompletedCare] = useState<DailyCareKey[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDailyCare() {
+      try {
+        const saved = await AsyncStorage.getItem(getChecklistStorageKey(selectedDateKey));
+        const parsed = saved ? (JSON.parse(saved) as DailyCareKey[]) : [];
+
+        if (active) {
+          setCompletedCare(Array.isArray(parsed) ? parsed : []);
+        }
+      } catch (error) {
+        console.log('Daily care checklist load error:', error);
+        if (active) setCompletedCare([]);
+      }
+    }
+
+    void loadDailyCare();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedDateKey]);
+
+  async function toggleCareItem(key: DailyCareKey) {
+    setCompletedCare((current) => {
+      const next = current.includes(key)
+        ? current.filter((item) => item !== key)
+        : [...current, key];
+
+      AsyncStorage.setItem(getChecklistStorageKey(selectedDateKey), JSON.stringify(next)).catch((error) => {
+        console.log('Daily care checklist save error:', error);
+      });
+
+      return next;
+    });
+  }
 
   async function loadDashboard(dateKey = selectedDateKey) {
     setLoading(true);
@@ -206,6 +285,8 @@ export default function HomeScreen() {
   const appointmentDate = nextAppointment?.appointment_date || nextAppointment?.date;
   const appointmentTime = nextAppointment?.appointment_time || nextAppointment?.time;
   const appointmentPlace = nextAppointment?.clinic_name || nextAppointment?.location;
+  const completedCareCount = completedCare.length;
+  const careProgress = Math.round((completedCareCount / dailyCareItems.length) * 100);
 
   return (
     <Screen bottomSpace={120}>
@@ -317,6 +398,69 @@ export default function HomeScreen() {
             <Text style={styles.progressMiniText}>Start</Text>
             <Text style={styles.progressMiniText}>Due date</Text>
           </View>
+        </View>
+      </View>
+
+      <View style={[styles.careCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.careHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>TODAY’S CARE CHECKLIST</Text>
+            <Text style={[styles.careTitle, { color: palette.ink }]}>
+              {completedCareCount}/{dailyCareItems.length} completed
+            </Text>
+            <Text style={[styles.careCopy, { color: palette.text }]}>
+              Gentle daily actions to help you stay organized and supported.
+            </Text>
+          </View>
+
+          <View style={[styles.carePercentBadge, { backgroundColor: palette.accentSoft }]}>
+            <Text style={[styles.carePercentText, { color: palette.accent }]}>{careProgress}%</Text>
+          </View>
+        </View>
+
+        <View style={[styles.careTrack, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.careFill, { width: `${careProgress}%`, backgroundColor: palette.accent }]} />
+        </View>
+
+        <View style={styles.careList}>
+          {dailyCareItems.map((item) => {
+            const done = completedCare.includes(item.key);
+
+            return (
+              <AnimatedPressable
+                key={item.key}
+                onPress={() => toggleCareItem(item.key)}
+                style={[
+                  styles.careItem,
+                  {
+                    backgroundColor: done ? palette.accentSoft : palette.canvas,
+                    borderColor: done ? palette.accent : palette.line,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.careCheck,
+                    {
+                      backgroundColor: done ? palette.accent : palette.surface,
+                      borderColor: done ? palette.accent : palette.line,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={done ? 'checkmark' : item.icon}
+                    size={19}
+                    color={done ? palette.onAccent : palette.accent}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.careItemTitle, { color: palette.ink }]}>{item.title}</Text>
+                  <Text style={[styles.careItemCopy, { color: palette.text }]}>{item.copy}</Text>
+                </View>
+              </AnimatedPressable>
+            );
+          })}
         </View>
       </View>
 
@@ -664,6 +808,81 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: 999,
+  },
+  careCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  careHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  careTitle: {
+    ...type.title,
+    fontSize: 24,
+    lineHeight: 29,
+    marginTop: 5,
+  },
+  careCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 6,
+    fontWeight: '800',
+  },
+  carePercentBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  carePercentText: {
+    ...type.bodyStrong,
+    fontSize: 16,
+  },
+  careTrack: {
+    height: 11,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginTop: 16,
+  },
+  careFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  careList: {
+    gap: 10,
+    marginTop: 16,
+  },
+  careItem: {
+    minHeight: 74,
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  careCheck: {
+    width: 42,
+    height: 42,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  careItemTitle: {
+    ...type.bodyStrong,
+    fontSize: 15,
+  },
+  careItemCopy: {
+    ...type.tiny,
+    lineHeight: 17,
+    marginTop: 3,
+    fontWeight: '800',
   },
   loadingCard: {
     minHeight: 120,
