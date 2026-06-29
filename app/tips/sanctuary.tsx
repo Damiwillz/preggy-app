@@ -94,7 +94,7 @@ export default function SanctuaryScreen() {
           return (
             <AnimatedPressable key={label} onPress={() => setSound(label)} style={[styles.sound, { backgroundColor: active ? palette.accentSoft : palette.surface, borderColor: active ? palette.accent : palette.line }]}>
               <View style={[styles.soundIcon, { backgroundColor: palette.canvas }]}>
-                <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={colors.plum} />
+                <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={palette.accent} />
               </View>
 
               <Text style={[styles.soundLabel, { color: palette.ink }]}>{label}</Text>
@@ -111,7 +111,7 @@ export default function SanctuaryScreen() {
         {intentions.map(([icon, title, copy], index) => (
           <View key={title} style={[styles.intention, { backgroundColor: palette.surface, borderColor: palette.line }]}>
             <View style={[styles.intentionIcon, { backgroundColor: palette.accentSoft }]}>
-              <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={21} color={colors.plum} />
+              <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={21} color={palette.accent} />
             </View>
 
             <View style={{ flex: 1 }}>

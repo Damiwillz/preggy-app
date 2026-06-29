@@ -172,7 +172,7 @@ export default function Timeline() {
         </View>
       </View>
 
-      <View style={[styles.summaryCard, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
+      <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         {loading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={palette.accent} />
@@ -182,7 +182,7 @@ export default function Timeline() {
           <>
             <View style={styles.summaryTop}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.summaryLabel, { color: '#CE6F79' }]}>CURRENT STAGE</Text>
+                <Text style={[styles.summaryLabel, { color: palette.accent }]}>CURRENT STAGE</Text>
                 <Text style={[styles.summaryTitle, { color: '#2A151B' }]}>
                   Week {progress.week}, Day {progress.day}
                 </Text>
@@ -193,19 +193,19 @@ export default function Timeline() {
                 </Text>
               </View>
 
-              <View style={[styles.percentBadge, { backgroundColor: '#CE6F79' }]}>
-                <Text style={[styles.percentText, { color: '#FFFFFF' }]}>{progress.progress}%</Text>
+              <View style={[styles.percentBadge, { backgroundColor: palette.accent }]}>
+                <Text style={[styles.percentText, { color: palette.surface }]}>{progress.progress}%</Text>
               </View>
             </View>
 
             <View style={[styles.progressTrack, { backgroundColor: palette.softSurface }]}>
-              <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: '#CE6F79' }]} />
+              <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
             </View>
 
             <View style={styles.summaryBottom}>
               <Text style={[styles.progressMini, { color: '#9C7B82' }]}>Week 1</Text>
               <AnimatedPressable onPress={() => router.push('/calculator/result' as never)}>
-                <Text style={[styles.updateLink, { color: '#CE6F79' }]}>Update due date</Text>
+                <Text style={[styles.updateLink, { color: palette.accent }]}>Update due date</Text>
               </AnimatedPressable>
               <Text style={[styles.progressMini, { color: '#9C7B82' }]}>Week 40</Text>
             </View>
@@ -216,7 +216,7 @@ export default function Timeline() {
       <Text style={[styles.sectionTitle, { color: '#2A151B' }]}>Milestone path</Text>
 
       <View style={styles.timelineWrap}>
-        <View style={[styles.line, { backgroundColor: '#FFF0F1' }]} />
+        <View style={[styles.line, { backgroundColor: palette.accentSoft }]} />
 
         {items.map((item) => {
           const status = getStatus(item.week, progress.week);
@@ -228,9 +228,9 @@ export default function Timeline() {
               <View
                 style={[
                   styles.icon,
-                  { backgroundColor: '#FFF0F1' },
-                  isCompleted && { backgroundColor: '#CE6F79' },
-                  isCurrent && { backgroundColor: '#CE6F79' },
+                  { backgroundColor: palette.accentSoft },
+                  isCompleted && { backgroundColor: palette.accent },
+                  isCurrent && { backgroundColor: palette.accent },
                 ]}
               >
                 <Ionicons
@@ -252,22 +252,22 @@ export default function Timeline() {
                 {item.image ? <Image source={item.image} style={styles.image} resizeMode="cover" /> : null}
 
                 <View style={styles.cardTop}>
-                  <Text style={[styles.week, { color: '#CE6F79' }]}>WEEK {item.week}</Text>
+                  <Text style={[styles.week, { color: palette.accent }]}>WEEK {item.week}</Text>
 
                   <View
                     style={[
                       styles.statusBadge,
                       { backgroundColor: palette.softSurface },
-                      isCompleted && { backgroundColor: '#FFF0F1' },
-                      isCurrent && { backgroundColor: '#CE6F79' },
+                      isCompleted && { backgroundColor: palette.accentSoft },
+                      isCurrent && { backgroundColor: palette.accent },
                     ]}
                   >
                     <Text
                       style={[
                         styles.statusText,
                         { color: '#765B60' },
-                        isCompleted && { color: '#CE6F79' },
-                        isCurrent && { color: '#FFFFFF' },
+                        isCompleted && { color: palette.accent },
+                        isCurrent && { color: palette.surface },
                       ]}
                     >
                       {status}

@@ -100,14 +100,14 @@ export default function YogaScreen() {
       </View>
 
       <View style={[styles.note, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
-        <Ionicons name="alert-circle-outline" size={21} color={colors.plum} />
+        <Ionicons name="alert-circle-outline" size={21} color={palette.accent} />
         <Text style={[styles.noteText, { color: palette.text }]}>
           Move within comfort only. Stop if you feel pain, dizziness, bleeding, contractions, or shortness of breath, and check with your clinician.
         </Text>
       </View>
 
       <AnimatedPressable style={[styles.completeButton, { backgroundColor: palette.accent }]}>
-        <Ionicons name="play" size={20} color="#fff" />
+        <Ionicons name="play" size={20} color={palette.onAccent} />
         <Text style={[styles.completeText, { color: palette.onAccent }]}>Start gentle flow</Text>
       </AnimatedPressable>
     </Screen>

@@ -141,7 +141,7 @@ export default function CalculatorScreen() {
     <Screen bottomSpace={44}>
       <Header title="Due Date Calculator" />
 
-      <View style={[styles.hero, { backgroundColor: '#FFF0F1' }]}>
+      <View style={[styles.hero, { backgroundColor: palette.accentSoft }]}>
         <Image source={require('../../assets/images/week12-baby.jpg')} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
         <View style={styles.heroShade} />
 
@@ -154,8 +154,8 @@ export default function CalculatorScreen() {
         </View>
       </View>
 
-      <View style={[styles.tipCard, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
-        <View style={[styles.tipIcon, { backgroundColor: '#FFF0F1' }]}>
+      <View style={[styles.tipCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.tipIcon, { backgroundColor: palette.accentSoft }]}>
           <Ionicons name="calendar-outline" size={22} color={palette.accent} />
         </View>
 
@@ -167,7 +167,7 @@ export default function CalculatorScreen() {
         </View>
       </View>
 
-      <View style={[styles.form, { backgroundColor: '#FFFFFF', borderColor: '#EFDCDD' }]}>
+      <View style={[styles.form, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <TextField
           label="First day of last period"
           helper="The start of your last menstrual cycle"
@@ -211,10 +211,10 @@ export default function CalculatorScreen() {
         <AnimatedPressable
           onPress={calculateDueDate}
           disabled={saving}
-          style={[styles.calculateButton, { backgroundColor: '#CE6F79' }, saving && { opacity: 0.7 }]}
+          style={[styles.calculateButton, { backgroundColor: palette.accent }, saving && { opacity: 0.7 }]}
         >
           <Ionicons name="sparkles-outline" size={21} color={palette.onAccent} />
-          <Text style={[styles.calculateText, { color: '#FFFFFF' }]}>{saving ? 'Saving...' : 'Calculate and save'}</Text>
+          <Text style={[styles.calculateText, { color: palette.surface }]}>{saving ? 'Saving...' : 'Calculate and save'}</Text>
         </AnimatedPressable>
       </View>
     </Screen>
