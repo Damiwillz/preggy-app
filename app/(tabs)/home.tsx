@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
@@ -40,6 +41,17 @@ type Appointment = {
   clinic_name: string | null;
   status: string | null;
 };
+
+const DAILY_CARE_TOTAL = 5;
+const WATER_TARGET = 8;
+
+function getChecklistStorageKey(dateKey: string) {
+  return `preggy:daily-care:${dateKey}`;
+}
+
+function getWaterStorageKey(dateKey: string) {
+  return `preggy:water-cups:${dateKey}`;
+}
 
 function toDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -128,6 +140,25 @@ export default function HomeScreen() {
   const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
+  const [dailyCareDone, setDailyCareDone] = useState(0);
+  const [waterCups, setWaterCups] = useState(0);
+
+  async function loadDailyCareSummary(dateKey = selectedDateKey) {
+    try {
+      const savedCare = await AsyncStorage.getItem(getChecklistStorageKey(dateKey));
+      const parsedCare = savedCare ? JSON.parse(savedCare) : [];
+
+      const savedWater = await AsyncStorage.getItem(getWaterStorageKey(dateKey));
+      const parsedWater = savedWater ? Number.parseInt(savedWater, 10) : 0;
+
+      setDailyCareDone(Array.isArray(parsedCare) ? Math.min(parsedCare.length, DAILY_CARE_TOTAL) : 0);
+      setWaterCups(Number.isFinite(parsedWater) ? Math.min(Math.max(parsedWater, 0), WATER_TARGET) : 0);
+    } catch (error) {
+      console.log('Daily care summary load error:', error);
+      setDailyCareDone(0);
+      setWaterCups(0);
+    }
+  }
 
   async function loadDashboard(dateKey = selectedDateKey) {
     setLoading(true);
@@ -182,7 +213,7 @@ export default function HomeScreen() {
     useCallback(() => {
       let mounted = true;
 
-      loadDashboard()
+      Promise.all([loadDashboard(), loadDailyCareSummary()])
         .catch((error) => {
           console.log('Home dashboard error:', error);
         })
@@ -206,6 +237,7 @@ export default function HomeScreen() {
   const appointmentDate = nextAppointment?.appointment_date || nextAppointment?.date;
   const appointmentTime = nextAppointment?.appointment_time || nextAppointment?.time;
   const appointmentPlace = nextAppointment?.clinic_name || nextAppointment?.location;
+  const dailyCareProgress = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
 
   return (
     <Screen bottomSpace={120}>
@@ -319,6 +351,42 @@ export default function HomeScreen() {
           </View>
         </View>
       </View>
+
+      <AnimatedPressable
+        onPress={() => router.push('/daily-care' as never)}
+        style={[styles.dailyCareSummary, { backgroundColor: palette.surface, borderColor: palette.line }]}
+      >
+        <View style={styles.dailyCareSummaryTop}>
+          <View style={[styles.dailyCareSummaryIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="water-outline" size={25} color={palette.accent} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>DAILY CARE</Text>
+            <Text style={[styles.dailyCareSummaryTitle, { color: palette.ink }]}>
+              {dailyCareDone}/{DAILY_CARE_TOTAL} checklist • {waterCups}/{WATER_TARGET} water
+            </Text>
+            <Text style={[styles.dailyCareSummaryCopy, { color: palette.text }]}>
+              Continue your gentle daily routine.
+            </Text>
+          </View>
+
+          <View style={[styles.dailyCareSummaryBadge, { backgroundColor: palette.accent }]}>
+            <Text style={[styles.dailyCareSummaryBadgeText, { color: palette.onAccent }]}>
+              {dailyCareProgress}%
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.dailyCareSummaryTrack, { backgroundColor: palette.accentSoft }]}>
+          <View
+            style={[
+              styles.dailyCareSummaryFill,
+              { width: `${dailyCareProgress}%`, backgroundColor: palette.accent },
+            ]}
+          />
+        </View>
+      </AnimatedPressable>
 
       {loading ? (
         <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
@@ -662,6 +730,58 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   fill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  dailyCareSummary: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  dailyCareSummaryTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  dailyCareSummaryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dailyCareSummaryTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    lineHeight: 23,
+    marginTop: 5,
+  },
+  dailyCareSummaryCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 4,
+    fontWeight: '800',
+  },
+  dailyCareSummaryBadge: {
+    minWidth: 54,
+    height: 44,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  dailyCareSummaryBadgeText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  dailyCareSummaryTrack: {
+    height: 10,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginTop: 15,
+  },
+  dailyCareSummaryFill: {
     height: '100%',
     borderRadius: 999,
   },
