@@ -7,9 +7,11 @@ import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 
 export default function AddAppointmentScreen() {
+  const { palette } = useAppTheme();
   const params = useLocalSearchParams<{ id?: string }>();
   const appointmentId = typeof params.id === 'string' ? params.id : null;
   const isEditing = !!appointmentId;
@@ -133,26 +135,26 @@ export default function AddAppointmentScreen() {
   }
 
   return (
-    <Screen bottomSpace={36} style={styles.screen}>
+    <Screen bottomSpace={36} style={[styles.screen, { backgroundColor: palette.canvas }]}>
       <Header title={isEditing ? "Edit Appointment" : "Add Appointment"} back />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="calendar-outline" size={34} color="#CE6F79" />
+        <View style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.iconCircle, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="calendar-outline" size={34} color={palette.accent} />
           </View>
 
-          <Text style={styles.title}>{isEditing ? 'Edit appointment' : 'New appointment'}</Text>
-          <Text style={styles.subtitle}>Save your next checkup, scan, clinic visit, or maternity appointment.</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>{isEditing ? 'Edit appointment' : 'New appointment'}</Text>
+          <Text style={[styles.subtitle, { color: palette.text }]}>Save your next checkup, scan, clinic visit, or maternity appointment.</Text>
         </View>
 
-        <View style={styles.card}>
-          <Field label="Title" placeholder="Prenatal checkup" value={title} onChangeText={setTitle} />
-          <Field label="Doctor or care team" placeholder="Dr. Grace" value={doctor} onChangeText={setDoctor} />
-          <Field label="Clinic or location" placeholder="Women’s Wellness Clinic" value={clinic} onChangeText={setClinic} />
-          <Field label="Date" placeholder="2026-10-09" value={date} onChangeText={setDate} />
-          <Field label="Time" placeholder="10:00 AM" value={time} onChangeText={setTime} />
-          <Field
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Field palette={palette} label="Title" placeholder="Prenatal checkup" value={title} onChangeText={setTitle} />
+          <Field palette={palette} label="Doctor or care team" placeholder="Dr. Grace" value={doctor} onChangeText={setDoctor} />
+          <Field palette={palette} label="Clinic or location" placeholder="Women’s Wellness Clinic" value={clinic} onChangeText={setClinic} />
+          <Field palette={palette} label="Date" placeholder="2026-10-09" value={date} onChangeText={setDate} />
+          <Field palette={palette} label="Time" placeholder="10:00 AM" value={time} onChangeText={setTime} />
+          <Field palette={palette}
             label="Notes"
             placeholder="Bring questions, reports, or symptom notes"
             value={notes}
@@ -161,11 +163,11 @@ export default function AddAppointmentScreen() {
           />
 
           <AnimatedPressable
-            style={[styles.button, saving && styles.disabled]}
+            style={[styles.button, { backgroundColor: palette.accent }, saving && styles.disabled]}
             onPress={saveAppointment}
             disabled={saving}
           >
-            <Text style={styles.buttonText}>{saving ? 'Saving...' : isEditing ? 'Update Appointment' : 'Save Appointment'}</Text>
+            <Text style={[styles.buttonText, { color: palette.onAccent }]}>{saving ? 'Saving...' : isEditing ? 'Update Appointment' : 'Save Appointment'}</Text>
           </AnimatedPressable>
         </View>
       </ScrollView>
@@ -175,6 +177,7 @@ export default function AddAppointmentScreen() {
 
 function Field({
   label,
+  palette,
   ...props
 }: {
   label: string;
@@ -182,14 +185,19 @@ function Field({
   value: string;
   onChangeText: (value: string) => void;
   multiline?: boolean;
+  palette: ReturnType<typeof useAppTheme>['palette'];
 }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: palette.ink }]}>{label}</Text>
       <TextInput
         {...props}
-        placeholderTextColor="#A98C93"
-        style={[styles.input, props.multiline && styles.textarea]}
+        placeholderTextColor={palette.muted}
+        style={[
+          styles.input,
+          { backgroundColor: palette.canvas, borderColor: palette.line, color: palette.ink },
+          props.multiline && styles.textarea,
+        ]}
       />
     </View>
   );

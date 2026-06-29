@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 
 type Appointment = {
@@ -67,6 +68,7 @@ function formatAppointmentDate(value?: string | null, time?: string | null) {
 }
 
 export default function AppointmentDetailsScreen() {
+  const { palette } = useAppTheme();
   const params = useLocalSearchParams<{ id?: string }>();
   const appointmentId = typeof params.id === 'string' ? params.id : null;
 
@@ -202,73 +204,73 @@ export default function AppointmentDetailsScreen() {
       <Header title="Appointment" back />
 
       {loading ? (
-        <View style={styles.loadingCard}>
-          <ActivityIndicator color="#CE6F79" />
-          <Text style={styles.loadingText}>Loading appointment...</Text>
+        <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <ActivityIndicator color={palette.accent} />
+          <Text style={[styles.loadingText, { color: palette.text }]}>Loading appointment...</Text>
         </View>
       ) : (
         <>
-          <View style={[styles.heroCard, isCancelled && styles.cancelledHero]}>
+          <View style={[styles.heroCard, { backgroundColor: isCancelled ? palette.danger : palette.accent }]}>
             <View style={styles.heroTop}>
               <View style={styles.heroIcon}>
-                <Ionicons name="calendar-outline" size={31} color="#fff" />
+                <Ionicons name="calendar-outline" size={31} color={palette.onAccent} />
               </View>
 
               <View style={[styles.statusBadge, isCancelled && styles.cancelledBadge]}>
-                <Text style={[styles.statusText, isCancelled && styles.cancelledBadgeText]}>
+                <Text style={[styles.statusText, { color: palette.onAccent }]}>
                   {appointment?.status || 'Upcoming'}
                 </Text>
               </View>
             </View>
 
             <Text style={styles.eyebrow}>CARE VISIT</Text>
-            <Text style={styles.title}>{displayTitle(appointment)}</Text>
-            <Text style={styles.heroDate}>
+            <Text style={[styles.title, { color: palette.onAccent }]}>{displayTitle(appointment)}</Text>
+            <Text style={[styles.heroDate, { color: palette.onAccent }]}>
               {formatAppointmentDate(displayDate(appointment), displayTime(appointment))}
             </Text>
           </View>
 
           <View style={styles.infoGrid}>
-            <View style={styles.infoCard}>
-              <View style={styles.infoIcon}>
-                <Ionicons name="person-outline" size={22} color={colors.plum} />
+            <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+              <View style={[styles.infoIcon, { backgroundColor: palette.accentSoft }]}>
+                <Ionicons name="person-outline" size={22} color={palette.accent} />
               </View>
-              <Text style={styles.infoLabel}>Doctor</Text>
-              <Text style={styles.infoValue}>{displayDoctor(appointment)}</Text>
+              <Text style={[styles.infoLabel, { color: palette.accent }]}>Doctor</Text>
+              <Text style={[styles.infoValue, { color: palette.ink }]}>{displayDoctor(appointment)}</Text>
             </View>
 
-            <View style={styles.infoCard}>
-              <View style={styles.infoIcon}>
-                <Ionicons name="location-outline" size={22} color={colors.plum} />
+            <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+              <View style={[styles.infoIcon, { backgroundColor: palette.accentSoft }]}>
+                <Ionicons name="location-outline" size={22} color={palette.accent} />
               </View>
-              <Text style={styles.infoLabel}>Clinic</Text>
-              <Text style={styles.infoValue}>{displayClinic(appointment)}</Text>
+              <Text style={[styles.infoLabel, { color: palette.accent }]}>Clinic</Text>
+              <Text style={[styles.infoValue, { color: palette.ink }]}>{displayClinic(appointment)}</Text>
             </View>
           </View>
 
-          <View style={styles.notesCard}>
+          <View style={[styles.notesCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Notes</Text>
-              <Ionicons name="document-text-outline" size={21} color="#CE6F79" />
+              <Text style={[styles.sectionTitle, { color: palette.ink }]}>Notes</Text>
+              <Ionicons name="document-text-outline" size={21} color={palette.accent} />
             </View>
 
-            <Text style={styles.notesText}>
+            <Text style={[styles.notesText, { color: palette.text }]}>
               {appointment?.notes || 'No notes yet. Add questions, reminders, or anything you want to discuss at this appointment.'}
             </Text>
           </View>
 
-          <Text style={styles.heading}>Preparation checklist</Text>
+          <Text style={[styles.heading, { color: palette.ink }]}>Preparation checklist</Text>
 
           {[
             'Bring your questions and symptom notes',
             'Take any reports or test results with you',
             'Confirm clinic address and appointment time',
           ].map((item) => (
-            <View key={item} style={styles.checkCard}>
-              <View style={styles.checkIcon}>
-                <Ionicons name="checkmark" size={18} color="#fff" />
+            <View key={item} style={[styles.checkCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+              <View style={[styles.checkIcon, { backgroundColor: palette.accent }]}>
+                <Ionicons name="checkmark" size={18} color={palette.onAccent} />
               </View>
-              <Text style={styles.checkText}>{item}</Text>
+              <Text style={[styles.checkText, { color: palette.text }]}>{item}</Text>
             </View>
           ))}
 
@@ -279,17 +281,17 @@ export default function AppointmentDetailsScreen() {
                   router.push(`/appointment/add?id=${appointment.id}` as never);
                 }
               }}
-              style={styles.primaryButton}
+              style={[styles.primaryButton, { backgroundColor: palette.accent }]}
             >
-              <Ionicons name="create-outline" size={20} color="#fff" />
-              <Text style={styles.primaryButtonText}>Edit</Text>
+              <Ionicons name="create-outline" size={20} color={palette.onAccent} />
+              <Text style={[styles.primaryButtonText, { color: palette.onAccent }]}>Edit</Text>
             </AnimatedPressable>
 
             <AnimatedPressable
               onPress={() => router.push('/(tabs)/appointments' as never)}
-              style={styles.secondaryButton}
+              style={[styles.secondaryButton, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
             >
-              <Text style={styles.secondaryButtonText}>Back</Text>
+              <Text style={[styles.secondaryButtonText, { color: palette.accentStrong }]}>Back</Text>
             </AnimatedPressable>
           </View>
 

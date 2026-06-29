@@ -107,14 +107,14 @@ export function SymptomLogContent({ back = false }: Props) {
     <Screen bottomSpace={44}>
       <Header title="Log Symptoms" back={back} />
 
-      <View style={styles.heroCard}>
+      <View style={[styles.heroCard, { backgroundColor: palette.accent }]}>
         <View style={styles.heroIcon}>
-          <Ionicons name="pulse" size={29} color="#fff" />
+          <Ionicons name="pulse" size={29} color={palette.onAccent} />
         </View>
 
         <Text style={styles.eyebrow}>DAILY CHECK IN</Text>
-        <Text style={styles.title}>How are you feeling today?</Text>
-        <Text style={styles.subtitle}>{getTodayLabel()} • Track mood, symptoms, and notes.</Text>
+        <Text style={[styles.title, { color: palette.onAccent }]}>How are you feeling today?</Text>
+        <Text style={[styles.subtitle, { color: palette.onAccent }]}>{getTodayLabel()} • Track mood, symptoms, and notes.</Text>
       </View>
 
       <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
@@ -223,9 +223,9 @@ export function SymptomLogContent({ back = false }: Props) {
         />
       </View>
 
-      <View style={styles.safetyNote}>
-        <Ionicons name="shield-checkmark-outline" size={21} color="#75595E" />
-        <Text style={styles.safetyText}>
+      <View style={[styles.safetyNote, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+        <Ionicons name="shield-checkmark-outline" size={21} color={palette.accentStrong} />
+        <Text style={[styles.safetyText, { color: palette.text }]}>
           If you have bleeding, severe pain, fever, dizziness, or reduced movement later in pregnancy, contact your clinician urgently.
         </Text>
       </View>

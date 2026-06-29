@@ -6,10 +6,12 @@ import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
 const supportEmail = 'dammywillz@gmail.com';
 
 export default function ContactSupportScreen() {
+  const { palette } = useAppTheme();
   async function emailSupport() {
     const subject = encodeURIComponent('Preggy Support Request');
     const body = encodeURIComponent(
@@ -26,47 +28,47 @@ export default function ContactSupportScreen() {
   }
 
   return (
-    <Screen bottomSpace={36} style={styles.screen}>
+    <Screen bottomSpace={36} style={[styles.screen, { backgroundColor: palette.canvas }]}>
       <Header title="Contact Support" back />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="chatbubbles-outline" size={34} color="#CE6F79" />
+        <View style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.iconCircle, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="chatbubbles-outline" size={34} color={palette.accent} />
           </View>
 
-          <Text style={styles.title}>How can we help?</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>How can we help?</Text>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: palette.text }]}>
             Contact Preggy support for account help, privacy questions, app issues, or feedback.
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Support email</Text>
-          <Text style={styles.copy}>{supportEmail}</Text>
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.sectionTitle, { color: palette.ink }]}>Support email</Text>
+          <Text style={[styles.copy, { color: palette.text }]}>{supportEmail}</Text>
 
-          <AnimatedPressable style={styles.button} onPress={emailSupport}>
-            <Ionicons name="mail-outline" size={21} color="#FFFFFF" />
-            <Text style={styles.buttonText}>Email Support</Text>
+          <AnimatedPressable style={[styles.button, { backgroundColor: palette.accent }]} onPress={emailSupport}>
+            <Ionicons name="mail-outline" size={21} color={palette.onAccent} />
+            <Text style={[styles.buttonText, { color: palette.onAccent }]}>Email Support</Text>
           </AnimatedPressable>
 
           <AnimatedPressable
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
             onPress={() => Alert.alert('Support email', supportEmail)}
           >
-            <Ionicons name="information-circle-outline" size={20} color="#CE6F79" />
-            <Text style={styles.secondaryButtonText}>Show Email Address</Text>
+            <Ionicons name="information-circle-outline" size={20} color={palette.accent} />
+            <Text style={[styles.secondaryButtonText, { color: palette.accent }]}>Show Email Address</Text>
           </AnimatedPressable>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Before you contact us</Text>
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.sectionTitle, { color: palette.ink }]}>Before you contact us</Text>
 
-          <Text style={styles.item}>• Include the email linked to your Preggy account.</Text>
-          <Text style={styles.item}>• Describe what you were trying to do.</Text>
-          <Text style={styles.item}>• Add screenshots if there is an error.</Text>
-          <Text style={styles.item}>• Do not send passwords or private medical records.</Text>
+          <Text style={[styles.item, { color: palette.text }]}>• Include the email linked to your Preggy account.</Text>
+          <Text style={[styles.item, { color: palette.text }]}>• Describe what you were trying to do.</Text>
+          <Text style={[styles.item, { color: palette.text }]}>• Add screenshots if there is an error.</Text>
+          <Text style={[styles.item, { color: palette.text }]}>• Do not send passwords or private medical records.</Text>
         </View>
       </ScrollView>
     </Screen>
