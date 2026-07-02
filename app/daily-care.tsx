@@ -148,6 +148,7 @@ export default function DailyCareScreen() {
     <Screen bottomSpace={120}>
       <Header />
 
+
       <View style={styles.topRow}>
         <AnimatedPressable
           onPress={() => router.back()}
