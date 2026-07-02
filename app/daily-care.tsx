@@ -33,7 +33,7 @@ const dailyCareItems = [
     key: 'movement',
     icon: 'walk-outline',
     title: 'Gentle movement',
-    copy: 'A short walk or stretch if you feel well.',
+    copy: 'Walk or stretch only if you feel well.',
   },
   {
     key: 'tip',
@@ -148,7 +148,6 @@ export default function DailyCareScreen() {
     <Screen bottomSpace={120}>
       <Header />
 
-
       <View style={styles.topRow}>
         <AnimatedPressable
           onPress={() => router.back()}
@@ -161,7 +160,7 @@ export default function DailyCareScreen() {
           <Text style={[styles.eyebrow, { color: palette.accent }]}>DAILY WELLNESS</Text>
           <Text style={[styles.title, { color: palette.ink }]}>Today’s Care</Text>
           <Text style={[styles.subtitle, { color: palette.text }]}>
-            Checklist, hydration, and gentle daily support.
+            A simple daily routine for care, hydration, and gentle support.
           </Text>
         </View>
       </View>
@@ -193,34 +192,55 @@ export default function DailyCareScreen() {
         })}
       </View>
 
-      <View style={[styles.heroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={[styles.heroIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name="leaf-outline" size={27} color={palette.accent} />
+      <View style={[styles.summaryCard, { backgroundColor: palette.accent, borderColor: palette.accent }]}>
+        <View style={styles.summaryTop}>
+          <View>
+            <Text style={[styles.summaryLabel, { color: palette.onAccent }]}>TODAY’S PROGRESS</Text>
+            <Text style={[styles.summaryTitle, { color: palette.onAccent }]}>{totalProgress}% complete</Text>
+          </View>
+
+          <View style={styles.summaryIcon}>
+            <Ionicons name="leaf-outline" size={28} color={palette.onAccent} />
+          </View>
         </View>
 
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.heroLabel, { color: palette.accent }]}>TODAY’S PROGRESS</Text>
-          <Text style={[styles.heroTitle, { color: palette.ink }]}>{totalProgress}% complete</Text>
-          <Text style={[styles.heroCopy, { color: palette.text }]}>
-            {completedCareCount}/{dailyCareItems.length} care items • {waterCups}/{WATER_TARGET} cups of water
-          </Text>
+        <Text style={[styles.summaryCopy, { color: palette.onAccent }]}>
+          {completedCareCount}/{dailyCareItems.length} care items • {waterCups}/{WATER_TARGET} cups of water
+        </Text>
 
-          <View style={[styles.heroTrack, { backgroundColor: palette.accentSoft }]}>
-            <View style={[styles.heroFill, { width: `${totalProgress}%`, backgroundColor: palette.accent }]} />
+        <View style={styles.summaryTrack}>
+          <View style={[styles.summaryFill, { width: `${totalProgress}%` }]} />
+        </View>
+      </View>
+
+      <View style={styles.quickStatsRow}>
+        <View style={[styles.quickStatCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.quickStatIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="checkmark-circle-outline" size={22} color={palette.accent} />
           </View>
+          <Text style={[styles.quickStatValue, { color: palette.ink }]}>{completedCareCount}/5</Text>
+          <Text style={[styles.quickStatLabel, { color: palette.text }]}>Checklist</Text>
+        </View>
+
+        <View style={[styles.quickStatCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={[styles.quickStatIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="water-outline" size={22} color={palette.accent} />
+          </View>
+          <Text style={[styles.quickStatValue, { color: palette.ink }]}>{waterCups}/8</Text>
+          <Text style={[styles.quickStatLabel, { color: palette.text }]}>Water cups</Text>
         </View>
       </View>
 
       <View style={[styles.waterCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.waterHeader}>
-          <View style={[styles.waterIcon, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="water-outline" size={28} color={palette.accent} />
+        <View style={styles.cardHeader}>
+          <View style={[styles.cardIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="water-outline" size={26} color={palette.accent} />
           </View>
 
           <View style={{ flex: 1 }}>
             <Text style={[styles.eyebrow, { color: palette.accent }]}>WATER INTAKE</Text>
             <Text style={[styles.cardTitle, { color: palette.ink }]}>{waterCups}/{WATER_TARGET} cups</Text>
-            <Text style={[styles.cardCopy, { color: palette.text }]}>Tap a cup or use the buttons below.</Text>
+            <Text style={[styles.cardCopy, { color: palette.text }]}>Tap a cup to set your water count.</Text>
           </View>
         </View>
 
@@ -283,15 +303,16 @@ export default function DailyCareScreen() {
 
       <View style={[styles.careCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.cardHeader}>
+          <View style={[styles.cardIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="heart-circle-outline" size={26} color={palette.accent} />
+          </View>
+
           <View style={{ flex: 1 }}>
             <Text style={[styles.eyebrow, { color: palette.accent }]}>CARE CHECKLIST</Text>
             <Text style={[styles.cardTitle, { color: palette.ink }]}>
               {completedCareCount}/{dailyCareItems.length} completed
             </Text>
-          </View>
-
-          <View style={[styles.percentBadge, { backgroundColor: palette.accentSoft }]}>
-            <Text style={[styles.percentText, { color: palette.accent }]}>{careProgress}%</Text>
+            <Text style={[styles.cardCopy, { color: palette.text }]}>Complete gentle actions for today.</Text>
           </View>
         </View>
 
@@ -399,49 +420,87 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 4,
   },
-  heroCard: {
-    minHeight: 146,
-    borderRadius: 30,
+  summaryCard: {
+    minHeight: 176,
+    borderRadius: 34,
     borderWidth: 1,
-    padding: 18,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+    padding: 22,
+    marginBottom: 14,
+    justifyContent: 'space-between',
   },
-  heroLabel: {
+  summaryTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  summaryLabel: {
     ...type.section,
     letterSpacing: 1.2,
+    opacity: 0.9,
   },
-  heroTitle: {
+  summaryTitle: {
     ...type.title,
-    fontSize: 30,
-    lineHeight: 35,
+    fontSize: 31,
+    lineHeight: 36,
     letterSpacing: -0.8,
     marginTop: 5,
   },
-  heroCopy: {
-    ...type.small,
-    lineHeight: 20,
-    fontWeight: '900',
-    marginTop: 7,
-  },
-  heroIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 24,
+  summaryIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroTrack: {
+  summaryCopy: {
+    ...type.small,
+    lineHeight: 20,
+    fontWeight: '900',
+    marginTop: 16,
+    opacity: 0.92,
+  },
+  summaryTrack: {
     height: 11,
     borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.28)',
     overflow: 'hidden',
-    marginTop: 14,
+    marginTop: 13,
   },
-  heroFill: {
+  summaryFill: {
     height: '100%',
     borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  quickStatsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  quickStatCard: {
+    flex: 1,
+    minHeight: 116,
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 15,
+  },
+  quickStatIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  quickStatValue: {
+    ...type.bodyStrong,
+    fontSize: 22,
+  },
+  quickStatLabel: {
+    ...type.tiny,
+    marginTop: 3,
+    fontWeight: '900',
   },
   waterCard: {
     borderRadius: 30,
@@ -449,27 +508,28 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 16,
   },
-  waterHeader: {
+  careCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
   },
-  waterIcon: {
-    width: 58,
-    height: 58,
+  cardIcon: {
+    width: 56,
+    height: 56,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
-  },
   cardTitle: {
     ...type.title,
-    fontSize: 25,
-    lineHeight: 30,
+    fontSize: 24,
+    lineHeight: 29,
     marginTop: 5,
   },
   cardCopy: {
@@ -520,23 +580,6 @@ const styles = StyleSheet.create({
   waterButtonText: {
     ...type.small,
     fontWeight: '900',
-  },
-  careCard: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 16,
-  },
-  percentBadge: {
-    width: 58,
-    height: 58,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  percentText: {
-    ...type.bodyStrong,
-    fontSize: 16,
   },
   careList: {
     gap: 10,
