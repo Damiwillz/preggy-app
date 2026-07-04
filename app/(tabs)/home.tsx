@@ -476,6 +476,13 @@ export default function HomeScreen() {
               copy="Track movement"
               onPress={() => router.push('/kick-counter' as never)}
             />
+
+            <InsightCard
+              icon="pulse-outline"
+              title="Contractions"
+              copy="Time sessions"
+              onPress={() => router.push('/contraction-timer' as never)}
+            />
           </View>
 
           <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
