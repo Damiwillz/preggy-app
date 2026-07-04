@@ -35,6 +35,12 @@ const tools = [
     route: '/hospital-bag-checklist',
   },
   {
+    icon: 'chatbubbles-outline',
+    title: 'Doctor Questions',
+    copy: 'Prepare for visits',
+    route: '/doctor-questions',
+  },
+  {
     icon: 'calculator-outline',
     title: 'Due Date Calculator',
     copy: 'Estimate pregnancy dates',
