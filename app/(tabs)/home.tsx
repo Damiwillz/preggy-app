@@ -53,6 +53,10 @@ function getWaterStorageKey(dateKey: string) {
   return `preggy:water-cups:${dateKey}`;
 }
 
+function getKickStorageKey(dateKey: string) {
+  return `preggy:kicks:${dateKey}`;
+}
+
 function toDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -142,6 +146,7 @@ export default function HomeScreen() {
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
   const [dailyCareDone, setDailyCareDone] = useState(0);
   const [waterCups, setWaterCups] = useState(0);
+  const [todayKicks, setTodayKicks] = useState(0);
 
   async function loadDailyCareSummary(dateKey = selectedDateKey) {
     try {
@@ -157,6 +162,18 @@ export default function HomeScreen() {
       console.log('Daily care summary load error:', error);
       setDailyCareDone(0);
       setWaterCups(0);
+    }
+  }
+
+  async function loadKickSummary(dateKey = selectedDateKey) {
+    try {
+      const savedKicks = await AsyncStorage.getItem(getKickStorageKey(dateKey));
+      const parsedKicks = savedKicks ? Number.parseInt(savedKicks, 10) : 0;
+
+      setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
+    } catch (error) {
+      console.log('Kick summary load error:', error);
+      setTodayKicks(0);
     }
   }
 
@@ -213,7 +230,7 @@ export default function HomeScreen() {
     useCallback(() => {
       let mounted = true;
 
-      Promise.all([loadDashboard(), loadDailyCareSummary()])
+      Promise.all([loadDashboard(), loadDailyCareSummary(), loadKickSummary()])
         .catch((error) => {
           console.log('Home dashboard error:', error);
         })
@@ -388,6 +405,29 @@ export default function HomeScreen() {
         </View>
       </AnimatedPressable>
 
+      <AnimatedPressable
+        onPress={() => router.push('/kick-counter' as never)}
+        style={[styles.movementSummary, { backgroundColor: palette.surface, borderColor: palette.line }]}
+      >
+        <View style={styles.movementSummaryTop}>
+          <View style={[styles.movementSummaryIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="footsteps-outline" size={25} color={palette.accent} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>BABY MOVEMENT SUMMARY</Text>
+            <Text style={[styles.movementSummaryTitle, { color: palette.ink }]}>
+              {todayKicks} kicks today
+            </Text>
+            <Text style={[styles.movementSummaryCopy, { color: palette.text }]}>
+              Open the counter when you want to track a movement session.
+            </Text>
+          </View>
+
+          <Ionicons name="chevron-forward" size={22} color={palette.muted} />
+        </View>
+      </AnimatedPressable>
+
       {loading ? (
         <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
           <ActivityIndicator color={palette.accent} />
@@ -428,6 +468,13 @@ export default function HomeScreen() {
               title="Daily Care"
               copy="Checklist and water"
               onPress={() => router.push('/daily-care' as never)}
+            />
+
+            <InsightCard
+              icon="footsteps-outline"
+              title="Kick Counter"
+              copy="Track movement"
+              onPress={() => router.push('/kick-counter' as never)}
             />
           </View>
 
@@ -784,6 +831,36 @@ const styles = StyleSheet.create({
   dailyCareSummaryFill: {
     height: '100%',
     borderRadius: 999,
+  },
+  movementSummary: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  movementSummaryTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  movementSummaryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  movementSummaryTitle: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    lineHeight: 25,
+    marginTop: 5,
+  },
+  movementSummaryCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 4,
+    fontWeight: '800',
   },
   loadingCard: {
     minHeight: 120,
