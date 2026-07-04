@@ -483,6 +483,13 @@ export default function HomeScreen() {
               copy="Time sessions"
               onPress={() => router.push('/contraction-timer' as never)}
             />
+
+            <InsightCard
+              icon="document-text-outline"
+              title="Birth Plan"
+              copy="Care preferences"
+              onPress={() => router.push('/birth-plan' as never)}
+            />
           </View>
 
           <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
