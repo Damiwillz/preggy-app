@@ -29,6 +29,12 @@ const tools = [
     route: '/birth-plan',
   },
   {
+    icon: 'bag-handle-outline',
+    title: 'Hospital Bag',
+    copy: 'Packing checklist',
+    route: '/hospital-bag-checklist',
+  },
+  {
     icon: 'calculator-outline',
     title: 'Due Date Calculator',
     copy: 'Estimate pregnancy dates',
