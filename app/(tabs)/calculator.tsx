@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Image, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -67,6 +67,9 @@ function getPregnancyProgress(lastPeriodDate: Date) {
 }
 
 export default function CalculatorScreen() {
+  const params = useLocalSearchParams<{ fromTools?: string }>();
+  const fromTools = params.fromTools === '1';
+
   const { palette } = useAppTheme();
 
   const [lastPeriod, setLastPeriod] = useState('');
@@ -139,7 +142,7 @@ export default function CalculatorScreen() {
 
   return (
     <Screen bottomSpace={44}>
-      <Header title="Due Date Calculator" />
+      <Header title={fromTools ? '' : 'Due Date Calculator'} back={fromTools} />
 
       <View style={[styles.hero, { backgroundColor: palette.accentSoft }]}>
         <Image source={require('../../assets/images/week12-baby.jpg')} style={StyleSheet.absoluteFillObject} resizeMode="cover" />

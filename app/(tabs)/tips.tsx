@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -50,6 +50,9 @@ function getArticleImage(imageKey: string) {
 }
 
 export default function TipsScreen() {
+  const params = useLocalSearchParams<{ fromTools?: string }>();
+  const fromTools = params.fromTools === '1';
+
   const { palette } = useAppTheme();
 
   const [category, setCategory] = useState('All');
@@ -108,7 +111,7 @@ export default function TipsScreen() {
 
   return (
     <Screen bottomSpace={110}>
-      <Header />
+      <Header title="" back={fromTools} />
 
       <View style={styles.headingRow}>
         <View>
