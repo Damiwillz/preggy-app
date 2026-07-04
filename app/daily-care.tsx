@@ -88,6 +88,7 @@ export default function DailyCareScreen() {
   const waterProgress = Math.round((waterCups / WATER_TARGET) * 100);
   const totalProgress = Math.round(((completedCareCount + waterCups) / (dailyCareItems.length + WATER_TARGET)) * 100);
 
+
   useEffect(() => {
     let active = true;
 
@@ -146,16 +147,10 @@ export default function DailyCareScreen() {
 
   return (
     <Screen bottomSpace={120}>
-      <Header />
+      <Header title="" back />
+
 
       <View style={styles.topRow}>
-        <AnimatedPressable
-          onPress={() => router.back()}
-          style={[styles.backButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
-        >
-          <Ionicons name="chevron-back" size={22} color={palette.ink} />
-        </AnimatedPressable>
-
         <View style={{ flex: 1 }}>
           <Text style={[styles.eyebrow, { color: palette.accent }]}>DAILY WELLNESS</Text>
           <Text style={[styles.title, { color: palette.ink }]}>Today’s Care</Text>
@@ -169,7 +164,7 @@ export default function DailyCareScreen() {
         {dateStrip.map((item) => {
           const active = selectedDateKey === item.key;
 
-          return (
+  return (
             <AnimatedPressable
               key={item.key}
               onPress={() => setSelectedDateKey(item.key)}
@@ -252,7 +247,7 @@ export default function DailyCareScreen() {
           {Array.from({ length: WATER_TARGET }).map((_, index) => {
             const active = index < waterCups;
 
-            return (
+  return (
               <AnimatedPressable
                 key={index}
                 onPress={() => updateWaterCups(index + 1)}
@@ -324,7 +319,7 @@ export default function DailyCareScreen() {
           {dailyCareItems.map((item) => {
             const done = completedCare.includes(item.key);
 
-            return (
+  return (
               <AnimatedPressable
                 key={item.key}
                 onPress={() => toggleCareItem(item.key)}
@@ -366,21 +361,12 @@ export default function DailyCareScreen() {
 }
 
 const styles = StyleSheet.create({
+
   topRow: {
     marginTop: 18,
     marginBottom: 18,
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'flex-start',
   },
-  backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   eyebrow: {
     ...type.section,
     letterSpacing: 1.2,
