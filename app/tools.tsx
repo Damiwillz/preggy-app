@@ -9,71 +9,103 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 
-const tools = [
+const toolSections = [
   {
-    icon: 'footsteps-outline',
-    title: 'Kick Counter',
-    copy: 'Track baby movement sessions',
-    route: '/kick-counter',
+    title: 'Tracking',
+    copy: 'Daily body, baby, and labour trackers',
+    items: [
+      {
+        icon: 'footsteps-outline',
+        title: 'Kick Counter',
+        copy: 'Track baby movement sessions',
+        route: '/kick-counter',
+      },
+      {
+        icon: 'pulse-outline',
+        title: 'Contractions',
+        copy: 'Time labour contractions',
+        route: '/contraction-timer',
+      },
+      {
+        icon: 'water-outline',
+        title: 'Daily Care',
+        copy: 'Checklist and water intake',
+        route: '/daily-care',
+      },
+      {
+        icon: 'calculator-outline',
+        title: 'Due Date Calculator',
+        copy: 'Estimate pregnancy dates',
+        route: '/(tabs)/calculator?fromTools=1',
+      },
+    ],
   },
   {
-    icon: 'pulse-outline',
-    title: 'Contractions',
-    copy: 'Time labour contractions',
-    route: '/contraction-timer',
+    title: 'Planning',
+    copy: 'Prepare for birth and appointments',
+    items: [
+      {
+        icon: 'document-text-outline',
+        title: 'Birth Plan',
+        copy: 'Save care preferences',
+        route: '/birth-plan',
+      },
+      {
+        icon: 'bag-handle-outline',
+        title: 'Hospital Bag',
+        copy: 'Packing checklist',
+        route: '/hospital-bag-checklist',
+      },
+      {
+        icon: 'chatbubbles-outline',
+        title: 'Doctor Questions',
+        copy: 'Prepare for visits',
+        route: '/doctor-questions',
+      },
+    ],
   },
   {
-    icon: 'document-text-outline',
-    title: 'Birth Plan',
-    copy: 'Save care preferences',
-    route: '/birth-plan',
+    title: 'Memories',
+    copy: 'Capture your pregnancy journey',
+    items: [
+      {
+        icon: 'book-outline',
+        title: 'Journal',
+        copy: 'Save memories and moods',
+        route: '/pregnancy-journal',
+      },
+      {
+        icon: 'map-outline',
+        title: 'Timeline',
+        copy: 'View pregnancy journey',
+        route: '/timeline?fromTools=1',
+      },
+    ],
   },
   {
-    icon: 'bag-handle-outline',
-    title: 'Hospital Bag',
-    copy: 'Packing checklist',
-    route: '/hospital-bag-checklist',
-  },
-  {
-    icon: 'chatbubbles-outline',
-    title: 'Doctor Questions',
-    copy: 'Prepare for visits',
-    route: '/doctor-questions',
-  },
-  {
-    icon: 'book-outline',
-    title: 'Journal',
-    copy: 'Save memories',
-    route: '/pregnancy-journal',
-  },
-  {
-    icon: 'calculator-outline',
-    title: 'Due Date Calculator',
-    copy: 'Estimate pregnancy dates',
-    route: '/(tabs)/calculator?fromTools=1',
-  },
-  {
-    icon: 'map-outline',
-    title: 'Timeline',
-    copy: 'View pregnancy journey',
-    route: '/timeline?fromTools=1',
-  },
-  {
-    icon: 'bulb-outline',
-    title: 'Pregnancy Tips',
-    copy: 'Guides and helpful articles',
-    route: '/(tabs)/tips?fromTools=1',
-  },
-  {
-    icon: 'sparkles-outline',
-    title: 'Preggy AI',
-    copy: 'Ask a pregnancy question',
-    route: '/ai-chat?fromTools=1',
+    title: 'Learning & support',
+    copy: 'Helpful guidance and AI support',
+    items: [
+      {
+        icon: 'bulb-outline',
+        title: 'Pregnancy Tips',
+        copy: 'Guides and helpful articles',
+        route: '/(tabs)/tips?fromTools=1',
+      },
+      {
+        icon: 'sparkles-outline',
+        title: 'Preggy AI',
+        copy: 'Ask a pregnancy question',
+        route: '/ai-chat?fromTools=1',
+      },
+    ],
   },
 ] as const;
 
 export default function ToolsScreen() {
   const { palette } = useAppTheme();
+
+  const totalTools = toolSections.reduce((sum, section) => sum + section.items.length, 0);
 
   return (
     <Screen bottomSpace={120}>
@@ -91,7 +123,9 @@ export default function ToolsScreen() {
         <View style={styles.heroTop}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.heroLabel, { color: palette.onAccent }]}>QUICK ACCESS</Text>
-            <Text style={[styles.heroTitle, { color: palette.onAccent }]}>Your pregnancy toolkit</Text>
+            <Text style={[styles.heroTitle, { color: palette.onAccent }]}>
+              {totalTools} helpful tools
+            </Text>
           </View>
 
           <View style={styles.heroIcon}>
@@ -100,26 +134,41 @@ export default function ToolsScreen() {
         </View>
 
         <Text style={[styles.heroCopy, { color: palette.onAccent }]}>
-          Movement, contractions, birth plan, calculator, tips, and AI support.
+          Track, plan, learn, and save memories throughout your pregnancy.
         </Text>
       </View>
 
-      <View style={styles.grid}>
-        {tools.map((item) => (
-          <AnimatedPressable
-            key={item.title}
-            onPress={() => router.push(item.route as never)}
-            style={[styles.toolCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-          >
-            <View style={[styles.toolIcon, { backgroundColor: palette.accentSoft }]}>
-              <Ionicons name={item.icon} size={24} color={palette.accent} />
+      {toolSections.map((section) => (
+        <View key={section.title} style={styles.sectionBlock}>
+          <View style={styles.sectionHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionTitle, { color: palette.ink }]}>{section.title}</Text>
+              <Text style={[styles.sectionCopy, { color: palette.text }]}>{section.copy}</Text>
             </View>
+          </View>
 
-            <Text style={[styles.toolTitle, { color: palette.ink }]}>{item.title}</Text>
-            <Text style={[styles.toolCopy, { color: palette.text }]}>{item.copy}</Text>
-          </AnimatedPressable>
-        ))}
-      </View>
+          <View style={styles.grid}>
+            {section.items.map((item) => (
+              <AnimatedPressable
+                key={item.title}
+                onPress={() => router.push(item.route as never)}
+                style={[styles.toolCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+              >
+                <View style={[styles.toolIcon, { backgroundColor: palette.accentSoft }]}>
+                  <Ionicons name={item.icon} size={24} color={palette.accent} />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.toolTitle, { color: palette.ink }]}>{item.title}</Text>
+                  <Text style={[styles.toolCopy, { color: palette.text }]}>{item.copy}</Text>
+                </View>
+
+                <Ionicons name="chevron-forward" size={19} color={palette.muted} />
+              </AnimatedPressable>
+            ))}
+          </View>
+        </View>
+      ))}
     </Screen>
   );
 }
@@ -151,7 +200,7 @@ const styles = StyleSheet.create({
     borderRadius: 34,
     borderWidth: 1,
     padding: 22,
-    marginBottom: 16,
+    marginBottom: 18,
     justifyContent: 'space-between',
   },
   heroTop: {
@@ -166,8 +215,8 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     ...type.title,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 31,
+    lineHeight: 37,
     marginTop: 6,
   },
   heroIcon: {
@@ -184,17 +233,34 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     opacity: 0.92,
   },
+  sectionBlock: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    ...type.bodyStrong,
+    fontSize: 21,
+    lineHeight: 26,
+  },
+  sectionCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 3,
+    fontWeight: '800',
+  },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   toolCard: {
-    width: '48%',
-    minHeight: 152,
-    borderRadius: 28,
+    minHeight: 88,
+    borderRadius: 24,
     borderWidth: 1,
-    padding: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   toolIcon: {
     width: 50,
@@ -202,7 +268,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 13,
   },
   toolTitle: {
     ...type.bodyStrong,
@@ -212,7 +277,7 @@ const styles = StyleSheet.create({
   toolCopy: {
     ...type.small,
     lineHeight: 18,
-    marginTop: 5,
+    marginTop: 3,
     fontWeight: '800',
   },
 });
