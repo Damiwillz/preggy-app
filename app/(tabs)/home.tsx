@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -118,7 +118,6 @@ function formatDate(date?: string | null) {
   if (!date) return 'No date';
 
   const parsed = new Date(`${date}T12:00:00`);
-
   if (Number.isNaN(parsed.getTime())) return date;
 
   return parsed.toLocaleDateString('en-US', {
@@ -188,7 +187,6 @@ export default function HomeScreen() {
     if (userError) throw userError;
 
     const userId = userData.user?.id;
-
     if (!userId) throw new Error('No logged in user.');
 
     const [logResult, medsResult, appointmentResult] = await Promise.all([
@@ -260,19 +258,21 @@ export default function HomeScreen() {
     <Screen bottomSpace={120}>
       <Header />
 
-      <View style={styles.topIntro}>
-        <View>
+      <View style={styles.intro}>
+        <View style={{ flex: 1 }}>
           <Text style={[styles.greeting, { color: palette.text }]}>
             {greeting()}, {firstName}
           </Text>
-          <Text style={[styles.title, { color: palette.ink }]}>How are you and {babyName} today?</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>
+            A calm day for you and {babyName}
+          </Text>
         </View>
 
         <AnimatedPressable
-          onPress={() => router.push('/timeline' as never)}
-          style={[styles.searchButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
+          onPress={() => router.push('/tools' as never)}
+          style={[styles.toolsCircle, { backgroundColor: palette.surface, borderColor: palette.line }]}
         >
-          <Ionicons name="search" size={20} color={palette.ink} />
+          <Ionicons name="grid-outline" size={22} color={palette.accent} />
         </AnimatedPressable>
       </View>
 
@@ -305,126 +305,91 @@ export default function HomeScreen() {
 
       <AnimatedPressable
         onPress={() => router.push('/timeline' as never)}
-        style={[styles.babyCard, { backgroundColor: '#FFD5DC', borderColor: palette.line }]}
+        style={[styles.hero, { backgroundColor: palette.accent, borderColor: palette.accent }]}
       >
-        <View style={styles.blobOne} />
-        <View style={styles.blobTwo} />
+        <View style={styles.heroBlobOne} />
+        <View style={styles.heroBlobTwo} />
 
-        <View style={styles.babyVisual}>
-          <View style={styles.motherCircle}>
-            <Text style={styles.motherEmoji}>🤰</Text>
+        <View style={styles.heroTop}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.heroLabel, { color: palette.onAccent }]}>PREGNANCY JOURNEY</Text>
+            <Text style={[styles.heroTitle, { color: palette.onAccent }]}>
+              Week {progress.week}, Day {progress.day}
+            </Text>
+            <Text style={[styles.heroCopy, { color: palette.onAccent }]}>
+              {progress.daysRemaining > 0
+                ? `${progress.daysRemaining} days until your estimated due date.`
+                : 'You are in your due date window.'}
+            </Text>
           </View>
 
-          <View style={styles.orbitLine} />
-          <View style={[styles.orbitDot, { backgroundColor: palette.accent }]} />
+          <View style={styles.heroBaby}>
+            <Text style={styles.heroEmoji}>🤰</Text>
+          </View>
         </View>
 
-        <View style={styles.journeyPill}>
-          <View style={styles.thumbCircle}>
-            <Text style={styles.thumbEmoji}>👶</Text>
-          </View>
+        <View style={styles.heroTrack}>
+          <View style={[styles.heroFill, { width: `${progress.progress}%` }]} />
+        </View>
 
-          <View style={{ flex: 1 }}>
-            <Text style={styles.journeyLabel}>Your Pregnancy Journey</Text>
-            <Text style={styles.journeySub}>Tap to view timeline • Week {progress.week}, Day {progress.day}</Text>
-          </View>
-
-          <AnimatedPressable
-            onPress={() => router.push('/timeline' as never)}
-            style={styles.arrowCircle}
-          >
-            <Ionicons name="arrow-forward" size={19} color={palette.ink} />
-          </AnimatedPressable>
+        <View style={styles.heroFooter}>
+          <Text style={[styles.heroFooterText, { color: palette.onAccent }]}>
+            {progress.progress}% complete
+          </Text>
+          <Ionicons name="arrow-forward" size={19} color={palette.onAccent} />
         </View>
       </AnimatedPressable>
 
-      <View style={[styles.progressPanel, { borderColor: palette.line }]}>
-        <View style={styles.progressTop}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGNANCY PROGRESS</Text>
-            <Text style={[styles.progressTitle, { color: palette.ink }]}>
-              {progress.progress}% complete
-            </Text>
-            <Text style={[styles.progressCopy, { color: palette.text }]}>
-              {progress.daysRemaining > 0 ? `${progress.daysRemaining} days until your estimated due date.` : 'You are in your due date window.'}
-            </Text>
-          </View>
+      <View style={styles.summaryRow}>
+        <SummaryCard
+          icon="water-outline"
+          label="Care"
+          value={`${dailyCareDone}/${DAILY_CARE_TOTAL}`}
+          copy={`${waterCups}/${WATER_TARGET} water`}
+          onPress={() => router.push('/daily-care' as never)}
+        />
 
-          <View style={[styles.progressBadge, { backgroundColor: palette.accent }]}>
-            <Text style={[styles.progressBadgeText, { color: palette.onAccent }]}>
-              {progress.week}w
-            </Text>
-          </View>
-        </View>
+        <SummaryCard
+          icon="footsteps-outline"
+          label="Movement"
+          value={`${todayKicks}`}
+          copy="kicks today"
+          onPress={() => router.push('/kick-counter' as never)}
+        />
 
-        <View style={styles.progressTrackWrap}>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
-          </View>
-
-          <View style={styles.progressLabels}>
-            <Text style={styles.progressMiniText}>Start</Text>
-            <Text style={styles.progressMiniText}>Due date</Text>
-          </View>
-        </View>
+        <SummaryCard
+          icon="medkit-outline"
+          label="Meds"
+          value={medicationTotal ? `${medicationDone}/${medicationTotal}` : '—'}
+          copy={medicationTotal ? 'taken' : 'no routine'}
+          onPress={() => router.push('/medication' as never)}
+        />
       </View>
 
       <AnimatedPressable
         onPress={() => router.push('/daily-care' as never)}
-        style={[styles.dailyCareSummary, { backgroundColor: palette.surface, borderColor: palette.line }]}
+        style={[styles.careCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
       >
-        <View style={styles.dailyCareSummaryTop}>
-          <View style={[styles.dailyCareSummaryIcon, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="water-outline" size={25} color={palette.accent} />
+        <View style={styles.careTop}>
+          <View style={[styles.careIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="heart-circle-outline" size={26} color={palette.accent} />
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>DAILY CARE</Text>
-            <Text style={[styles.dailyCareSummaryTitle, { color: palette.ink }]}>
-              {dailyCareDone}/{DAILY_CARE_TOTAL} checklist • {waterCups}/{WATER_TARGET} water
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>TODAY’S CARE</Text>
+            <Text style={[styles.careTitle, { color: palette.ink }]}>
+              {dailyCareProgress}% of your routine complete
             </Text>
-            <Text style={[styles.dailyCareSummaryCopy, { color: palette.text }]}>
-              Continue your gentle daily routine.
-            </Text>
-          </View>
-
-          <View style={[styles.dailyCareSummaryBadge, { backgroundColor: palette.accent }]}>
-            <Text style={[styles.dailyCareSummaryBadgeText, { color: palette.onAccent }]}>
-              {dailyCareProgress}%
-            </Text>
-          </View>
-        </View>
-
-        <View style={[styles.dailyCareSummaryTrack, { backgroundColor: palette.accentSoft }]}>
-          <View
-            style={[
-              styles.dailyCareSummaryFill,
-              { width: `${dailyCareProgress}%`, backgroundColor: palette.accent },
-            ]}
-          />
-        </View>
-      </AnimatedPressable>
-
-      <AnimatedPressable
-        onPress={() => router.push('/kick-counter' as never)}
-        style={[styles.movementSummary, { backgroundColor: palette.surface, borderColor: palette.line }]}
-      >
-        <View style={styles.movementSummaryTop}>
-          <View style={[styles.movementSummaryIcon, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="footsteps-outline" size={25} color={palette.accent} />
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>BABY MOVEMENT SUMMARY</Text>
-            <Text style={[styles.movementSummaryTitle, { color: palette.ink }]}>
-              {todayKicks} kicks today
-            </Text>
-            <Text style={[styles.movementSummaryCopy, { color: palette.text }]}>
-              Open the counter when you want to track a movement session.
+            <Text style={[styles.careCopy, { color: palette.text }]}>
+              Checklist, hydration, and gentle daily support.
             </Text>
           </View>
 
           <Ionicons name="chevron-forward" size={22} color={palette.muted} />
+        </View>
+
+        <View style={[styles.careTrack, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.careFill, { width: `${dailyCareProgress}%`, backgroundColor: palette.accent }]} />
         </View>
       </AnimatedPressable>
 
@@ -435,105 +400,69 @@ export default function HomeScreen() {
         </View>
       ) : (
         <>
-          <Text style={[styles.sectionTitle, { color: palette.ink }]}>My daily insights</Text>
+          <Text style={[styles.sectionTitle, { color: palette.ink }]}>Quick actions</Text>
 
-          <View style={styles.insightGrid}>
-            <InsightCard
+          <View style={styles.actionGrid}>
+            <ActionCard
               icon="add-circle-outline"
-              title="Log symptoms"
-              copy="Mood and notes"
+              title="Symptoms"
+              copy="Log mood and notes"
               onPress={() => router.push('/log-symptoms' as never)}
             />
 
-            <InsightCard
-              icon="medkit-outline"
-              title="Medication"
-              copy={medicationTotal ? `${medicationDone}/${medicationTotal} taken` : 'No routine'}
-              onPress={() => router.push('/medication' as never)}
-            />
-
-            <InsightCard
+            <ActionCard
               icon="calendar-outline"
               title="Appointments"
               copy={
                 nextAppointment
                   ? `${formatDate(appointmentDate)} ${appointmentTime ?? ''}`.trim()
-                  : 'No visit'
+                  : 'No visit today'
               }
               onPress={() => router.push('/(tabs)/appointments' as never)}
             />
 
-            <InsightCard
-              icon="water-outline"
-              title="Daily Care"
-              copy="Checklist and water"
-              onPress={() => router.push('/daily-care' as never)}
-            />
-
-            <InsightCard
-              icon="footsteps-outline"
-              title="Kick Counter"
-              copy="Track movement"
-              onPress={() => router.push('/kick-counter' as never)}
-            />
-
-            <InsightCard
-              icon="pulse-outline"
-              title="Contractions"
-              copy="Time sessions"
-              onPress={() => router.push('/contraction-timer' as never)}
-            />
-
-            <InsightCard
-              icon="document-text-outline"
-              title="Birth Plan"
-              copy="Care preferences"
-              onPress={() => router.push('/birth-plan' as never)}
+            <ActionCard
+              icon="grid-outline"
+              title="Tools"
+              copy="Trackers and guides"
+              onPress={() => router.push('/tools' as never)}
             />
           </View>
 
-          <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-            <View style={styles.infoTop}>
+          <View style={styles.infoGrid}>
+            <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
               <View style={[styles.infoIcon, { backgroundColor: palette.accentSoft }]}>
-                <Ionicons name="calendar" size={24} color={palette.accent} />
+                <Ionicons name="calendar" size={23} color={palette.accent} />
               </View>
 
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.eyebrow, { color: palette.accent }]}>NEXT VISIT</Text>
-                <Text style={[styles.infoTitle, { color: palette.ink }]}>
-                  {nextAppointment?.title || nextAppointment?.type || 'No appointment on this day'}
-                </Text>
-              </View>
+              <Text style={[styles.eyebrow, { color: palette.accent }]}>NEXT VISIT</Text>
+              <Text style={[styles.infoTitle, { color: palette.ink }]}>
+                {nextAppointment?.title || nextAppointment?.type || 'No appointment on this day'}
+              </Text>
+              <Text style={[styles.infoCopy, { color: palette.text }]}>
+                {nextAppointment
+                  ? `${formatDate(appointmentDate)}${appointmentTime ? ` at ${appointmentTime}` : ''}${
+                      appointmentPlace ? ` • ${appointmentPlace}` : ''
+                    }`
+                  : 'Nothing scheduled for this selected day.'}
+              </Text>
             </View>
 
-            <Text style={[styles.infoCopy, { color: palette.text }]}>
-              {nextAppointment
-                ? `${formatDate(appointmentDate)}${appointmentTime ? ` at ${appointmentTime}` : ''}${
-                    appointmentPlace ? ` • ${appointmentPlace}` : ''
-                  }`
-                : 'Nothing scheduled for this selected day.'}
-            </Text>
-          </View>
-
-          <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-            <View style={styles.infoTop}>
+            <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
               <View style={[styles.infoIcon, { backgroundColor: palette.accentSoft }]}>
-                <Ionicons name="heart-circle-outline" size={25} color={palette.accent} />
+                <Ionicons name="heart-outline" size={23} color={palette.accent} />
               </View>
 
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.eyebrow, { color: palette.accent }]}>LATEST CHECK IN</Text>
-                <Text style={[styles.infoTitle, { color: palette.ink }]}>
-                  {latestLog?.mood || 'No check in for this day'}
-                </Text>
-              </View>
+              <Text style={[styles.eyebrow, { color: palette.accent }]}>CHECK-IN</Text>
+              <Text style={[styles.infoTitle, { color: palette.ink }]}>
+                {latestLog?.mood || 'No check in yet'}
+              </Text>
+              <Text style={[styles.infoCopy, { color: palette.text }]}>{symptoms}</Text>
+
+              {latestLog?.notes ? (
+                <Text style={[styles.quote, { color: palette.muted }]}>“{latestLog.notes}”</Text>
+              ) : null}
             </View>
-
-            <Text style={[styles.infoCopy, { color: palette.text }]}>{symptoms}</Text>
-
-            {latestLog?.notes ? (
-              <Text style={[styles.quote, { color: palette.muted }]}>“{latestLog.notes}”</Text>
-            ) : null}
           </View>
         </>
       )}
@@ -541,7 +470,37 @@ export default function HomeScreen() {
   );
 }
 
-function InsightCard({
+function SummaryCard({
+  icon,
+  label,
+  value,
+  copy,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  copy: string;
+  onPress: () => void;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+    >
+      <View style={[styles.summaryIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={icon} size={20} color={palette.accent} />
+      </View>
+      <Text style={[styles.summaryLabel, { color: palette.text }]}>{label}</Text>
+      <Text style={[styles.summaryValue, { color: palette.ink }]}>{value}</Text>
+      <Text style={[styles.summaryCopy, { color: palette.muted }]}>{copy}</Text>
+    </AnimatedPressable>
+  );
+}
+
+function ActionCard({
   icon,
   title,
   copy,
@@ -557,26 +516,29 @@ function InsightCard({
   return (
     <AnimatedPressable
       onPress={onPress}
-      style={[styles.insightCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+      style={[styles.actionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
     >
-      <View style={[styles.insightIcon, { backgroundColor: palette.accentSoft }]}>
+      <View style={[styles.actionIcon, { backgroundColor: palette.accentSoft }]}>
         <Ionicons name={icon} size={22} color={palette.accent} />
       </View>
 
-      <Text style={[styles.insightTitle, { color: palette.ink }]}>{title}</Text>
-      <Text style={[styles.insightCopy, { color: palette.text }]}>{copy}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.actionTitle, { color: palette.ink }]}>{title}</Text>
+        <Text style={[styles.actionCopy, { color: palette.text }]}>{copy}</Text>
+      </View>
+
+      <Ionicons name="chevron-forward" size={19} color={palette.muted} />
     </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
-  topIntro: {
+  intro: {
     marginTop: 18,
     marginBottom: 16,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
     alignItems: 'flex-start',
+    gap: 14,
   },
   greeting: {
     ...type.body,
@@ -584,15 +546,15 @@ const styles = StyleSheet.create({
   },
   title: {
     ...type.title,
-    fontSize: 30,
-    lineHeight: 35,
+    fontSize: 31,
+    lineHeight: 36,
     letterSpacing: -0.8,
     marginTop: 5,
   },
-  searchButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  toolsCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -619,262 +581,168 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 4,
   },
-  babyCard: {
-    minHeight: 286,
-    borderRadius: 34,
+  hero: {
+    minHeight: 250,
+    borderRadius: 36,
     borderWidth: 1,
     overflow: 'hidden',
-    padding: 18,
-    marginBottom: 16,
+    padding: 22,
+    marginBottom: 14,
+    justifyContent: 'space-between',
   },
-  blobOne: {
+  heroBlobOne: {
     position: 'absolute',
     width: 230,
     height: 230,
     borderRadius: 115,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    right: -70,
-    top: -60,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    right: -80,
+    top: -90,
   },
-  blobTwo: {
+  heroBlobTwo: {
     position: 'absolute',
     width: 170,
     height: 170,
     borderRadius: 85,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     left: -60,
-    bottom: 40,
+    bottom: -60,
   },
-  babyVisual: {
-    height: 188,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  motherCircle: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    backgroundColor: 'rgba(255,255,255,0.48)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  motherEmoji: {
-    fontSize: 76,
-  },
-  orbitLine: {
-    position: 'absolute',
-    bottom: 54,
-    width: 220,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-  },
-  orbitDot: {
-    position: 'absolute',
-    bottom: 46,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-  },
-  journeyPill: {
-    minHeight: 66,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.78)',
+  heroTop: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 10,
+    gap: 16,
+    alignItems: 'flex-start',
   },
-  thumbCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#FFF0F1',
+  heroLabel: {
+    ...type.section,
+    letterSpacing: 1.2,
+    opacity: 0.9,
+  },
+  heroTitle: {
+    ...type.title,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.8,
+    marginTop: 6,
+  },
+  heroCopy: {
+    ...type.small,
+    lineHeight: 21,
+    fontWeight: '900',
+    marginTop: 9,
+    opacity: 0.92,
+  },
+  heroBaby: {
+    width: 72,
+    height: 72,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thumbEmoji: {
-    fontSize: 24,
+  heroEmoji: {
+    fontSize: 40,
   },
-  journeyLabel: {
+  heroTrack: {
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    overflow: 'hidden',
+    marginTop: 18,
+  },
+  heroFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+  },
+  heroFooter: {
+    marginTop: 13,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroFooterText: {
     ...type.small,
-    color: '#2A151B',
     fontWeight: '900',
   },
-  journeySub: {
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  summaryCard: {
+    flex: 1,
+    minHeight: 132,
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 13,
+  },
+  summaryIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  summaryLabel: {
     ...type.tiny,
-    color: '#765B60',
+    fontWeight: '900',
+  },
+  summaryValue: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    marginTop: 3,
+  },
+  summaryCopy: {
+    ...type.tiny,
+    lineHeight: 16,
     marginTop: 2,
     fontWeight: '800',
   },
-  arrowCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressPanel: {
+  careCard: {
     borderRadius: 30,
     borderWidth: 1,
-    padding: 20,
+    padding: 18,
     marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#2A151B',
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
   },
-  progressTop: {
+  careTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
+    alignItems: 'center',
+    gap: 13,
   },
-  progressBadge: {
-    width: 58,
-    height: 58,
+  careIcon: {
+    width: 56,
+    height: 56,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  progressBadgeText: {
-    ...type.bodyStrong,
-    fontSize: 16,
   },
   eyebrow: {
     ...type.section,
     letterSpacing: 1.2,
   },
-  progressTitle: {
-    ...type.title,
-    fontSize: 27,
-    lineHeight: 32,
-    marginTop: 5,
-    letterSpacing: -0.6,
-  },
-  progressCopy: {
-    ...type.small,
-    lineHeight: 20,
-    marginTop: 7,
-    fontWeight: '800',
-  },
-  progressTrackWrap: {
-    marginTop: 18,
-  },
-  progressTrack: {
-    height: 13,
-    borderRadius: 999,
-    backgroundColor: '#FFF0F1',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  progressLabels: {
-    marginTop: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  progressMiniText: {
-    ...type.tiny,
-    color: '#A98C93',
-    fontWeight: '900',
-  },
-  track: {
-    height: 11,
-    borderRadius: 999,
-    overflow: 'hidden',
-    marginTop: 16,
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  dailyCareSummary: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 16,
-  },
-  dailyCareSummaryTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  dailyCareSummaryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dailyCareSummaryTitle: {
+  careTitle: {
     ...type.bodyStrong,
-    fontSize: 18,
-    lineHeight: 23,
+    fontSize: 19,
+    lineHeight: 24,
     marginTop: 5,
   },
-  dailyCareSummaryCopy: {
+  careCopy: {
     ...type.small,
     lineHeight: 19,
     marginTop: 4,
     fontWeight: '800',
   },
-  dailyCareSummaryBadge: {
-    minWidth: 54,
-    height: 44,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  dailyCareSummaryBadgeText: {
-    ...type.small,
-    fontWeight: '900',
-  },
-  dailyCareSummaryTrack: {
+  careTrack: {
     height: 10,
     borderRadius: 999,
     overflow: 'hidden',
     marginTop: 15,
   },
-  dailyCareSummaryFill: {
+  careFill: {
     height: '100%',
     borderRadius: 999,
-  },
-  movementSummary: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 16,
-  },
-  movementSummaryTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  movementSummaryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  movementSummaryTitle: {
-    ...type.bodyStrong,
-    fontSize: 20,
-    lineHeight: 25,
-    marginTop: 5,
-  },
-  movementSummaryCopy: {
-    ...type.small,
-    lineHeight: 19,
-    marginTop: 4,
-    fontWeight: '800',
   },
   loadingCard: {
     minHeight: 120,
@@ -891,66 +759,64 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...type.bodyStrong,
     fontSize: 20,
-    marginTop: 4,
     marginBottom: 12,
   },
-  insightGrid: {
+  actionGrid: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  actionCard: {
+    minHeight: 82,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 14,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 12,
   },
-  insightCard: {
-    width: '48%',
-    minHeight: 130,
-    borderRadius: 28,
-    borderWidth: 1,
-    padding: 16,
-  },
-  insightIcon: {
-    width: 48,
-    height: 48,
+  actionIcon: {
+    width: 50,
+    height: 50,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
-  insightTitle: {
+  actionTitle: {
     ...type.bodyStrong,
     fontSize: 16,
   },
-  insightCopy: {
+  actionCopy: {
     ...type.small,
     lineHeight: 18,
-    marginTop: 4,
-    fontWeight: '700',
+    marginTop: 3,
+    fontWeight: '800',
+  },
+  infoGrid: {
+    gap: 14,
   },
   infoCard: {
     borderRadius: 30,
     borderWidth: 1,
-    padding: 20,
-    marginTop: 16,
-  },
-  infoTop: {
-    flexDirection: 'row',
-    gap: 13,
-    alignItems: 'center',
+    padding: 18,
   },
   infoIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 13,
   },
   infoTitle: {
     ...type.bodyStrong,
     fontSize: 20,
-    marginTop: 4,
+    lineHeight: 25,
+    marginTop: 5,
   },
   infoCopy: {
     ...type.body,
     lineHeight: 23,
-    marginTop: 14,
+    marginTop: 10,
   },
   quote: {
     ...type.small,
