@@ -41,6 +41,12 @@ const tools = [
     route: '/doctor-questions',
   },
   {
+    icon: 'book-outline',
+    title: 'Journal',
+    copy: 'Save memories',
+    route: '/pregnancy-journal',
+  },
+  {
     icon: 'calculator-outline',
     title: 'Due Date Calculator',
     copy: 'Estimate pregnancy dates',
