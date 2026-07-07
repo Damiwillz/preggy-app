@@ -487,6 +487,19 @@ export default function HomeScreen() {
               ) : null}
             </View>
           </View>
+
+          <View style={[styles.quoteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+            <View style={[styles.quoteIcon, { backgroundColor: palette.surface }]}>
+              <Ionicons name="sparkles-outline" size={22} color={palette.accent} />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.quoteLabel, { color: palette.accent }]}>TODAY’S GENTLE REMINDER</Text>
+              <Text style={[styles.quoteMessage, { color: palette.ink }]}>
+                You are doing something beautiful, one calm day at a time.
+              </Text>
+            </View>
+          </View>
         </>
       )}
     </Screen>
@@ -882,5 +895,31 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 10,
     fontWeight: '700',
+  },
+  quoteCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  quoteIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quoteLabel: {
+    ...type.section,
+    letterSpacing: 1.1,
+  },
+  quoteMessage: {
+    ...type.bodyStrong,
+    fontSize: 17,
+    lineHeight: 23,
+    marginTop: 5,
   },
 });
