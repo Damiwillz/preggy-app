@@ -45,6 +45,16 @@ type Appointment = {
 const DAILY_CARE_TOTAL = 5;
 const WATER_TARGET = 8;
 
+const gentleReminders = [
+  'You are doing something beautiful, one calm day at a time.',
+  'Your body is working hard. Rest is productive too.',
+  'Small steps still count on heavy days.',
+  'You and baby are growing through this together.',
+  'Breathe softly. You do not have to do everything today.',
+  'Every check-in is an act of care.',
+  'You are allowed to move gently and rest deeply.',
+];
+
 function getChecklistStorageKey(dateKey: string) {
   return `preggy:daily-care:${dateKey}`;
 }
@@ -253,6 +263,8 @@ export default function HomeScreen() {
   const appointmentTime = nextAppointment?.appointment_time || nextAppointment?.time;
   const appointmentPlace = nextAppointment?.clinic_name || nextAppointment?.location;
   const dailyCareProgress = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
+  const reminderIndex = Math.abs(selectedDateKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)) % gentleReminders.length;
+  const gentleReminder = gentleReminders[reminderIndex];
 
   return (
     <Screen bottomSpace={120}>
@@ -487,21 +499,19 @@ export default function HomeScreen() {
               ) : null}
             </View>
           </View>
-
-          <View style={[styles.quoteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
-            <View style={[styles.quoteIcon, { backgroundColor: palette.surface }]}>
-              <Ionicons name="sparkles-outline" size={22} color={palette.accent} />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.quoteLabel, { color: palette.accent }]}>TODAY’S GENTLE REMINDER</Text>
-              <Text style={[styles.quoteMessage, { color: palette.ink }]}>
-                You are doing something beautiful, one calm day at a time.
-              </Text>
-            </View>
-          </View>
         </>
       )}
+
+      <View style={[styles.quoteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+        <View style={[styles.quoteIcon, { backgroundColor: palette.surface }]}>
+          <Ionicons name="sparkles-outline" size={22} color={palette.accent} />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.quoteLabel, { color: palette.accent }]}>TODAY’S GENTLE REMINDER</Text>
+          <Text style={[styles.quoteMessage, { color: palette.ink }]}>{gentleReminder}</Text>
+        </View>
+      </View>
     </Screen>
   );
 }
