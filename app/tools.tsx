@@ -1,6 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Header } from '@/components/layout/Header';
@@ -9,7 +10,22 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 
-const toolSections = [
+type ToolItem = {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  copy: string;
+  route: string;
+};
+
+type ToolSection = {
+  title: string;
+  copy: string;
+  items: ToolItem[];
+};
+
+const FAVORITE_TOOLS_KEY = 'preggy:favorite-tools';
+
+const toolSections: ToolSection[] = [
   {
     title: 'Tracking',
     copy: 'Daily body, baby, and labour trackers',
@@ -102,11 +118,44 @@ const toolSections = [
   },
 ] as const;
 
+
 export default function ToolsScreen() {
   const { palette } = useAppTheme();
   const [query, setQuery] = useState('');
+  const [favoriteTools, setFavoriteTools] = useState<string[]>([]);
 
   const totalTools = toolSections.reduce((sum, section) => sum + section.items.length, 0);
+  const allTools = toolSections.flatMap((section) => section.items);
+
+  useEffect(() => {
+    async function loadFavorites() {
+      try {
+        const saved = await AsyncStorage.getItem(FAVORITE_TOOLS_KEY);
+        const parsed = saved ? JSON.parse(saved) : [];
+        setFavoriteTools(Array.isArray(parsed) ? parsed : []);
+      } catch (error) {
+        console.log('Favorite tools load error:', error);
+      }
+    }
+
+    void loadFavorites();
+  }, []);
+
+  async function toggleFavorite(title: string) {
+    const next = favoriteTools.includes(title)
+      ? favoriteTools.filter((item) => item !== title)
+      : [...favoriteTools, title];
+
+    setFavoriteTools(next);
+
+    try {
+      await AsyncStorage.setItem(FAVORITE_TOOLS_KEY, JSON.stringify(next));
+    } catch (error) {
+      console.log('Favorite tools save error:', error);
+    }
+  }
+
+  const favoriteItems = allTools.filter((item) => favoriteTools.includes(item.title));
 
   const filteredSections = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
@@ -131,7 +180,7 @@ export default function ToolsScreen() {
         <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGGY TOOLS</Text>
         <Text style={[styles.title, { color: palette.ink }]}>Tools & Trackers</Text>
         <Text style={[styles.subtitle, { color: palette.text }]}>
-          Everything useful, organized in one calm place.
+          Search, pin favorites, and open your pregnancy tools quickly.
         </Text>
       </View>
 
@@ -150,12 +199,13 @@ export default function ToolsScreen() {
         </View>
 
         <Text style={[styles.heroCopy, { color: palette.onAccent }]}>
-          Track, plan, learn, and save memories throughout your pregnancy.
+          Tap the heart on any card to pin it to Favorites.
         </Text>
       </View>
 
       <View style={[styles.searchCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <Ionicons name="search" size={20} color={palette.accent} />
+
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -171,38 +221,50 @@ export default function ToolsScreen() {
         ) : null}
       </View>
 
-      {filteredSections.length ? (
-        filteredSections.map((section) => (
-        <View key={section.title} style={styles.sectionBlock}>
+      {!query.trim() && favoriteItems.length ? (
+        <View style={styles.sectionBlock}>
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.sectionTitle, { color: palette.ink }]}>{section.title}</Text>
-              <Text style={[styles.sectionCopy, { color: palette.text }]}>{section.copy}</Text>
+              <Text style={[styles.sectionTitle, { color: palette.ink }]}>Favorites</Text>
+              <Text style={[styles.sectionCopy, { color: palette.text }]}>Your pinned tools</Text>
             </View>
           </View>
 
           <View style={styles.grid}>
-            {section.items.map((item) => (
-              <AnimatedPressable
-                key={item.title}
-                onPress={() => router.push(item.route as never)}
-                style={[styles.toolCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-              >
-                <View style={[styles.toolIcon, { backgroundColor: palette.accentSoft }]}>
-                  <Ionicons name={item.icon} size={24} color={palette.accent} />
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.toolTitle, { color: palette.ink }]}>{item.title}</Text>
-                  <Text style={[styles.toolCopy, { color: palette.text }]}>{item.copy}</Text>
-                </View>
-
-                <Ionicons name="chevron-forward" size={19} color={palette.muted} />
-              </AnimatedPressable>
+            {favoriteItems.map((item) => (
+              <ToolCard
+                key={`favorite-${item.title}`}
+                item={item}
+                favorite
+                onToggleFavorite={() => toggleFavorite(item.title)}
+              />
             ))}
           </View>
         </View>
-      ))
+      ) : null}
+
+      {filteredSections.length ? (
+        filteredSections.map((section) => (
+          <View key={section.title} style={styles.sectionBlock}>
+            <View style={styles.sectionHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionTitle, { color: palette.ink }]}>{section.title}</Text>
+                <Text style={[styles.sectionCopy, { color: palette.text }]}>{section.copy}</Text>
+              </View>
+            </View>
+
+            <View style={styles.grid}>
+              {section.items.map((item) => (
+                <ToolCard
+                  key={item.title}
+                  item={item}
+                  favorite={favoriteTools.includes(item.title)}
+                  onToggleFavorite={() => toggleFavorite(item.title)}
+                />
+              ))}
+            </View>
+          </View>
+        ))
       ) : (
         <View style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
           <Ionicons name="search-outline" size={28} color={palette.accent} />
@@ -213,6 +275,54 @@ export default function ToolsScreen() {
         </View>
       )}
     </Screen>
+  );
+}
+
+function ToolCard({
+  item,
+  favorite,
+  onToggleFavorite,
+}: {
+  item: ToolItem;
+  favorite: boolean;
+  onToggleFavorite: () => void;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <AnimatedPressable
+      onPress={() => router.push(item.route as never)}
+      style={[styles.toolCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+    >
+      <View style={[styles.toolIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={item.icon} size={24} color={palette.accent} />
+      </View>
+
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.toolTitle, { color: palette.ink }]}>{item.title}</Text>
+        <Text style={[styles.toolCopy, { color: palette.text }]}>{item.copy}</Text>
+      </View>
+
+      <AnimatedPressable
+        onPress={(event) => {
+          event.stopPropagation();
+          onToggleFavorite();
+        }}
+        style={[
+          styles.favoriteButton,
+          {
+            backgroundColor: favorite ? palette.accentSoft : palette.canvas,
+            borderColor: favorite ? palette.accent : palette.line,
+          },
+        ]}
+      >
+        <Ionicons
+          name={favorite ? 'heart' : 'heart-outline'}
+          size={19}
+          color={favorite ? palette.accent : palette.muted}
+        />
+      </AnimatedPressable>
+    </AnimatedPressable>
   );
 }
 
@@ -299,26 +409,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyCard: {
-    minHeight: 160,
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: {
-    ...type.bodyStrong,
-    fontSize: 20,
-    marginTop: 12,
-  },
-  emptyCopy: {
-    ...type.small,
-    lineHeight: 20,
-    marginTop: 6,
-    textAlign: 'center',
-    fontWeight: '800',
-  },
   sectionBlock: {
     marginBottom: 20,
   },
@@ -355,6 +445,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  favoriteButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   toolTitle: {
     ...type.bodyStrong,
     fontSize: 16,
@@ -364,6 +462,26 @@ const styles = StyleSheet.create({
     ...type.small,
     lineHeight: 18,
     marginTop: 3,
+    fontWeight: '800',
+  },
+  emptyCard: {
+    minHeight: 160,
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    marginTop: 12,
+  },
+  emptyCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 6,
+    textAlign: 'center',
     fontWeight: '800',
   },
 });
