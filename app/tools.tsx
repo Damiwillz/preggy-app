@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
@@ -104,8 +104,24 @@ const toolSections = [
 
 export default function ToolsScreen() {
   const { palette } = useAppTheme();
+  const [query, setQuery] = useState('');
 
   const totalTools = toolSections.reduce((sum, section) => sum + section.items.length, 0);
+
+  const filteredSections = useMemo(() => {
+    const cleanQuery = query.trim().toLowerCase();
+
+    if (!cleanQuery) return toolSections;
+
+    return toolSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) =>
+          `${item.title} ${item.copy}`.toLowerCase().includes(cleanQuery)
+        ),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [query]);
 
   return (
     <Screen bottomSpace={120}>
@@ -138,7 +154,25 @@ export default function ToolsScreen() {
         </Text>
       </View>
 
-      {toolSections.map((section) => (
+      <View style={[styles.searchCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <Ionicons name="search" size={20} color={palette.accent} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search tools..."
+          placeholderTextColor={palette.muted}
+          style={[styles.searchInput, { color: palette.ink }]}
+        />
+
+        {query.trim() ? (
+          <AnimatedPressable onPress={() => setQuery('')} style={styles.clearSearch}>
+            <Ionicons name="close-circle" size={20} color={palette.muted} />
+          </AnimatedPressable>
+        ) : null}
+      </View>
+
+      {filteredSections.length ? (
+        filteredSections.map((section) => (
         <View key={section.title} style={styles.sectionBlock}>
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
@@ -168,7 +202,16 @@ export default function ToolsScreen() {
             ))}
           </View>
         </View>
-      ))}
+      ))
+      ) : (
+        <View style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Ionicons name="search-outline" size={28} color={palette.accent} />
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>No tools found</Text>
+          <Text style={[styles.emptyCopy, { color: palette.text }]}>
+            Try searching for movement, birth, hospital, journal, or questions.
+          </Text>
+        </View>
+      )}
     </Screen>
   );
 }
@@ -232,6 +275,49 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '900',
     opacity: 0.92,
+  },
+  searchCard: {
+    minHeight: 56,
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    marginBottom: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 52,
+    ...type.bodyStrong,
+    fontSize: 15,
+  },
+  clearSearch: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCard: {
+    minHeight: 160,
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    marginTop: 12,
+  },
+  emptyCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 6,
+    textAlign: 'center',
+    fontWeight: '800',
   },
   sectionBlock: {
     marginBottom: 20,
