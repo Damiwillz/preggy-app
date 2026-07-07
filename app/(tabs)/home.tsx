@@ -393,6 +393,29 @@ export default function HomeScreen() {
         </View>
       </AnimatedPressable>
 
+      <AnimatedPressable
+        onPress={() => router.push('/tools' as never)}
+        style={[styles.toolsFeatureCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+      >
+        <View style={[styles.toolsFeatureIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name="grid-outline" size={26} color={palette.accent} />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>TOOLS & TRACKERS</Text>
+          <Text style={[styles.toolsFeatureTitle, { color: palette.ink }]}>
+            Open your pregnancy toolkit
+          </Text>
+          <Text style={[styles.toolsFeatureCopy, { color: palette.text }]}>
+            Kick counter, journal, hospital bag, birth plan, doctor questions, and more.
+          </Text>
+        </View>
+
+        <View style={[styles.toolsFeatureArrow, { backgroundColor: palette.accent }]}>
+          <Ionicons name="arrow-forward" size={19} color={palette.onAccent} />
+        </View>
+      </AnimatedPressable>
+
       {loading ? (
         <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
           <ActivityIndicator color={palette.accent} />
@@ -743,6 +766,42 @@ const styles = StyleSheet.create({
   careFill: {
     height: '100%',
     borderRadius: 999,
+  },
+  toolsFeatureCard: {
+    minHeight: 112,
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  toolsFeatureIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolsFeatureTitle: {
+    ...type.bodyStrong,
+    fontSize: 19,
+    lineHeight: 24,
+    marginTop: 5,
+  },
+  toolsFeatureCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 4,
+    fontWeight: '800',
+  },
+  toolsFeatureArrow: {
+    width: 42,
+    height: 42,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loadingCard: {
     minHeight: 120,
