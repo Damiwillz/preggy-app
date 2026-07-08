@@ -502,7 +502,10 @@ export default function HomeScreen() {
         </>
       )}
 
-      <View style={[styles.quoteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+      <AnimatedPressable
+        onPress={() => router.push('/ai-chat?fromTools=1' as never)}
+        style={[styles.quoteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
+      >
         <View style={[styles.quoteIcon, { backgroundColor: palette.surface }]}>
           <Ionicons name="sparkles-outline" size={22} color={palette.accent} />
         </View>
@@ -510,8 +513,11 @@ export default function HomeScreen() {
         <View style={{ flex: 1 }}>
           <Text style={[styles.quoteLabel, { color: palette.accent }]}>TODAY’S GENTLE REMINDER</Text>
           <Text style={[styles.quoteMessage, { color: palette.ink }]}>{gentleReminder}</Text>
+          <Text style={[styles.quoteAction, { color: palette.accent }]}>Tap to ask Preggy AI</Text>
         </View>
-      </View>
+
+        <Ionicons name="chevron-forward" size={21} color={palette.accent} />
+      </AnimatedPressable>
     </Screen>
   );
 }
@@ -931,5 +937,10 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 23,
     marginTop: 5,
+  },
+  quoteAction: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginTop: 8,
   },
 });
