@@ -379,6 +379,27 @@ export default function HomeScreen() {
       </View>
 
       <AnimatedPressable
+        onPress={() => router.push('/timeline' as never)}
+        style={[styles.timelineFeatureCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+      >
+        <View style={[styles.timelineFeatureIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name="map-outline" size={25} color={palette.accent} />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>CONTINUE JOURNEY</Text>
+          <Text style={[styles.timelineFeatureTitle, { color: palette.ink }]}>
+            View your pregnancy timeline
+          </Text>
+          <Text style={[styles.timelineFeatureCopy, { color: palette.text }]}>
+            Follow your weekly progress, milestones, and baby growth.
+          </Text>
+        </View>
+
+        <Ionicons name="chevron-forward" size={22} color={palette.muted} />
+      </AnimatedPressable>
+
+      <AnimatedPressable
         onPress={() => router.push('/daily-care' as never)}
         style={[styles.careCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
       >
@@ -750,6 +771,35 @@ const styles = StyleSheet.create({
     ...type.tiny,
     lineHeight: 16,
     marginTop: 2,
+    fontWeight: '800',
+  },
+  timelineFeatureCard: {
+    minHeight: 106,
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  timelineFeatureIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timelineFeatureTitle: {
+    ...type.bodyStrong,
+    fontSize: 19,
+    lineHeight: 24,
+    marginTop: 5,
+  },
+  timelineFeatureCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 4,
     fontWeight: '800',
   },
   careCard: {
