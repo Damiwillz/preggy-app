@@ -102,6 +102,12 @@ const toolSections: ToolSection[] = [
         copy: 'Save important numbers',
         route: '/emergency-contacts',
       },
+      {
+        icon: 'business-outline',
+        title: 'Hospital Info',
+        copy: 'Save clinic and birth place',
+        route: '/hospital-info',
+      },
     ],
   },
   {
