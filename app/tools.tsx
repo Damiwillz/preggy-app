@@ -37,6 +37,12 @@ const toolSections: ToolSection[] = [
         route: '/kick-counter',
       },
       {
+        icon: 'analytics-outline',
+        title: 'Movement History',
+        copy: 'Review recent kick logs',
+        route: '/movement-history',
+      },
+      {
         icon: 'pulse-outline',
         title: 'Contractions',
         copy: 'Time labour contractions',
