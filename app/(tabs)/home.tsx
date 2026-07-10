@@ -635,10 +635,10 @@ export default function HomeScreen() {
             />
 
             <ActionCard
-              icon="grid-outline"
-              title="Tools"
-              copy="Trackers and guides"
-              onPress={() => router.push('/tools' as never)}
+              icon="sparkles-outline"
+              title="Preggy AI"
+              copy="Ask a pregnancy question"
+              onPress={() => router.push('/ai-chat?fromTools=1' as never)}
             />
           </View>
 
