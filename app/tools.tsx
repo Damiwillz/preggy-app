@@ -73,6 +73,12 @@ const toolSections: ToolSection[] = [
         route: '/hospital-bag-checklist',
       },
       {
+        icon: 'cart-outline',
+        title: 'Shopping List',
+        copy: 'Track baby items to buy',
+        route: '/baby-shopping-list',
+      },
+      {
         icon: 'chatbubbles-outline',
         title: 'Doctor Questions',
         copy: 'Prepare for visits',
