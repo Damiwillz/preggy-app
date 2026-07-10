@@ -23,6 +23,35 @@ type ToolItem = {
 
 const FAVORITE_TOOLS_KEY = 'preggy:favorite-tools';
 
+const categoryMeta: Record<
+  ToolCategory,
+  {
+    icon: keyof typeof Ionicons.glyphMap;
+    copy: string;
+  }
+> = {
+  Tracking: {
+    icon: 'analytics-outline',
+    copy: 'Daily logs, body changes, movement, and timing.',
+  },
+  Planning: {
+    icon: 'clipboard-outline',
+    copy: 'Birth prep, hospital details, lists, and contacts.',
+  },
+  Wellness: {
+    icon: 'leaf-outline',
+    copy: 'Mood, cravings, rest, and gentle check-ins.',
+  },
+  Memories: {
+    icon: 'heart-outline',
+    copy: 'Names, journal notes, and pregnancy moments.',
+  },
+  Support: {
+    icon: 'sparkles-outline',
+    copy: 'Tips and Preggy AI support.',
+  },
+};
+
 const categories: Array<ToolCategory | 'All'> = ['All', 'Tracking', 'Planning', 'Wellness', 'Memories', 'Support'];
 
 const tools: ToolItem[] = [
@@ -219,12 +248,9 @@ export default function ToolsScreen() {
     [favoriteRoutes]
   );
 
-  const featuredTools = useMemo(() => {
-    const favorites = favoriteTools.slice(0, 4);
-
-    if (favorites.length) return favorites;
-
-    return tools.filter((item) => item.featured).slice(0, 4);
+  const quickTools = useMemo(() => {
+    if (favoriteTools.length) return favoriteTools.slice(0, 6);
+    return tools.filter((item) => item.featured).slice(0, 6);
   }, [favoriteTools]);
 
   const filteredTools = useMemo(() => {
@@ -242,26 +268,59 @@ export default function ToolsScreen() {
     });
   }, [activeCategory, query]);
 
-  const groupedTools = useMemo(() => {
-    return categories
+  const visibleCategories = useMemo(() => {
+    const grouped = categories
       .filter((item): item is ToolCategory => item !== 'All')
       .map((category) => ({
         category,
         items: filteredTools.filter((item) => item.category === category),
       }))
       .filter((section) => section.items.length > 0);
+
+    return grouped;
   }, [filteredTools]);
+
+  const totalFavorites = favoriteRoutes.length;
 
   return (
     <Screen bottomSpace={120}>
-      <Header title="" />
+      <Header title="" back />
 
-      <View style={styles.topRow}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGGY TOOLS</Text>
-        <Text style={[styles.title, { color: palette.ink }]}>Your toolkit</Text>
-        <Text style={[styles.subtitle, { color: palette.text }]}>
-          Clean, simple tools for tracking, planning, memories, and support.
+      <View
+        style={[
+          styles.hero,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.line,
+          },
+        ]}
+      >
+        <View style={styles.heroTop}>
+          <View>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGGY TOOLKIT</Text>
+            <Text style={[styles.heroTitle, { color: palette.ink }]}>Tools</Text>
+          </View>
+
+          <View style={[styles.heroIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="grid-outline" size={26} color={palette.accent} />
+          </View>
+        </View>
+
+        <Text style={[styles.heroCopy, { color: palette.text }]}>
+          Everything you need for tracking, planning, wellness, and memories — organized softly.
         </Text>
+
+        <View style={styles.heroStats}>
+          <View style={[styles.statPill, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Text style={[styles.statValue, { color: palette.ink }]}>{tools.length}</Text>
+            <Text style={[styles.statLabel, { color: palette.text }]}>Tools</Text>
+          </View>
+
+          <View style={[styles.statPill, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Text style={[styles.statValue, { color: palette.ink }]}>{totalFavorites}</Text>
+            <Text style={[styles.statLabel, { color: palette.text }]}>Favorites</Text>
+          </View>
+        </View>
       </View>
 
       <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.line }]}>
@@ -274,6 +333,7 @@ export default function ToolsScreen() {
           autoCapitalize="none"
           style={[styles.searchInput, { color: palette.ink }]}
         />
+
         {query ? (
           <AnimatedPressable onPress={() => setQuery('')} style={styles.clearSearch}>
             <Ionicons name="close-circle" size={19} color={palette.muted} />
@@ -310,66 +370,67 @@ export default function ToolsScreen() {
       </ScrollView>
 
       {!query && activeCategory === 'All' ? (
-        <View style={[styles.featuredCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-          <View style={styles.sectionHeader}>
+        <View style={styles.quickSection}>
+          <View style={styles.sectionHeading}>
             <View>
               <Text style={[styles.sectionEyebrow, { color: palette.accent }]}>
-                {favoriteTools.length ? 'FAVORITES' : 'QUICK START'}
+                {favoriteTools.length ? 'FAVORITES' : 'QUICK ACCESS'}
               </Text>
               <Text style={[styles.sectionTitle, { color: palette.ink }]}>
-                {favoriteTools.length ? 'Your saved tools' : 'Most useful tools'}
+                {favoriteTools.length ? 'Saved tools' : 'Start here'}
               </Text>
             </View>
           </View>
 
-          <View style={styles.featuredGrid}>
-            {featuredTools.map((item) => (
-              <FeaturedToolCard
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickRow}
+          >
+            {quickTools.map((item) => (
+              <QuickToolCard
                 key={item.route}
                 item={item}
                 favorite={favoriteRoutes.includes(item.route)}
                 onFavorite={() => toggleFavorite(item.route)}
               />
             ))}
-          </View>
+          </ScrollView>
         </View>
       ) : null}
 
-      <View style={styles.resultHeader}>
-        <Text style={[styles.resultTitle, { color: palette.ink }]}>
-          {activeCategory === 'All' ? 'All tools' : activeCategory}
-        </Text>
-        <Text style={[styles.resultCount, { color: palette.text }]}>
-          {filteredTools.length} tools
-        </Text>
-      </View>
+      {query || activeCategory !== 'All' ? (
+        <View style={styles.resultHeader}>
+          <Text style={[styles.resultTitle, { color: palette.ink }]}>
+            {filteredTools.length} result{filteredTools.length === 1 ? '' : 's'}
+          </Text>
+          <Text style={[styles.resultCopy, { color: palette.text }]}>
+            {activeCategory === 'All' ? 'All categories' : activeCategory}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.resultHeader}>
+          <Text style={[styles.resultTitle, { color: palette.ink }]}>Browse by category</Text>
+          <Text style={[styles.resultCopy, { color: palette.text }]}>Clean grouped tools</Text>
+        </View>
+      )}
 
-      {groupedTools.length ? (
-        groupedTools.map((section) => (
-          <View
+      {visibleCategories.length ? (
+        visibleCategories.map((section) => (
+          <CategoryCard
             key={section.category}
-            style={[styles.groupCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-          >
-            <Text style={[styles.groupTitle, { color: palette.accent }]}>{section.category}</Text>
-
-            <View style={styles.compactList}>
-              {section.items.map((item) => (
-                <CompactToolRow
-                  key={item.route}
-                  item={item}
-                  favorite={favoriteRoutes.includes(item.route)}
-                  onFavorite={() => toggleFavorite(item.route)}
-                />
-              ))}
-            </View>
-          </View>
+            category={section.category}
+            items={section.items}
+            favoriteRoutes={favoriteRoutes}
+            onFavorite={toggleFavorite}
+          />
         ))
       ) : (
         <View style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-          <Ionicons name="search-outline" size={28} color={palette.accent} />
+          <Ionicons name="search-outline" size={30} color={palette.accent} />
           <Text style={[styles.emptyTitle, { color: palette.ink }]}>No tools found</Text>
           <Text style={[styles.emptyCopy, { color: palette.text }]}>
-            Try another search or category.
+            Try another search or choose a different category.
           </Text>
         </View>
       )}
@@ -377,7 +438,7 @@ export default function ToolsScreen() {
   );
 }
 
-function FeaturedToolCard({
+function QuickToolCard({
   item,
   favorite,
   onFavorite,
@@ -391,11 +452,11 @@ function FeaturedToolCard({
   return (
     <AnimatedPressable
       onPress={() => router.push(item.route as never)}
-      style={[styles.featuredTool, { backgroundColor: palette.canvas, borderColor: palette.line }]}
+      style={[styles.quickCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
     >
-      <View style={styles.featuredTop}>
-        <View style={[styles.featuredIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name={item.icon} size={21} color={palette.accent} />
+      <View style={styles.quickTop}>
+        <View style={[styles.quickIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name={item.icon} size={22} color={palette.accent} />
         </View>
 
         <AnimatedPressable onPress={onFavorite} style={styles.favoriteButton}>
@@ -407,17 +468,62 @@ function FeaturedToolCard({
         </AnimatedPressable>
       </View>
 
-      <Text style={[styles.featuredTitle, { color: palette.ink }]} numberOfLines={1}>
+      <Text style={[styles.quickTitle, { color: palette.ink }]} numberOfLines={1}>
         {item.title}
       </Text>
-      <Text style={[styles.featuredCopy, { color: palette.text }]} numberOfLines={2}>
+      <Text style={[styles.quickCopy, { color: palette.text }]} numberOfLines={2}>
         {item.copy}
       </Text>
     </AnimatedPressable>
   );
 }
 
-function CompactToolRow({
+function CategoryCard({
+  category,
+  items,
+  favoriteRoutes,
+  onFavorite,
+}: {
+  category: ToolCategory;
+  items: ToolItem[];
+  favoriteRoutes: string[];
+  onFavorite: (route: string) => void;
+}) {
+  const { palette } = useAppTheme();
+  const meta = categoryMeta[category];
+
+  return (
+    <View style={[styles.categoryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+      <View style={styles.categoryHeader}>
+        <View style={[styles.categoryIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name={meta.icon} size={22} color={palette.accent} />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.categoryTitle, { color: palette.ink }]}>{category}</Text>
+          <Text style={[styles.categoryCopy, { color: palette.text }]}>{meta.copy}</Text>
+        </View>
+
+        <View style={[styles.countBadge, { backgroundColor: palette.accentSoft }]}>
+          <Text style={[styles.countBadgeText, { color: palette.accent }]}>{items.length}</Text>
+        </View>
+      </View>
+
+      <View style={styles.toolList}>
+        {items.map((item) => (
+          <ToolRow
+            key={item.route}
+            item={item}
+            favorite={favoriteRoutes.includes(item.route)}
+            onFavorite={() => onFavorite(item.route)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function ToolRow({
   item,
   favorite,
   onFavorite,
@@ -434,10 +540,10 @@ function CompactToolRow({
       style={[styles.toolRow, { backgroundColor: palette.canvas, borderColor: palette.line }]}
     >
       <View style={[styles.rowIcon, { backgroundColor: palette.accentSoft }]}>
-        <Ionicons name={item.icon} size={20} color={palette.accent} />
+        <Ionicons name={item.icon} size={19} color={palette.accent} />
       </View>
 
-      <View style={styles.rowText}>
+      <View style={styles.rowBody}>
         <Text style={[styles.rowTitle, { color: palette.ink }]} numberOfLines={1}>
           {item.title}
         </Text>
@@ -446,7 +552,7 @@ function CompactToolRow({
         </Text>
       </View>
 
-      <AnimatedPressable onPress={onFavorite} style={styles.rowAction}>
+      <AnimatedPressable onPress={onFavorite} style={styles.rowFavorite}>
         <Ionicons
           name={favorite ? 'heart' : 'heart-outline'}
           size={19}
@@ -460,26 +566,65 @@ function CompactToolRow({
 }
 
 const styles = StyleSheet.create({
-  topRow: {
-    marginTop: 18,
-    marginBottom: 16,
+  hero: {
+    borderRadius: 34,
+    borderWidth: 1,
+    padding: 20,
+    marginTop: 14,
+    marginBottom: 14,
+  },
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 14,
   },
   eyebrow: {
     ...type.section,
     letterSpacing: 1.2,
   },
-  title: {
+  heroTitle: {
     ...type.title,
-    fontSize: 34,
-    lineHeight: 39,
-    letterSpacing: -0.9,
-    marginTop: 4,
+    fontSize: 38,
+    lineHeight: 42,
+    letterSpacing: -1.2,
+    marginTop: 5,
   },
-  subtitle: {
+  heroIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroCopy: {
     ...type.small,
     lineHeight: 21,
-    marginTop: 6,
+    marginTop: 10,
     fontWeight: '800',
+  },
+  heroStats: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  statPill: {
+    flex: 1,
+    minHeight: 62,
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  statValue: {
+    ...type.bodyStrong,
+    fontSize: 21,
+    lineHeight: 25,
+  },
+  statLabel: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginTop: 2,
   },
   searchBox: {
     minHeight: 54,
@@ -506,7 +651,7 @@ const styles = StyleSheet.create({
   },
   categoryRow: {
     gap: 8,
-    paddingBottom: 16,
+    paddingBottom: 18,
   },
   categoryChip: {
     minHeight: 39,
@@ -520,14 +665,11 @@ const styles = StyleSheet.create({
     ...type.tiny,
     fontWeight: '900',
   },
-  featuredCard: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
+  quickSection: {
+    marginBottom: 18,
   },
-  sectionHeader: {
-    marginBottom: 13,
+  sectionHeading: {
+    marginBottom: 11,
   },
   sectionEyebrow: {
     ...type.section,
@@ -535,30 +677,29 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...type.bodyStrong,
-    fontSize: 21,
+    fontSize: 22,
     marginTop: 5,
   },
-  featuredGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  quickRow: {
     gap: 10,
+    paddingRight: 4,
   },
-  featuredTool: {
-    width: '48%',
-    minHeight: 132,
-    borderRadius: 24,
+  quickCard: {
+    width: 152,
+    minHeight: 142,
+    borderRadius: 26,
     borderWidth: 1,
-    padding: 13,
+    padding: 14,
   },
-  featuredTop: {
+  quickTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  featuredIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 17,
+  quickIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -569,64 +710,94 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featuredTitle: {
+  quickTitle: {
     ...type.bodyStrong,
-    fontSize: 15,
-    lineHeight: 20,
-    marginTop: 14,
+    fontSize: 16,
+    lineHeight: 21,
+    marginTop: 16,
   },
-  featuredCopy: {
+  quickCopy: {
     ...type.tiny,
     lineHeight: 16,
     fontWeight: '800',
     marginTop: 4,
   },
   resultHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 10,
+    marginBottom: 11,
   },
   resultTitle: {
     ...type.bodyStrong,
-    fontSize: 22,
+    fontSize: 23,
+    lineHeight: 28,
   },
-  resultCount: {
+  resultCopy: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  categoryCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 15,
+    marginBottom: 14,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 13,
+  },
+  categoryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryTitle: {
+    ...type.bodyStrong,
+    fontSize: 19,
+    lineHeight: 24,
+  },
+  categoryCopy: {
+    ...type.tiny,
+    lineHeight: 16,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  countBadge: {
+    minWidth: 36,
+    height: 34,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  countBadgeText: {
     ...type.tiny,
     fontWeight: '900',
   },
-  groupCard: {
-    borderRadius: 28,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 14,
-  },
-  groupTitle: {
-    ...type.section,
-    letterSpacing: 1.1,
-    marginBottom: 10,
-  },
-  compactList: {
+  toolList: {
     gap: 8,
   },
   toolRow: {
-    minHeight: 70,
+    minHeight: 68,
     borderRadius: 22,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   rowIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowText: {
+  rowBody: {
     flex: 1,
   },
   rowTitle: {
@@ -640,7 +811,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: '800',
   },
-  rowAction: {
+  rowFavorite: {
     width: 34,
     height: 34,
     borderRadius: 15,
@@ -662,5 +833,6 @@ const styles = StyleSheet.create({
     ...type.small,
     fontWeight: '800',
     marginTop: 4,
+    textAlign: 'center',
   },
 });
