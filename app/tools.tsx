@@ -67,6 +67,12 @@ const toolSections: ToolSection[] = [
         route: '/mood-tracker',
       },
       {
+        icon: 'restaurant-outline',
+        title: 'Cravings Tracker',
+        copy: 'Save cravings and intensity',
+        route: '/cravings-tracker',
+      },
+      {
         icon: 'calculator-outline',
         title: 'Due Date Calculator',
         copy: 'Estimate pregnancy dates',
