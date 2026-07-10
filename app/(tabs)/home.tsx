@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -71,20 +71,46 @@ function toDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function buildDateStrip() {
-  const today = new Date();
+function dateFromKey(dateKey: string) {
+  const parsed = new Date(`${dateKey}T12:00:00`);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
 
-  return [-2, -1, 0, 1, 2].map((offset) => {
+function buildDateStrip(selectedDateKey: string) {
+  const today = new Date();
+  const todayKey = toDateKey(today);
+
+  const dates = Array.from({ length: 120 }, (_, offset) => {
     const date = new Date(today);
     date.setDate(today.getDate() + offset);
+    const key = toDateKey(date);
 
     return {
-      key: toDateKey(date),
+      key,
       day: date.toLocaleDateString('en-US', { weekday: 'short' }),
       date: date.toLocaleDateString('en-US', { day: '2-digit' }),
-      isToday: offset === 0,
+      month: date.toLocaleDateString('en-US', { month: 'short' }),
+      isToday: key === todayKey,
+      isSelected: key === selectedDateKey,
     };
   });
+
+  const selectedExists = dates.some((item) => item.key === selectedDateKey);
+
+  if (!selectedExists) {
+    const selectedDate = dateFromKey(selectedDateKey);
+
+    dates.unshift({
+      key: selectedDateKey,
+      day: selectedDate.toLocaleDateString('en-US', { weekday: 'short' }),
+      date: selectedDate.toLocaleDateString('en-US', { day: '2-digit' }),
+      month: selectedDate.toLocaleDateString('en-US', { month: 'short' }),
+      isToday: selectedDateKey === todayKey,
+      isSelected: true,
+    });
+  }
+
+  return dates;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -156,6 +182,26 @@ export default function HomeScreen() {
   const [dailyCareDone, setDailyCareDone] = useState(0);
   const [waterCups, setWaterCups] = useState(0);
   const [todayKicks, setTodayKicks] = useState(0);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [dateDraft, setDateDraft] = useState(() => toDateKey(new Date()));
+
+
+  function openDatePicker() {
+    setDateDraft(selectedDateKey);
+    setDatePickerOpen(true);
+  }
+
+  function applyManualDate() {
+    const clean = dateDraft.trim();
+    const parsed = new Date(`${clean}T12:00:00`);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(clean) || Number.isNaN(parsed.getTime())) {
+      return;
+    }
+
+    setSelectedDateKey(toDateKey(parsed));
+    setDatePickerOpen(false);
+  }
 
   async function loadDailyCareSummary(dateKey = selectedDateKey) {
     try {
@@ -253,7 +299,7 @@ export default function HomeScreen() {
   );
 
   const progress = useMemo(() => getPregnancyProgress(profile), [profile]);
-  const dateStrip = useMemo(() => buildDateStrip(), []);
+  const dateStrip = useMemo(() => buildDateStrip(selectedDateKey), [selectedDateKey]);
   const babyName = profile?.baby_nickname || 'Baby';
   const firstName = profile?.full_name?.split(' ')?.[0] || 'Mama';
   const medicationDone = medications.filter((item) => item.taken).length;
@@ -270,25 +316,72 @@ export default function HomeScreen() {
     <Screen bottomSpace={120}>
       <Header />
 
-      <View style={styles.intro}>
+      <View style={[styles.heroIntroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.heroIntroTop}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.greeting, { color: palette.text }]}>
+              {greeting()}, {firstName}
+            </Text>
+            <Text style={[styles.title, { color: palette.ink }]}>
+              Your calm pregnancy space
+            </Text>
+            <Text style={[styles.introSubtext, { color: palette.text }]}>
+              Track today, plan ahead, and care for you and {babyName}.
+            </Text>
+          </View>
+
+          <AnimatedPressable
+            onPress={() => router.push('/tools' as never)}
+            style={[styles.toolsCircle, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
+          >
+            <Ionicons name="grid-outline" size={22} color={palette.accent} />
+          </AnimatedPressable>
+        </View>
+
+        <View style={styles.heroIntroStats}>
+          <View style={[styles.introMiniPill, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="calendar-outline" size={15} color={palette.accent} />
+            <Text style={[styles.introMiniText, { color: palette.accent }]}>Week {progress.week}</Text>
+          </View>
+
+          <View style={[styles.introMiniPill, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="heart-outline" size={15} color={palette.accent} />
+            <Text style={[styles.introMiniText, { color: palette.accent }]}>{progress.progress}% complete</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.datePickerPanel, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.dateHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.greeting, { color: palette.text }]}>
-            {greeting()}, {firstName}
-          </Text>
-          <Text style={[styles.title, { color: palette.ink }]}>
-            A calm day for you and {babyName}
+          <Text style={[styles.dateHeaderLabel, { color: palette.accent }]}>SELECT DAY</Text>
+          <Text style={[styles.dateHeaderTitle, { color: palette.ink }]}>
+            {dateFromKey(selectedDateKey).toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
           </Text>
         </View>
 
-        <AnimatedPressable
-          onPress={() => router.push('/tools' as never)}
-          style={[styles.toolsCircle, { backgroundColor: palette.surface, borderColor: palette.line }]}
-        >
-          <Ionicons name="grid-outline" size={22} color={palette.accent} />
-        </AnimatedPressable>
+        <View style={styles.dateHeaderActions}>
+
+          <AnimatedPressable
+            onPress={openDatePicker}
+            style={[styles.chooseDateButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
+          >
+            <Ionicons name="calendar-outline" size={17} color={palette.accent} />
+            <Text style={[styles.chooseDateText, { color: palette.accent }]}>Choose</Text>
+          </AnimatedPressable>
+        </View>
       </View>
 
-      <View style={styles.dateRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.dateScroller}
+        style={styles.dateScroll}
+      >
         {dateStrip.map((item) => {
           const active = selectedDateKey === item.key;
 
@@ -301,54 +394,118 @@ export default function HomeScreen() {
                 {
                   backgroundColor: active ? palette.accent : palette.surface,
                   borderColor: active ? palette.accent : palette.line,
+                  transform: [{ scale: active ? 1.03 : 1 }],
                 },
               ]}
             >
+              <Text style={[styles.dateMonth, { color: active ? palette.onAccent : palette.muted }]}>
+                {item.month}
+              </Text>
+
               <Text style={[styles.dateDay, { color: active ? palette.onAccent : palette.text }]}>
                 {item.isToday ? 'Today' : item.day}
               </Text>
+
               <Text style={[styles.dateNumber, { color: active ? palette.onAccent : palette.ink }]}>
                 {item.date}
               </Text>
             </AnimatedPressable>
           );
         })}
+      </ScrollView>
+
       </View>
+
+      <Modal visible={datePickerOpen} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dateModal, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+            <View style={styles.dateModalTop}>
+              <Text style={[styles.dateModalTitle, { color: palette.ink }]}>Choose date</Text>
+              <AnimatedPressable onPress={() => setDatePickerOpen(false)} style={styles.modalClose}>
+                <Ionicons name="close" size={22} color={palette.muted} />
+              </AnimatedPressable>
+            </View>
+
+            <Text style={[styles.dateModalCopy, { color: palette.text }]}>
+              Type a date in this format: YYYY-MM-DD
+            </Text>
+
+            <TextInput
+              value={dateDraft}
+              onChangeText={setDateDraft}
+              placeholder="2026-07-10"
+              placeholderTextColor={palette.muted}
+              autoCapitalize="none"
+              keyboardType="numbers-and-punctuation"
+              style={[
+                styles.dateInput,
+                {
+                  color: palette.ink,
+                  backgroundColor: palette.canvas,
+                  borderColor: palette.line,
+                },
+              ]}
+            />
+
+            <AnimatedPressable
+              onPress={applyManualDate}
+              style={[styles.applyDateButton, { backgroundColor: palette.accent }]}
+            >
+              <Text style={[styles.applyDateText, { color: palette.onAccent }]}>Use this date</Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+      </Modal>
 
       <AnimatedPressable
         onPress={() => router.push('/timeline' as never)}
-        style={[styles.hero, { backgroundColor: palette.accent, borderColor: palette.accent }]}
+        style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.line }]}
       >
-        <View style={styles.heroBlobOne} />
-        <View style={styles.heroBlobTwo} />
-
-        <View style={styles.heroTop}>
+        <View style={styles.heroTopClean}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.heroLabel, { color: palette.onAccent }]}>PREGNANCY JOURNEY</Text>
-            <Text style={[styles.heroTitle, { color: palette.onAccent }]}>
-              Week {progress.week}, Day {progress.day}
-            </Text>
-            <Text style={[styles.heroCopy, { color: palette.onAccent }]}>
-              {progress.daysRemaining > 0
-                ? `${progress.daysRemaining} days until your estimated due date.`
-                : 'You are in your due date window.'}
+            <Text style={[styles.heroLabel, { color: palette.accent }]}>PREGNANCY JOURNEY</Text>
+            <Text style={[styles.heroTitle, { color: palette.ink }]}>Week {progress.week}</Text>
+            <Text style={[styles.heroSubtitle, { color: palette.text }]}>
+              Day {progress.day} • {progress.daysRemaining > 0 ? `${progress.daysRemaining} days left` : 'Due date window'}
             </Text>
           </View>
 
-          <View style={styles.heroBaby}>
-            <Text style={styles.heroEmoji}>🤰</Text>
+          <View style={[styles.heroWeekBadge, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+            <Text style={[styles.heroWeekBadgeText, { color: palette.accent }]}>D{progress.day}</Text>
           </View>
         </View>
 
-        <View style={styles.heroTrack}>
-          <View style={[styles.heroFill, { width: `${progress.progress}%` }]} />
+        <View style={styles.heroBodyClean}>
+          <View style={[styles.heroDiagramClean, { backgroundColor: palette.accentSoft }]}>
+            <View style={[styles.heroDiagramRingLarge, { borderColor: palette.accent }]} />
+            <View style={[styles.heroDiagramRingSmall, { borderColor: palette.accent }]} />
+            <View style={[styles.heroDiagramCenter, { backgroundColor: palette.surface }]}>
+              <Text style={styles.heroDiagramEmoji}>🤰</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroMetricClean}>
+            <Text style={[styles.heroMetricValue, { color: palette.ink }]}>{progress.progress}%</Text>
+            <Text style={[styles.heroMetricLabel, { color: palette.text }]}>complete</Text>
+
+            <View style={[styles.heroDueChip, { backgroundColor: palette.accentSoft }]}>
+              <Ionicons name="time-outline" size={14} color={palette.accent} />
+              <Text style={[styles.heroDueText, { color: palette.accent }]}>
+                {progress.daysRemaining > 0 ? `${progress.daysRemaining} days left` : 'Due window'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={[styles.heroTrack, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.heroFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
         </View>
 
         <View style={styles.heroFooter}>
-          <Text style={[styles.heroFooterText, { color: palette.onAccent }]}>
-            {progress.progress}% complete
-          </Text>
-          <Ionicons name="arrow-forward" size={19} color={palette.onAccent} />
+          <Text style={[styles.heroFooterText, { color: palette.text }]}>View timeline</Text>
+          <View style={[styles.heroArrow, { backgroundColor: palette.accent }]}>
+            <Ionicons name="arrow-forward" size={17} color={palette.onAccent} />
+          </View>
         </View>
       </AnimatedPressable>
 
@@ -563,12 +720,17 @@ function SummaryCard({
       onPress={onPress}
       style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
     >
-      <View style={[styles.summaryIcon, { backgroundColor: palette.accentSoft }]}>
-        <Ionicons name={icon} size={20} color={palette.accent} />
+      <View style={styles.summaryTop}>
+        <View style={[styles.summaryIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name={icon} size={19} color={palette.accent} />
+        </View>
+
+        <Ionicons name="chevron-forward" size={16} color={palette.muted} />
       </View>
-      <Text style={[styles.summaryLabel, { color: palette.text }]}>{label}</Text>
+
       <Text style={[styles.summaryValue, { color: palette.ink }]}>{value}</Text>
-      <Text style={[styles.summaryCopy, { color: palette.muted }]}>{copy}</Text>
+      <Text style={[styles.summaryLabel, { color: palette.accent }]}>{label}</Text>
+      <Text style={[styles.summaryCopy, { color: palette.text }]}>{copy}</Text>
     </AnimatedPressable>
   );
 }
@@ -606,44 +768,126 @@ function ActionCard({
 }
 
 const styles = StyleSheet.create({
-  intro: {
-    marginTop: 18,
-    marginBottom: 16,
+  heroIntroCard: {
+    borderRadius: 32,
+    borderWidth: 1,
+    padding: 18,
+    marginTop: 16,
+    marginBottom: 14,
+  },
+  heroIntroTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 14,
   },
   greeting: {
-    ...type.body,
-    lineHeight: 22,
+    ...type.small,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   title: {
     ...type.title,
-    fontSize: 31,
-    lineHeight: 36,
-    letterSpacing: -0.8,
-    marginTop: 5,
+    fontSize: 30,
+    lineHeight: 35,
+    letterSpacing: -0.9,
+    marginTop: 4,
+  },
+  introSubtext: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 7,
+    fontWeight: '800',
   },
   toolsCircle: {
     width: 50,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 20,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dateRow: {
+  heroIntroStats: {
+    marginTop: 16,
     flexDirection: 'row',
-    gap: 9,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  introMiniPill: {
+    minHeight: 36,
+    borderRadius: 16,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  introMiniText: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  datePickerPanel: {
+    borderRadius: 30,
+    borderWidth: 1,
+    paddingTop: 16,
+    paddingBottom: 12,
     marginBottom: 14,
   },
+  dateHeader: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dateHeaderLabel: {
+    ...type.section,
+    letterSpacing: 1.1,
+  },
+  dateHeaderTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    lineHeight: 23,
+    marginTop: 3,
+  },
+  dateHeaderActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  chooseDateButton: {
+    minHeight: 40,
+    borderRadius: 17,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chooseDateText: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  dateScroll: {
+    marginHorizontal: 0,
+    marginBottom: 0,
+  },
+  dateScroller: {
+    paddingHorizontal: 16,
+    gap: 9,
+  },
   dateChip: {
-    width: 64,
-    height: 72,
-    borderRadius: 29,
+    width: 86,
+    minHeight: 96,
+    borderRadius: 26,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 9,
+  },
+  dateMonth: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginBottom: 2,
   },
   dateDay: {
     ...type.tiny,
@@ -651,85 +895,186 @@ const styles = StyleSheet.create({
   },
   dateNumber: {
     ...type.bodyStrong,
-    fontSize: 16,
-    marginTop: 4,
+    fontSize: 19,
+    marginTop: 3,
   },
-  hero: {
-    minHeight: 250,
-    borderRadius: 36,
-    borderWidth: 1,
-    overflow: 'hidden',
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(23, 13, 18, 0.36)',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 22,
-    marginBottom: 14,
+  },
+  dateModal: {
+    width: '100%',
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+  },
+  dateModalTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
-  heroBlobOne: {
-    position: 'absolute',
-    width: 230,
-    height: 230,
-    borderRadius: 115,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    right: -80,
-    top: -90,
+  dateModalTitle: {
+    ...type.bodyStrong,
+    fontSize: 22,
   },
-  heroBlobTwo: {
-    position: 'absolute',
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    left: -60,
-    bottom: -60,
-  },
-  heroTop: {
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'flex-start',
-  },
-  heroLabel: {
-    ...type.section,
-    letterSpacing: 1.2,
-    opacity: 0.9,
-  },
-  heroTitle: {
-    ...type.title,
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -0.8,
-    marginTop: 6,
-  },
-  heroCopy: {
-    ...type.small,
-    lineHeight: 21,
-    fontWeight: '900',
-    marginTop: 9,
-    opacity: 0.92,
-  },
-  heroBaby: {
-    width: 72,
-    height: 72,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  modalClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroEmoji: {
-    fontSize: 40,
+  dateModalCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 8,
+    fontWeight: '800',
+  },
+  dateInput: {
+    minHeight: 54,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    marginTop: 14,
+    ...type.bodyStrong,
+    fontSize: 16,
+  },
+  applyDateButton: {
+    minHeight: 52,
+    borderRadius: 20,
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applyDateText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  hero: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 14,
+  },
+  heroTopClean: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  heroLabel: {
+    ...type.section,
+    letterSpacing: 1.15,
+  },
+  heroTitle: {
+    ...type.title,
+    fontSize: 31,
+    lineHeight: 35,
+    letterSpacing: -0.9,
+    marginTop: 3,
+  },
+  heroSubtitle: {
+    ...type.small,
+    lineHeight: 19,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  heroWeekBadge: {
+    minWidth: 48,
+    height: 44,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  heroWeekBadgeText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  heroBodyClean: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+  heroDiagramClean: {
+    width: 94,
+    height: 94,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroDiagramRingLarge: {
+    position: 'absolute',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1.5,
+    opacity: 0.24,
+  },
+  heroDiagramRingSmall: {
+    position: 'absolute',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1.5,
+    opacity: 0.32,
+  },
+  heroDiagramCenter: {
+    width: 45,
+    height: 45,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroDiagramEmoji: {
+    fontSize: 25,
+  },
+  heroMetricClean: {
+    flex: 1,
+  },
+  heroMetricValue: {
+    ...type.title,
+    fontSize: 36,
+    lineHeight: 39,
+    letterSpacing: -1.1,
+  },
+  heroMetricLabel: {
+    ...type.small,
+    fontWeight: '900',
+    marginTop: 0,
+  },
+  heroDueChip: {
+    minHeight: 33,
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroDueText: {
+    ...type.tiny,
+    fontWeight: '900',
   },
   heroTrack: {
-    height: 12,
+    height: 9,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.28)',
     overflow: 'hidden',
-    marginTop: 18,
+    marginTop: 15,
   },
   heroFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.92)',
   },
   heroFooter: {
-    marginTop: 13,
+    marginTop: 11,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -738,6 +1083,13 @@ const styles = StyleSheet.create({
     ...type.small,
     fontWeight: '900',
   },
+  heroArrow: {
+    width: 34,
+    height: 34,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   summaryRow: {
     flexDirection: 'row',
     gap: 10,
@@ -745,27 +1097,34 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    minHeight: 132,
-    borderRadius: 26,
+    minHeight: 124,
+    borderRadius: 24,
     borderWidth: 1,
     padding: 13,
+    justifyContent: 'space-between',
+  },
+  summaryTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   summaryIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 17,
+    width: 39,
+    height: 39,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
   },
   summaryLabel: {
     ...type.tiny,
     fontWeight: '900',
+    letterSpacing: 0.2,
   },
   summaryValue: {
     ...type.bodyStrong,
-    fontSize: 20,
-    marginTop: 3,
+    fontSize: 24,
+    lineHeight: 28,
+    marginTop: 9,
   },
   summaryCopy: {
     ...type.tiny,
