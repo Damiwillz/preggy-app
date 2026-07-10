@@ -96,6 +96,12 @@ const toolSections: ToolSection[] = [
         copy: 'Prepare for visits',
         route: '/doctor-questions',
       },
+      {
+        icon: 'call-outline',
+        title: 'Emergency Contacts',
+        copy: 'Save important numbers',
+        route: '/emergency-contacts',
+      },
     ],
   },
   {
