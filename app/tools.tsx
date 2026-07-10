@@ -49,6 +49,12 @@ const toolSections: ToolSection[] = [
         route: '/daily-care',
       },
       {
+        icon: 'scale-outline',
+        title: 'Weight Tracker',
+        copy: 'Log pregnancy weight',
+        route: '/weight-tracker',
+      },
+      {
         icon: 'calculator-outline',
         title: 'Due Date Calculator',
         copy: 'Estimate pregnancy dates',
