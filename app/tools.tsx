@@ -55,6 +55,12 @@ const toolSections: ToolSection[] = [
         route: '/weight-tracker',
       },
       {
+        icon: 'happy-outline',
+        title: 'Mood Tracker',
+        copy: 'Check mood and energy',
+        route: '/mood-tracker',
+      },
+      {
         icon: 'calculator-outline',
         title: 'Due Date Calculator',
         copy: 'Estimate pregnancy dates',
