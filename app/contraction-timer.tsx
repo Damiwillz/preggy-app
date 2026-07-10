@@ -1,7 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
@@ -13,18 +13,33 @@ type ContractionEntry = {
   id: string;
   startedAt: number;
   endedAt: number;
-  durationSeconds: number;
+  durationMs: number;
 };
 
-function formatTimer(seconds: number) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
+type ContractionSession = {
+  id: string;
+  dateKey: string;
+  entries: ContractionEntry[];
+  createdAt: number;
+};
 
-  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+const STORAGE_KEY = 'preggy:contraction-sessions';
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function formatClock(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString('en-US', {
+function formatTimer(ms: number) {
+  const safeMs = Math.max(0, ms);
+  const totalSeconds = Math.floor(safeMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function formatClock(value: number) {
+  return new Date(value).toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
   });
@@ -33,55 +48,104 @@ function formatClock(timestamp: number) {
 export default function ContractionTimerScreen() {
   const { palette } = useAppTheme();
 
-  const [activeStart, setActiveStart] = useState<number | null>(null);
-  const [now, setNow] = useState(Date.now());
-  const [entries, setEntries] = useState<ContractionEntry[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const activeDuration = activeStart ? Math.max(Math.floor((now - activeStart) / 1000), 0) : 0;
-  const latestEntry = entries[0] ?? null;
-  const restSeconds = latestEntry && !activeStart ? Math.max(Math.floor((now - latestEntry.endedAt) / 1000), 0) : 0;
+  const [activeStart, setActiveStart] = useState<number | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [entries, setEntries] = useState<ContractionEntry[]>([]);
 
   const averageDuration = useMemo(() => {
     if (!entries.length) return 0;
+    return entries.reduce((sum, item) => sum + item.durationMs, 0) / entries.length;
+  }, [entries]);
 
-    const total = entries.reduce((sum, entry) => sum + entry.durationSeconds, 0);
-    return Math.round(total / entries.length);
+  const lastInterval = useMemo(() => {
+    if (entries.length < 2) return 0;
+    return entries[0].startedAt - entries[1].startedAt;
   }, [entries]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
+    if (!activeStart) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      setElapsedMs(0);
+      return;
+    }
 
-    return () => clearInterval(timer);
-  }, []);
+    intervalRef.current = setInterval(() => {
+      setElapsedMs(Date.now() - activeStart);
+    }, 500);
 
-  function startContraction() {
-    setActiveStart(Date.now());
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [activeStart]);
+
+  async function saveSession(nextEntries: ContractionEntry[]) {
+    try {
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : [];
+      const sessions: ContractionSession[] = Array.isArray(parsed) ? parsed : [];
+
+      const dateKey = todayKey();
+      const todaySessionIndex = sessions.findIndex((session) => session.dateKey === dateKey);
+
+      if (todaySessionIndex >= 0) {
+        sessions[todaySessionIndex] = {
+          ...sessions[todaySessionIndex],
+          entries: nextEntries,
+        };
+      } else {
+        sessions.unshift({
+          id: String(Date.now()),
+          dateKey,
+          entries: nextEntries,
+          createdAt: Date.now(),
+        });
+      }
+
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    } catch (error) {
+      console.log('Contraction session save error:', error);
+    }
   }
 
-  function stopContraction() {
-    if (!activeStart) return;
+  async function toggleTimer() {
+    if (!activeStart) {
+      setActiveStart(Date.now());
+      return;
+    }
 
     const endedAt = Date.now();
-    const durationSeconds = Math.max(Math.floor((endedAt - activeStart) / 1000), 1);
+    const nextEntry: ContractionEntry = {
+      id: String(endedAt),
+      startedAt: activeStart,
+      endedAt,
+      durationMs: endedAt - activeStart,
+    };
 
-    setEntries((current) => [
-      {
-        id: String(endedAt),
-        startedAt: activeStart,
-        endedAt,
-        durationSeconds,
-      },
-      ...current,
-    ]);
+    const nextEntries = [nextEntry, ...entries];
 
+    setEntries(nextEntries);
     setActiveStart(null);
+    setElapsedMs(0);
+    await saveSession(nextEntries);
   }
 
-  function clearSession() {
-    setActiveStart(null);
-    setEntries([]);
+  async function clearSession() {
+    Alert.alert('Clear session?', 'This will clear today’s contraction entries from this screen.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          setEntries([]);
+          setActiveStart(null);
+          setElapsedMs(0);
+          void saveSession([]);
+        },
+      },
+    ]);
   }
 
   return (
@@ -89,68 +153,66 @@ export default function ContractionTimerScreen() {
       <Header title="" back />
 
       <View style={styles.topRow}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>LABOUR SUPPORT</Text>
+        <Text style={[styles.eyebrow, { color: palette.accent }]}>LABOUR TOOL</Text>
         <Text style={[styles.title, { color: palette.ink }]}>Contraction Timer</Text>
         <Text style={[styles.subtitle, { color: palette.text }]}>
           Track contraction duration and rest time during a session.
         </Text>
       </View>
 
-      <View style={[styles.heroCard, { backgroundColor: palette.accent, borderColor: palette.accent }]}>
-        <View style={styles.heroTop}>
-          <View>
-            <Text style={[styles.heroLabel, { color: palette.onAccent }]}>
-              {activeStart ? 'CONTRACTION ACTIVE' : 'CURRENT REST'}
-            </Text>
-            <Text style={[styles.heroTitle, { color: palette.onAccent }]}>
-              {activeStart ? formatTimer(activeDuration) : formatTimer(restSeconds)}
-            </Text>
-          </View>
-
-          <View style={styles.heroIcon}>
-            <Ionicons name={activeStart ? 'pulse' : 'timer-outline'} size={30} color={palette.onAccent} />
-          </View>
+      <View style={[styles.timerCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.timerCircle, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+          <Text style={[styles.timerValue, { color: palette.ink }]}>
+            {formatTimer(activeStart ? elapsedMs : 0)}
+          </Text>
+          <Text style={[styles.timerLabel, { color: palette.text }]}>
+            {activeStart ? 'Contraction running' : 'Ready'}
+          </Text>
         </View>
 
-        <Text style={[styles.heroCopy, { color: palette.onAccent }]}>
-          {entries.length} contractions logged • Avg {formatTimer(averageDuration)}
-        </Text>
+        <AnimatedPressable
+          onPress={toggleTimer}
+          style={[
+            styles.mainButton,
+            { backgroundColor: activeStart ? palette.danger : palette.accent },
+          ]}
+        >
+          <Ionicons
+            name={activeStart ? 'stop' : 'play'}
+            size={20}
+            color={palette.onAccent}
+          />
+          <Text style={[styles.mainButtonText, { color: palette.onAccent }]}>
+            {activeStart ? 'Stop contraction' : 'Start contraction'}
+          </Text>
+        </AnimatedPressable>
       </View>
 
-      <AnimatedPressable
-        onPress={activeStart ? stopContraction : startContraction}
-        style={[
-          styles.mainButton,
-          {
-            backgroundColor: activeStart ? palette.danger : palette.accent,
-            borderColor: activeStart ? palette.danger : palette.accent,
-          },
-        ]}
-      >
-        <Ionicons name={activeStart ? 'stop' : 'play'} size={26} color={palette.onAccent} />
-        <Text style={[styles.mainButtonText, { color: palette.onAccent }]}>
-          {activeStart ? 'Stop contraction' : 'Start contraction'}
+      <View style={styles.summaryGrid}>
+        <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.summaryValue, { color: palette.ink }]}>{entries.length}</Text>
+          <Text style={[styles.summaryLabel, { color: palette.text }]}>Logged</Text>
+        </View>
+
+        <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.summaryValue, { color: palette.ink }]}>
+            {formatTimer(averageDuration)}
+          </Text>
+          <Text style={[styles.summaryLabel, { color: palette.text }]}>Average</Text>
+        </View>
+      </View>
+
+      <View style={[styles.noteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+        <Ionicons name="information-circle-outline" size={22} color={palette.accent} />
+        <Text style={[styles.noteText, { color: palette.text }]}>
+          Contact your care provider if contractions become regular, painful, or you feel concerned.
         </Text>
-      </AnimatedPressable>
-
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-          <Ionicons name="pulse-outline" size={22} color={palette.accent} />
-          <Text style={[styles.statValue, { color: palette.ink }]}>{entries.length}</Text>
-          <Text style={[styles.statLabel, { color: palette.text }]}>Contractions</Text>
-        </View>
-
-        <View style={[styles.statCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-          <Ionicons name="time-outline" size={22} color={palette.accent} />
-          <Text style={[styles.statValue, { color: palette.ink }]}>{formatTimer(averageDuration)}</Text>
-          <Text style={[styles.statLabel, { color: palette.text }]}>Average</Text>
-        </View>
       </View>
 
       <View style={[styles.historyCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.historyHeader}>
           <View>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>SESSION HISTORY</Text>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>THIS SESSION</Text>
             <Text style={[styles.historyTitle, { color: palette.ink }]}>Recent contractions</Text>
           </View>
 
@@ -163,19 +225,24 @@ export default function ContractionTimerScreen() {
         </View>
 
         {entries.length ? (
-          <View style={styles.historyList}>
-            {entries.slice(0, 5).map((entry, index) => (
-              <View key={entry.id} style={[styles.historyItem, { borderColor: palette.line }]}>
-                <View style={[styles.historyNumber, { backgroundColor: palette.accentSoft }]}>
-                  <Text style={[styles.historyNumberText, { color: palette.accent }]}>{index + 1}</Text>
+          <View style={styles.entryList}>
+            {entries.map((entry, index) => (
+              <View
+                key={entry.id}
+                style={[styles.entryItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}
+              >
+                <View style={[styles.entryNumber, { backgroundColor: palette.accentSoft }]}>
+                  <Text style={[styles.entryNumberText, { color: palette.accent }]}>
+                    {entries.length - index}
+                  </Text>
                 </View>
 
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.historyItemTitle, { color: palette.ink }]}>
-                    {formatTimer(entry.durationSeconds)}
+                  <Text style={[styles.entryTitle, { color: palette.ink }]}>
+                    {formatTimer(entry.durationMs)}
                   </Text>
-                  <Text style={[styles.historyItemCopy, { color: palette.text }]}>
-                    Started {formatClock(entry.startedAt)} • Ended {formatClock(entry.endedAt)}
+                  <Text style={[styles.entryMeta, { color: palette.text }]}>
+                    Started {formatClock(entry.startedAt)}
                   </Text>
                 </View>
               </View>
@@ -186,13 +253,12 @@ export default function ContractionTimerScreen() {
             No contractions logged in this session yet.
           </Text>
         )}
-      </View>
 
-      <View style={[styles.noteCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <Ionicons name="information-circle-outline" size={24} color={palette.accent} />
-        <Text style={[styles.noteText, { color: palette.text }]}>
-          This timer is for personal tracking only. Contact your doctor, midwife, or emergency services if you are concerned or advised to seek care.
-        </Text>
+        {lastInterval ? (
+          <Text style={[styles.intervalText, { color: palette.muted }]}>
+            Last interval: {formatTimer(lastInterval)}
+          </Text>
+        ) : null}
       </View>
     </Screen>
   );
@@ -220,92 +286,92 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontWeight: '800',
   },
-  heroCard: {
-    minHeight: 174,
-    borderRadius: 34,
+  timerCard: {
+    borderRadius: 32,
     borderWidth: 1,
-    padding: 22,
-    marginBottom: 16,
-    justifyContent: 'space-between',
+    padding: 20,
+    marginBottom: 14,
+    alignItems: 'center',
   },
-  heroTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
+  timerCircle: {
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
   },
-  heroLabel: {
-    ...type.section,
-    letterSpacing: 1.2,
-    opacity: 0.9,
-  },
-  heroTitle: {
+  timerValue: {
     ...type.title,
-    fontSize: 36,
-    lineHeight: 42,
+    fontSize: 44,
+    lineHeight: 50,
+    letterSpacing: -1,
+  },
+  timerLabel: {
+    ...type.small,
+    fontWeight: '900',
     marginTop: 6,
   },
-  heroIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroCopy: {
-    ...type.small,
-    lineHeight: 20,
-    fontWeight: '900',
-    opacity: 0.92,
-  },
   mainButton: {
-    minHeight: 64,
-    borderRadius: 24,
-    borderWidth: 1,
-    marginBottom: 16,
+    minHeight: 54,
+    borderRadius: 21,
+    paddingHorizontal: 22,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
+    alignSelf: 'stretch',
   },
   mainButtonText: {
-    ...type.bodyStrong,
-    fontSize: 17,
+    ...type.small,
+    fontWeight: '900',
   },
-  statsRow: {
+  summaryGrid: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 14,
   },
-  statCard: {
+  summaryCard: {
     flex: 1,
-    minHeight: 116,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 15,
+  },
+  summaryValue: {
+    ...type.bodyStrong,
+    fontSize: 24,
+    lineHeight: 29,
+  },
+  summaryLabel: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  noteCard: {
     borderRadius: 26,
     borderWidth: 1,
     padding: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  statValue: {
-    ...type.bodyStrong,
-    fontSize: 22,
-    lineHeight: 28,
-    marginTop: 12,
-  },
-  statLabel: {
-    ...type.tiny,
-    fontWeight: '900',
-    marginTop: 4,
+  noteText: {
+    ...type.small,
+    lineHeight: 20,
+    flex: 1,
+    fontWeight: '800',
   },
   historyCard: {
     borderRadius: 30,
     borderWidth: 1,
     padding: 18,
-    marginBottom: 16,
   },
   historyHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    alignItems: 'center',
   },
   historyTitle: {
     ...type.bodyStrong,
@@ -315,7 +381,7 @@ const styles = StyleSheet.create({
   clearButton: {
     minHeight: 38,
     borderRadius: 16,
-    paddingHorizontal: 14,
+    paddingHorizontal: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -323,58 +389,50 @@ const styles = StyleSheet.create({
     ...type.tiny,
     fontWeight: '900',
   },
-  historyList: {
-    marginTop: 16,
+  entryList: {
     gap: 10,
+    marginTop: 14,
   },
-  historyItem: {
-    minHeight: 68,
-    borderRadius: 20,
+  entryItem: {
+    minHeight: 70,
+    borderRadius: 22,
     borderWidth: 1,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
+    gap: 10,
   },
-  historyNumber: {
-    width: 38,
-    height: 38,
+  entryNumber: {
+    width: 40,
+    height: 40,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  historyNumberText: {
+  entryNumberText: {
     ...type.small,
     fontWeight: '900',
   },
-  historyItemTitle: {
+  entryTitle: {
     ...type.bodyStrong,
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 23,
   },
-  historyItemCopy: {
-    ...type.tiny,
-    lineHeight: 17,
-    marginTop: 3,
+  entryMeta: {
+    ...type.small,
+    lineHeight: 18,
+    marginTop: 2,
     fontWeight: '800',
   },
   emptyText: {
     ...type.small,
     lineHeight: 20,
-    marginTop: 16,
+    marginTop: 14,
     fontWeight: '800',
   },
-  noteCard: {
-    borderRadius: 28,
-    borderWidth: 1,
-    padding: 18,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
-  },
-  noteText: {
-    ...type.small,
-    lineHeight: 20,
-    flex: 1,
-    fontWeight: '800',
+  intervalText: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginTop: 12,
   },
 });
