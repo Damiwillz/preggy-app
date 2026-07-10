@@ -91,6 +91,12 @@ const toolSections: ToolSection[] = [
         route: '/pregnancy-journal',
       },
       {
+        icon: 'heart-outline',
+        title: 'Baby Names',
+        copy: 'Save favorite name ideas',
+        route: '/baby-names',
+      },
+      {
         icon: 'map-outline',
         title: 'Timeline',
         copy: 'View pregnancy journey',
