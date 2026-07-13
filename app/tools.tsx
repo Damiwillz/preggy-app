@@ -116,6 +116,13 @@ const tools: ToolItem[] = [
     featured: true,
   },
   {
+    icon: 'moon-outline',
+    title: 'Sleep Tracker',
+    copy: 'Log sleep and night symptoms',
+    route: '/sleep-tracker',
+    category: 'Wellness',
+  },
+  {
     icon: 'restaurant-outline',
     title: 'Cravings Tracker',
     copy: 'Save cravings and intensity',
