@@ -345,7 +345,7 @@ export default function HomeScreen() {
 
           setWellnessSnapshot({
             mood: latestMood?.mood ? String(latestMood.mood) : 'No mood yet',
-            sleep: latestSleep?.hours ? `${latestSleep.hours} hrs` : 'No sleep yet',
+            sleep: latestSleep?.hours ? String(latestSleep.hours).replace(/\s*(hours|hrs)$/i, '') + ' hrs' : 'No sleep yet',
             cravings: recentCravings,
             weight: latestWeight?.weight ? `${latestWeight.weight} kg` : 'No weight yet',
           });
@@ -583,23 +583,36 @@ export default function HomeScreen() {
 
       <View style={[styles.wellnessSnapshotCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.wellnessSnapshotHeader}>
-          <View>
-            <Text style={[styles.sectionEyebrow, { color: palette.accent }]}>WELLNESS SNAPSHOT</Text>
-            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Your recent check-ins</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>WELLNESS SNAPSHOT</Text>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Today’s overview</Text>
           </View>
 
           <AnimatedPressable
             onPress={() => router.push('/weekly-report' as never)}
-            style={[styles.snapshotButton, { backgroundColor: palette.accentSoft }]}
+            style={[styles.snapshotButton, { backgroundColor: palette.accent }]}
           >
-            <Text style={[styles.snapshotButtonText, { color: palette.accent }]}>Report</Text>
+            <Text style={[styles.snapshotButtonText, { color: palette.onAccent }]}>Report</Text>
+            <Ionicons name="arrow-forward" size={14} color={palette.onAccent} />
           </AnimatedPressable>
         </View>
 
-        <View style={styles.wellnessGrid}>
-          <WellnessMini icon="happy-outline" label="Mood" value={wellnessSnapshot.mood} />
+        <View style={[styles.wellnessHeroMetric, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
+          <View style={[styles.wellnessHeroIcon, { backgroundColor: palette.surface }]}>
+            <Ionicons name="happy-outline" size={24} color={palette.accent} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.wellnessHeroLabel, { color: palette.accent }]}>Mood check-in</Text>
+            <Text style={[styles.wellnessHeroValue, { color: palette.ink }]} numberOfLines={1}>
+              {wellnessSnapshot.mood}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.wellnessMetricRow}>
           <WellnessMini icon="moon-outline" label="Sleep" value={wellnessSnapshot.sleep} />
-          <WellnessMini icon="restaurant-outline" label="Cravings" value={`${wellnessSnapshot.cravings} this week`} />
+          <WellnessMini icon="restaurant-outline" label="Cravings" value={`${wellnessSnapshot.cravings}`} />
           <WellnessMini icon="scale-outline" label="Weight" value={wellnessSnapshot.weight} />
         </View>
       </View>
@@ -775,13 +788,15 @@ function WellnessMini({ icon, label, value }: { icon: keyof typeof Ionicons.glyp
   return (
     <View style={[styles.wellnessMiniCard, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
       <View style={[styles.wellnessMiniIcon, { backgroundColor: palette.accentSoft }]}>
-        <Ionicons name={icon} size={18} color={palette.accent} />
+        <Ionicons name={icon} size={17} color={palette.accent} />
       </View>
 
       <Text style={[styles.wellnessMiniValue, { color: palette.ink }]} numberOfLines={1}>
         {value}
       </Text>
-      <Text style={[styles.wellnessMiniLabel, { color: palette.text }]}>{label}</Text>
+      <Text style={[styles.wellnessMiniLabel, { color: palette.text }]} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -1177,9 +1192,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   wellnessSnapshotCard: {
-    borderRadius: 30,
+    borderRadius: 32,
     borderWidth: 1,
-    padding: 18,
+    padding: 16,
     marginBottom: 16,
   },
   wellnessSnapshotHeader: {
@@ -1191,39 +1206,67 @@ const styles = StyleSheet.create({
   },
   snapshotButton: {
     minHeight: 38,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingHorizontal: 13,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
   },
   snapshotButtonText: {
     ...type.tiny,
     fontWeight: '900',
   },
-  wellnessGrid: {
+  wellnessHeroMetric: {
+    minHeight: 86,
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 14,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    alignItems: 'center',
+    gap: 13,
+    marginBottom: 10,
+  },
+  wellnessHeroIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wellnessHeroLabel: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginBottom: 3,
+  },
+  wellnessHeroValue: {
+    ...type.bodyStrong,
+    fontSize: 22,
+    lineHeight: 27,
+  },
+  wellnessMetricRow: {
+    flexDirection: 'row',
+    gap: 8,
   },
   wellnessMiniCard: {
-    width: '48%',
-    minHeight: 104,
+    flex: 1,
+    minHeight: 96,
     borderRadius: 22,
     borderWidth: 1,
-    padding: 13,
+    padding: 11,
   },
   wellnessMiniIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 15,
+    width: 34,
+    height: 34,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
   wellnessMiniValue: {
     ...type.bodyStrong,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 14.5,
+    lineHeight: 19,
   },
   wellnessMiniLabel: {
     ...type.tiny,
