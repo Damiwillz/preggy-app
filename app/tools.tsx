@@ -209,6 +209,14 @@ const tools: ToolItem[] = [
     category: 'Support',
     featured: true,
   },
+  {
+    icon: 'newspaper-outline',
+    title: 'Weekly Report',
+    copy: 'Review your 7-day summary',
+    route: '/weekly-report',
+    category: 'Support',
+    featured: true,
+  },
 ];
 
 export default function ToolsScreen() {
