@@ -182,6 +182,12 @@ export default function HomeScreen() {
   const [dailyCareDone, setDailyCareDone] = useState(0);
   const [waterCups, setWaterCups] = useState(0);
   const [todayKicks, setTodayKicks] = useState(0);
+  const [wellnessSnapshot, setWellnessSnapshot] = useState({
+    mood: 'No mood yet',
+    sleep: 'No sleep yet',
+    cravings: 0,
+    weight: 'No weight yet',
+  });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [dateDraft, setDateDraft] = useState(() => toDateKey(new Date()));
 
@@ -311,6 +317,46 @@ export default function HomeScreen() {
   const dailyCareProgress = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
   const reminderIndex = Math.abs(selectedDateKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)) % gentleReminders.length;
   const gentleReminder = gentleReminders[reminderIndex];
+
+  useFocusEffect(
+    useCallback(() => {
+      async function loadWellnessSnapshot() {
+        try {
+          const [moodRaw, sleepRaw, cravingsRaw, weightRaw] = await Promise.all([
+            AsyncStorage.getItem('preggy:mood-tracker'),
+            AsyncStorage.getItem('preggy:sleep-tracker'),
+            AsyncStorage.getItem('preggy:cravings-tracker'),
+            AsyncStorage.getItem('preggy:weight-tracker'),
+          ]);
+
+          const moods = moodRaw ? JSON.parse(moodRaw) : [];
+          const sleeps = sleepRaw ? JSON.parse(sleepRaw) : [];
+          const cravings = cravingsRaw ? JSON.parse(cravingsRaw) : [];
+          const weights = weightRaw ? JSON.parse(weightRaw) : [];
+
+          const latestMood = Array.isArray(moods) ? moods[0] : null;
+          const latestSleep = Array.isArray(sleeps) ? sleeps[0] : null;
+          const latestWeight = Array.isArray(weights) ? weights[0] : null;
+
+          const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+          const recentCravings = Array.isArray(cravings)
+            ? cravings.filter((item) => Number(item.createdAt) >= sevenDaysAgo).length
+            : 0;
+
+          setWellnessSnapshot({
+            mood: latestMood?.mood ? String(latestMood.mood) : 'No mood yet',
+            sleep: latestSleep?.hours ? `${latestSleep.hours} hrs` : 'No sleep yet',
+            cravings: recentCravings,
+            weight: latestWeight?.weight ? `${latestWeight.weight} kg` : 'No weight yet',
+          });
+        } catch (error) {
+          console.log('Wellness snapshot load error:', error);
+        }
+      }
+
+      void loadWellnessSnapshot();
+    }, [])
+  );
 
   return (
     <Screen bottomSpace={120}>
@@ -535,6 +581,29 @@ export default function HomeScreen() {
         />
       </View>
 
+      <View style={[styles.wellnessSnapshotCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.wellnessSnapshotHeader}>
+          <View>
+            <Text style={[styles.sectionEyebrow, { color: palette.accent }]}>WELLNESS SNAPSHOT</Text>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Your recent check-ins</Text>
+          </View>
+
+          <AnimatedPressable
+            onPress={() => router.push('/weekly-report' as never)}
+            style={[styles.snapshotButton, { backgroundColor: palette.accentSoft }]}
+          >
+            <Text style={[styles.snapshotButtonText, { color: palette.accent }]}>Report</Text>
+          </AnimatedPressable>
+        </View>
+
+        <View style={styles.wellnessGrid}>
+          <WellnessMini icon="happy-outline" label="Mood" value={wellnessSnapshot.mood} />
+          <WellnessMini icon="moon-outline" label="Sleep" value={wellnessSnapshot.sleep} />
+          <WellnessMini icon="restaurant-outline" label="Cravings" value={`${wellnessSnapshot.cravings} this week`} />
+          <WellnessMini icon="scale-outline" label="Weight" value={wellnessSnapshot.weight} />
+        </View>
+      </View>
+
       <AnimatedPressable
         onPress={() => router.push('/timeline' as never)}
         style={[styles.timelineFeatureCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
@@ -697,6 +766,23 @@ export default function HomeScreen() {
         <Ionicons name="chevron-forward" size={21} color={palette.accent} />
       </AnimatedPressable>
     </Screen>
+  );
+}
+
+function WellnessMini({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  const { palette } = useAppTheme();
+
+  return (
+    <View style={[styles.wellnessMiniCard, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+      <View style={[styles.wellnessMiniIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={icon} size={18} color={palette.accent} />
+      </View>
+
+      <Text style={[styles.wellnessMiniValue, { color: palette.ink }]} numberOfLines={1}>
+        {value}
+      </Text>
+      <Text style={[styles.wellnessMiniLabel, { color: palette.text }]}>{label}</Text>
+    </View>
   );
 }
 
@@ -1089,6 +1175,60 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  wellnessSnapshotCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  wellnessSnapshotHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  snapshotButton: {
+    minHeight: 38,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  snapshotButtonText: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  wellnessGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  wellnessMiniCard: {
+    width: '48%',
+    minHeight: 104,
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 13,
+  },
+  wellnessMiniIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  wellnessMiniValue: {
+    ...type.bodyStrong,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  wellnessMiniLabel: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginTop: 3,
   },
   summaryRow: {
     flexDirection: 'row',
