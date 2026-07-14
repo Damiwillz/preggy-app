@@ -362,104 +362,99 @@ export default function HomeScreen() {
     <Screen bottomSpace={120}>
       <Header />
 
-      <View style={[styles.heroIntroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.heroIntroTop}>
+      <View style={[styles.appleHeroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.appleHeroTop}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.greeting, { color: palette.text }]}>
+            <Text style={[styles.appleGreeting, { color: palette.text }]}>
               {greeting()}, {firstName}
             </Text>
-            <Text style={[styles.title, { color: palette.ink }]}>
-              Your calm pregnancy space
+            <Text style={[styles.appleHeroTitle, { color: palette.ink }]}>
+              Week {progress.week}
             </Text>
-            <Text style={[styles.introSubtext, { color: palette.text }]}>
-              Track today, plan ahead, and care for you and {babyName}.
+            <Text style={[styles.appleHeroCopy, { color: palette.text }]}>
+              Day {progress.day} with {babyName} • {progress.daysRemaining > 0 ? `${progress.daysRemaining} days to go` : 'Due date window'}
             </Text>
           </View>
 
           <AnimatedPressable
             onPress={() => router.push('/tools' as never)}
-            style={[styles.toolsCircle, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
+            style={[styles.appleIconButton, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
           >
             <Ionicons name="grid-outline" size={22} color={palette.accent} />
           </AnimatedPressable>
         </View>
 
-        <View style={styles.heroIntroStats}>
-          <View style={[styles.introMiniPill, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="calendar-outline" size={15} color={palette.accent} />
-            <Text style={[styles.introMiniText, { color: palette.accent }]}>Week {progress.week}</Text>
-          </View>
-
-          <View style={[styles.introMiniPill, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="heart-outline" size={15} color={palette.accent} />
-            <Text style={[styles.introMiniText, { color: palette.accent }]}>{progress.progress}% complete</Text>
-          </View>
+        <View style={[styles.appleProgressTrack, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.appleProgressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
         </View>
-      </View>
 
-      <View style={[styles.datePickerPanel, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.dateHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.dateHeaderLabel, { color: palette.accent }]}>SELECT DAY</Text>
-          <Text style={[styles.dateHeaderTitle, { color: palette.ink }]}>
-            {dateFromKey(selectedDateKey).toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-            })}
+        <View style={styles.appleHeroBottom}>
+          <Text style={[styles.appleProgressText, { color: palette.accent }]}>
+            {progress.progress}% complete
           </Text>
-        </View>
-
-        <View style={styles.dateHeaderActions}>
 
           <AnimatedPressable
-            onPress={openDatePicker}
-            style={[styles.chooseDateButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
+            onPress={() => router.push('/timeline' as never)}
+            style={styles.appleTextButton}
           >
-            <Ionicons name="calendar-outline" size={17} color={palette.accent} />
-            <Text style={[styles.chooseDateText, { color: palette.accent }]}>Choose</Text>
+            <Text style={[styles.appleTextButtonLabel, { color: palette.accent }]}>Timeline</Text>
+            <Ionicons name="chevron-forward" size={15} color={palette.accent} />
           </AnimatedPressable>
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.dateScroller}
-        style={styles.dateScroll}
-      >
-        {dateStrip.map((item) => {
-          const active = selectedDateKey === item.key;
+      <View style={[styles.appleDateCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.appleDateHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>TODAY</Text>
+            <Text style={[styles.appleDateTitle, { color: palette.ink }]}>
+              {dateFromKey(selectedDateKey).toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </Text>
+          </View>
 
-          return (
-            <AnimatedPressable
-              key={item.key}
-              onPress={() => setSelectedDateKey(item.key)}
-              style={[
-                styles.dateChip,
-                {
-                  backgroundColor: active ? palette.accent : palette.surface,
-                  borderColor: active ? palette.accent : palette.line,
-                  transform: [{ scale: active ? 1.03 : 1 }],
-                },
-              ]}
-            >
-              <Text style={[styles.dateMonth, { color: active ? palette.onAccent : palette.muted }]}>
-                {item.month}
-              </Text>
+          <AnimatedPressable
+            onPress={openDatePicker}
+            style={[styles.appleSmallButton, { backgroundColor: palette.accentSoft }]}
+          >
+            <Ionicons name="calendar-outline" size={16} color={palette.accent} />
+            <Text style={[styles.appleSmallButtonText, { color: palette.accent }]}>Choose</Text>
+          </AnimatedPressable>
+        </View>
 
-              <Text style={[styles.dateDay, { color: active ? palette.onAccent : palette.text }]}>
-                {item.isToday ? 'Today' : item.day}
-              </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.appleDateStrip}
+        >
+          {dateStrip.slice(0, 14).map((item) => {
+            const active = selectedDateKey === item.key;
 
-              <Text style={[styles.dateNumber, { color: active ? palette.onAccent : palette.ink }]}>
-                {item.date}
-              </Text>
-            </AnimatedPressable>
-          );
-        })}
-      </ScrollView>
-
+            return (
+              <AnimatedPressable
+                key={item.key}
+                onPress={() => setSelectedDateKey(item.key)}
+                style={[
+                  styles.appleDateChip,
+                  {
+                    backgroundColor: active ? palette.accent : palette.canvas,
+                    borderColor: active ? palette.accent : palette.line,
+                  },
+                ]}
+              >
+                <Text style={[styles.appleDateChipDay, { color: active ? palette.onAccent : palette.text }]}>
+                  {item.isToday ? 'Today' : item.day}
+                </Text>
+                <Text style={[styles.appleDateChipNumber, { color: active ? palette.onAccent : palette.ink }]}>
+                  {item.date}
+                </Text>
+              </AnimatedPressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <Modal visible={datePickerOpen} transparent animationType="fade">
@@ -503,59 +498,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      <AnimatedPressable
-        onPress={() => router.push('/timeline' as never)}
-        style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.line }]}
-      >
-        <View style={styles.heroTopClean}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.heroLabel, { color: palette.accent }]}>PREGNANCY JOURNEY</Text>
-            <Text style={[styles.heroTitle, { color: palette.ink }]}>Week {progress.week}</Text>
-            <Text style={[styles.heroSubtitle, { color: palette.text }]}>
-              Day {progress.day} • {progress.daysRemaining > 0 ? `${progress.daysRemaining} days left` : 'Due date window'}
-            </Text>
-          </View>
-
-          <View style={[styles.heroWeekBadge, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
-            <Text style={[styles.heroWeekBadgeText, { color: palette.accent }]}>D{progress.day}</Text>
-          </View>
-        </View>
-
-        <View style={styles.heroBodyClean}>
-          <View style={[styles.heroDiagramClean, { backgroundColor: palette.accentSoft }]}>
-            <View style={[styles.heroDiagramRingLarge, { borderColor: palette.accent }]} />
-            <View style={[styles.heroDiagramRingSmall, { borderColor: palette.accent }]} />
-            <View style={[styles.heroDiagramCenter, { backgroundColor: palette.surface }]}>
-              <Text style={styles.heroDiagramEmoji}>🤰</Text>
-            </View>
-          </View>
-
-          <View style={styles.heroMetricClean}>
-            <Text style={[styles.heroMetricValue, { color: palette.ink }]}>{progress.progress}%</Text>
-            <Text style={[styles.heroMetricLabel, { color: palette.text }]}>complete</Text>
-
-            <View style={[styles.heroDueChip, { backgroundColor: palette.accentSoft }]}>
-              <Ionicons name="time-outline" size={14} color={palette.accent} />
-              <Text style={[styles.heroDueText, { color: palette.accent }]}>
-                {progress.daysRemaining > 0 ? `${progress.daysRemaining} days left` : 'Due window'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={[styles.heroTrack, { backgroundColor: palette.accentSoft }]}>
-          <View style={[styles.heroFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
-        </View>
-
-        <View style={styles.heroFooter}>
-          <Text style={[styles.heroFooterText, { color: palette.text }]}>View timeline</Text>
-          <View style={[styles.heroArrow, { backgroundColor: palette.accent }]}>
-            <Ionicons name="arrow-forward" size={17} color={palette.onAccent} />
-          </View>
-        </View>
-      </AnimatedPressable>
-
-      <View style={styles.summaryRow}>
+      <View style={styles.appleSummaryRow}>
         <SummaryCard
           icon="water-outline"
           label="Care"
@@ -581,112 +524,72 @@ export default function HomeScreen() {
         />
       </View>
 
-      <View style={[styles.wellnessSnapshotCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.wellnessSnapshotHeader}>
+      <View style={[styles.appleWellnessCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.appleWellnessHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>WELLNESS SNAPSHOT</Text>
-            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Today’s overview</Text>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>WELLNESS</Text>
+            <Text style={[styles.appleSectionTitle, { color: palette.ink }]}>Today’s check-in</Text>
           </View>
 
           <AnimatedPressable
             onPress={() => router.push('/weekly-report' as never)}
-            style={[styles.snapshotButton, { backgroundColor: palette.accent }]}
+            style={[styles.appleSmallButton, { backgroundColor: palette.accentSoft }]}
           >
-            <Text style={[styles.snapshotButtonText, { color: palette.onAccent }]}>Report</Text>
-            <Ionicons name="arrow-forward" size={14} color={palette.onAccent} />
+            <Text style={[styles.appleSmallButtonText, { color: palette.accent }]}>Report</Text>
           </AnimatedPressable>
         </View>
 
-        <View style={[styles.wellnessHeroMetric, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
-          <View style={[styles.wellnessHeroIcon, { backgroundColor: palette.surface }]}>
-            <Ionicons name="happy-outline" size={24} color={palette.accent} />
+        <View style={[styles.appleMoodPanel, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.appleMoodIcon, { backgroundColor: palette.surface }]}>
+            <Ionicons name="happy-outline" size={22} color={palette.accent} />
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={[styles.wellnessHeroLabel, { color: palette.accent }]}>Mood check-in</Text>
-            <Text style={[styles.wellnessHeroValue, { color: palette.ink }]} numberOfLines={1}>
+            <Text style={[styles.appleMoodLabel, { color: palette.accent }]}>Mood</Text>
+            <Text style={[styles.appleMoodValue, { color: palette.ink }]} numberOfLines={1}>
               {wellnessSnapshot.mood}
             </Text>
           </View>
         </View>
 
-        <View style={styles.wellnessMetricRow}>
+        <View style={styles.appleWellnessTiles}>
           <WellnessMini icon="moon-outline" label="Sleep" value={wellnessSnapshot.sleep} />
           <WellnessMini icon="restaurant-outline" label="Cravings" value={`${wellnessSnapshot.cravings}`} />
           <WellnessMini icon="scale-outline" label="Weight" value={wellnessSnapshot.weight} />
         </View>
       </View>
 
-      <AnimatedPressable
-        onPress={() => router.push('/timeline' as never)}
-        style={[styles.timelineFeatureCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-      >
-        <View style={[styles.timelineFeatureIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name="map-outline" size={25} color={palette.accent} />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.eyebrow, { color: palette.accent }]}>CONTINUE JOURNEY</Text>
-          <Text style={[styles.timelineFeatureTitle, { color: palette.ink }]}>
-            View your pregnancy timeline
-          </Text>
-          <Text style={[styles.timelineFeatureCopy, { color: palette.text }]}>
-            Follow your weekly progress, milestones, and baby growth.
-          </Text>
-        </View>
-
-        <Ionicons name="chevron-forward" size={22} color={palette.muted} />
-      </AnimatedPressable>
-
-      <AnimatedPressable
-        onPress={() => router.push('/daily-care' as never)}
-        style={[styles.careCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-      >
-        <View style={styles.careTop}>
-          <View style={[styles.careIcon, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="heart-circle-outline" size={26} color={palette.accent} />
+      <View style={[styles.appleActionDock, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <AnimatedPressable
+          onPress={() => router.push('/log-symptoms' as never)}
+          style={[styles.appleDockButton, { backgroundColor: palette.canvas, borderColor: palette.line }]}
+        >
+          <View style={[styles.appleDockIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="add-circle-outline" size={20} color={palette.accent} />
           </View>
+          <Text style={[styles.appleDockText, { color: palette.ink }]}>Log</Text>
+        </AnimatedPressable>
 
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>TODAY’S CARE</Text>
-            <Text style={[styles.careTitle, { color: palette.ink }]}>
-              {dailyCareProgress}% of your routine complete
-            </Text>
-            <Text style={[styles.careCopy, { color: palette.text }]}>
-              Checklist, hydration, and gentle daily support.
-            </Text>
+        <AnimatedPressable
+          onPress={() => router.push('/tools' as never)}
+          style={[styles.appleDockButton, { backgroundColor: palette.canvas, borderColor: palette.line }]}
+        >
+          <View style={[styles.appleDockIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="grid-outline" size={20} color={palette.accent} />
           </View>
+          <Text style={[styles.appleDockText, { color: palette.ink }]}>Tools</Text>
+        </AnimatedPressable>
 
-          <Ionicons name="chevron-forward" size={22} color={palette.muted} />
-        </View>
-
-        <View style={[styles.careTrack, { backgroundColor: palette.accentSoft }]}>
-          <View style={[styles.careFill, { width: `${dailyCareProgress}%`, backgroundColor: palette.accent }]} />
-        </View>
-      </AnimatedPressable>
-
-      <AnimatedPressable
-        onPress={() => router.push('/tools' as never)}
-        style={[styles.toolsFeatureCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-      >
-        <View style={[styles.toolsFeatureIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name="grid-outline" size={26} color={palette.accent} />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.eyebrow, { color: palette.accent }]}>TOOLS & TRACKERS</Text>
-          <Text style={[styles.toolsFeatureTitle, { color: palette.ink }]}>
-            Open your pregnancy toolkit
-          </Text>
-          <Text style={[styles.toolsFeatureCopy, { color: palette.text }]}>
-            Kick counter, journal, hospital bag, birth plan, doctor questions, and more.
-          </Text>
-        </View>
-
-        <View style={[styles.toolsFeatureArrow, { backgroundColor: palette.accent }]}>
-          <Ionicons name="arrow-forward" size={19} color={palette.onAccent} />
-        </View>
-      </AnimatedPressable>
+        <AnimatedPressable
+          onPress={() => router.push('/ai-chat?fromTools=1' as never)}
+          style={[styles.appleDockButton, { backgroundColor: palette.canvas, borderColor: palette.line }]}
+        >
+          <View style={[styles.appleDockIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="sparkles-outline" size={20} color={palette.accent} />
+          </View>
+          <Text style={[styles.appleDockText, { color: palette.ink }]}>Ask AI</Text>
+        </AnimatedPressable>
+      </View>
 
       {loading ? (
         <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
@@ -869,6 +772,206 @@ function ActionCard({
 }
 
 const styles = StyleSheet.create({
+  appleHeroCard: {
+    borderRadius: 36,
+    borderWidth: 1,
+    padding: 20,
+    marginTop: 14,
+    marginBottom: 14,
+  },
+  appleHeroTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  appleGreeting: {
+    ...type.small,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  appleHeroTitle: {
+    ...type.title,
+    fontSize: 46,
+    lineHeight: 50,
+    letterSpacing: -1.6,
+  },
+  appleHeroCopy: {
+    ...type.small,
+    lineHeight: 21,
+    marginTop: 7,
+    fontWeight: '800',
+  },
+  appleIconButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleProgressTrack: {
+    height: 10,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginTop: 18,
+  },
+  appleProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  appleHeroBottom: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  appleProgressText: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  appleTextButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  appleTextButtonLabel: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  appleDateCard: {
+    borderRadius: 28,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 14,
+  },
+  appleDateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  appleDateTitle: {
+    ...type.bodyStrong,
+    fontSize: 22,
+    lineHeight: 27,
+    marginTop: 4,
+  },
+  appleSmallButton: {
+    minHeight: 38,
+    borderRadius: 17,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  appleSmallButtonText: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  appleDateStrip: {
+    gap: 8,
+    paddingRight: 4,
+  },
+  appleDateChip: {
+    width: 62,
+    minHeight: 70,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleDateChipDay: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  appleDateChipNumber: {
+    ...type.bodyStrong,
+    fontSize: 19,
+    lineHeight: 23,
+    marginTop: 4,
+  },
+  appleSummaryRow: {
+    flexDirection: 'row',
+    gap: 9,
+    marginBottom: 14,
+  },
+  appleWellnessCard: {
+    borderRadius: 32,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 14,
+  },
+  appleWellnessHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  appleSectionTitle: {
+    ...type.bodyStrong,
+    fontSize: 23,
+    lineHeight: 28,
+    marginTop: 4,
+  },
+  appleMoodPanel: {
+    minHeight: 84,
+    borderRadius: 26,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    marginBottom: 10,
+  },
+  appleMoodIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleMoodLabel: {
+    ...type.tiny,
+    fontWeight: '900',
+    marginBottom: 3,
+  },
+  appleMoodValue: {
+    ...type.bodyStrong,
+    fontSize: 22,
+    lineHeight: 27,
+  },
+  appleWellnessTiles: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  appleActionDock: {
+    borderRadius: 30,
+    borderWidth: 1,
+    padding: 10,
+    marginBottom: 14,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  appleDockButton: {
+    flex: 1,
+    minHeight: 82,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  appleDockIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleDockText: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
   heroIntroCard: {
     borderRadius: 32,
     borderWidth: 1,
