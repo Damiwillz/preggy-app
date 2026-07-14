@@ -217,6 +217,14 @@ const tools: ToolItem[] = [
     category: 'Support',
     featured: true,
   },
+  {
+    icon: 'notifications-outline',
+    title: 'Reminder Settings',
+    copy: 'Manage reminder preferences',
+    route: '/reminder-settings',
+    category: 'Support',
+    featured: true,
+  },
 ];
 
 export default function ToolsScreen() {
