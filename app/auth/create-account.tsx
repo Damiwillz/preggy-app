@@ -36,7 +36,7 @@ export default function CreateAccountScreen() {
       Alert.alert('Account created', 'Welcome to Preggy.', [
         {
           text: 'Continue',
-          onPress: () => router.replace('/(tabs)/home' as never),
+          onPress: () => router.replace('/onboarding/pregnancy-profile' as never),
         },
       ]);
     } catch (error) {
