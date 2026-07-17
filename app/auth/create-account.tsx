@@ -31,7 +31,17 @@ export default function CreateAccountScreen() {
     setLoading(true);
 
     try {
-      await signUpWithEmail(email.trim(), password, fullName.trim());
+      const result = await signUpWithEmail(email.trim(), password, fullName.trim());
+
+      if (!result.session) {
+        Alert.alert('Check your email', 'Your account was created. Confirm your email, then log in to finish setup.', [
+          {
+            text: 'Go to login',
+            onPress: () => router.replace('/auth/log-in' as never),
+          },
+        ]);
+        return;
+      }
 
       Alert.alert('Account created', 'Welcome to Preggy.', [
         {
@@ -41,7 +51,10 @@ export default function CreateAccountScreen() {
       ]);
     } catch (error) {
       console.log('Create account error:', error);
-      Alert.alert('Could not create account', 'Please check your details and try again.');
+      const message = error instanceof Error && error.message
+        ? error.message
+        : 'Please check your details and try again.';
+      Alert.alert('Could not create account', message);
     } finally {
       setLoading(false);
     }

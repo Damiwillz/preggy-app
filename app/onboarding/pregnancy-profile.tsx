@@ -15,6 +15,22 @@ import { updateMyProfile } from '@/services/profile';
 const TOTAL_PREGNANCY_DAYS = 280;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+function getSaveErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+
+    if (typeof message === 'string' && message.trim()) {
+      return message;
+    }
+  }
+
+  return 'Please try again in a moment.';
+}
+
 function clampNumber(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
@@ -115,8 +131,9 @@ export default function PregnancyProfileScreen() {
 
       router.replace('/(tabs)/home' as never);
     } catch (error) {
-      console.log('Pregnancy profile save error:', error);
-      Alert.alert('Could not save', 'Please try again in a moment.');
+      const message = getSaveErrorMessage(error);
+      console.log('Pregnancy profile save error:', message, error);
+      Alert.alert('Could not save', message);
     } finally {
       setSaving(false);
     }

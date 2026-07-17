@@ -15,6 +15,7 @@ function getFallbackName(email?: string | null) {
   if (!email) return 'Sarah Miller';
 
   const name = email.split('@')[0] ?? 'Sarah';
+
   return name
     .replace(/[._-]/g, ' ')
     .split(' ')
@@ -23,16 +24,62 @@ function getFallbackName(email?: string | null) {
     .join(' ');
 }
 
-export async function getMyProfile() {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+function getUserName(user: { email?: string | null; user_metadata?: Record<string, unknown> }) {
+  const metadataName = user.user_metadata?.full_name;
 
-  if (userError) throw userError;
-
-  const user = userData.user;
-
-  if (!user) {
-    throw new Error('No logged in user.');
+  if (typeof metadataName === 'string' && metadataName.trim()) {
+    return metadataName.trim();
   }
+
+  return getFallbackName(user.email);
+}
+
+async function getCurrentUser() {
+  const { data, error } = await supabase.auth.getSession();
+
+  if (error) throw error;
+
+  if (!data.session?.user) {
+    throw new Error('Please log in again before saving your pregnancy profile.');
+  }
+
+  return data.session.user;
+}
+
+function starterProfile(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }) {
+  const fullName = getUserName(user);
+
+  return {
+    id: user.id,
+    full_name: fullName,
+    username: fullName,
+    baby_nickname: 'Peanut',
+    pregnancy_week: 24,
+    pregnancy_days: 0,
+  };
+}
+
+function withoutDueDate(profile: Partial<UserProfile>) {
+  const { due_date: _dueDate, ...rest } = profile;
+
+  return rest;
+}
+
+function shouldRetryWithoutDueDate(error: unknown, profile: Partial<UserProfile>) {
+  if (profile.due_date === undefined) return false;
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error && 'message' in error
+        ? String((error as { message?: unknown }).message)
+        : '';
+
+  return message.toLowerCase().includes('due_date');
+}
+
+export async function getMyProfile() {
+  const user = await getCurrentUser();
 
   const { data, error } = await supabase
     .from('profiles')
@@ -46,52 +93,66 @@ export async function getMyProfile() {
     return data as UserProfile;
   }
 
-  const fullName =
-    typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()
-      ? user.user_metadata.full_name.trim()
-      : getFallbackName(user.email);
-
   const { data: createdProfile, error: createError } = await supabase
     .from('profiles')
-    .insert({
-      id: user.id,
-      full_name: fullName,
-      username: fullName,
-      baby_nickname: 'Peanut',
-      pregnancy_week: 24,
-      pregnancy_days: 0,
-    })
+    .insert(starterProfile(user))
     .select()
     .single();
 
   if (createError) throw createError;
 
-  await supabase.from('privacy_settings').upsert({
-    user_id: user.id,
-  });
+  return createdProfile as UserProfile;
+}
+
+async function updateMyProfileAttempt(profile: Partial<UserProfile>, canRetryDueDate: boolean): Promise<UserProfile> {
+  const user = await getCurrentUser();
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(profile)
+    .eq('id', user.id)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    if (canRetryDueDate && shouldRetryWithoutDueDate(error, profile)) {
+      return updateMyProfileAttempt(withoutDueDate(profile), false);
+    }
+
+    throw error;
+  }
+
+  if (data) {
+    return data as UserProfile;
+  }
+
+  const base = starterProfile(user);
+  const fullName = profile.full_name?.trim() || base.full_name;
+  const username = profile.username?.trim() || fullName;
+
+  const { data: createdProfile, error: createError } = await supabase
+    .from('profiles')
+    .insert({
+      ...base,
+      ...profile,
+      id: user.id,
+      full_name: fullName,
+      username,
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    if (canRetryDueDate && shouldRetryWithoutDueDate(createError, profile)) {
+      return updateMyProfileAttempt(withoutDueDate(profile), false);
+    }
+
+    throw createError;
+  }
 
   return createdProfile as UserProfile;
 }
 
 export async function updateMyProfile(profile: Partial<UserProfile>) {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-
-  if (userError) throw userError;
-
-  const userId = userData.user?.id;
-
-  if (!userId) {
-    throw new Error('No logged in user.');
-  }
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(profile)
-    .eq('id', userId)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  return data as UserProfile;
+  return updateMyProfileAttempt(profile, true);
 }
