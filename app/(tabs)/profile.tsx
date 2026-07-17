@@ -253,6 +253,14 @@ export default function ProfileScreen() {
       <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <Row
           palette={palette}
+          icon="heart-outline"
+          label="Pregnancy Profile"
+          detail="Baby nickname, due date, week and days"
+          onPress={() => router.push('/onboarding/pregnancy-profile' as never)}
+        />
+
+        <Row
+          palette={palette}
           icon="person-circle-outline"
           label="Edit profile"
           detail="Name, baby nickname and due date"

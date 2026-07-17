@@ -31,7 +31,8 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="onboarding/index" />
           <Stack.Screen name="onboarding/track-milestones" />
-          <Stack.Screen name="onboarding/personal-guidance" />\n          <Stack.Screen name="onboarding/pregnancy-profile" />
+          <Stack.Screen name="onboarding/personal-guidance" />
+          <Stack.Screen name="onboarding/pregnancy-profile" />
           <Stack.Screen name="auth/log-in" />
           <Stack.Screen name="auth/create-account" />
           <Stack.Screen name="auth/reset-password" />
