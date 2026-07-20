@@ -56,6 +56,14 @@ const categories: Array<ToolCategory | 'All'> = ['All', 'Tracking', 'Planning', 
 
 const tools: ToolItem[] = [
   {
+    icon: 'home-outline',
+    title: 'Postpartum Plan',
+    copy: 'Prepare recovery and home support',
+    route: '/postpartum-plan',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'heart-circle-outline',
     title: 'Blood Pressure',
     copy: 'Log pressure, pulse and notes',
