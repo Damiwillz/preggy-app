@@ -53,6 +53,7 @@ export default function RootLayout() {
           <Stack.Screen name="doctor-visit-pack" />
           <Stack.Screen name="safety-center" />
           <Stack.Screen name="documents-checklist" />
+          <Stack.Screen name="blood-pressure-tracker" />
           <Stack.Screen name="ai-chat" />
         <Stack.Screen name="reminders" options={{ headerShown: false }} />
           <Stack.Screen name="appearance" />

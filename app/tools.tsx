@@ -56,6 +56,14 @@ const categories: Array<ToolCategory | 'All'> = ['All', 'Tracking', 'Planning', 
 
 const tools: ToolItem[] = [
   {
+    icon: 'heart-circle-outline',
+    title: 'Blood Pressure',
+    copy: 'Log pressure, pulse and notes',
+    route: '/blood-pressure-tracker',
+    category: 'Tracking',
+    featured: true,
+  },
+  {
     icon: 'folder-outline',
     title: 'Documents Checklist',
     copy: 'Keep important papers ready',
