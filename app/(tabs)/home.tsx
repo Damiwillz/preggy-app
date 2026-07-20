@@ -1,5 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -45,16 +53,6 @@ type Appointment = {
 const DAILY_CARE_TOTAL = 5;
 const WATER_TARGET = 8;
 
-const gentleReminders = [
-  'You are doing something beautiful, one calm day at a time.',
-  'Your body is working hard. Rest is productive too.',
-  'Small steps still count on heavy days.',
-  'You and baby are growing through this together.',
-  'Breathe softly. You do not have to do everything today.',
-  'Every check-in is an act of care.',
-  'You are allowed to move gently and rest deeply.',
-];
-
 function getChecklistStorageKey(dateKey: string) {
   return `preggy:daily-care:${dateKey}`;
 }
@@ -68,7 +66,11 @@ function getKickStorageKey(dateKey: string) {
 }
 
 function toDateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
 }
 
 function dateFromKey(dateKey: string) {
@@ -76,11 +78,20 @@ function dateFromKey(dateKey: string) {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+function parseSavedArray(raw: string | null) {
+  try {
+    const value = raw ? JSON.parse(raw) : [];
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
 function buildDateStrip(selectedDateKey: string) {
   const today = new Date();
   const todayKey = toDateKey(today);
 
-  const dates = Array.from({ length: 120 }, (_, offset) => {
+  return Array.from({ length: 10 }, (_, offset) => {
     const date = new Date(today);
     date.setDate(today.getDate() + offset);
     const key = toDateKey(date);
@@ -94,23 +105,6 @@ function buildDateStrip(selectedDateKey: string) {
       isSelected: key === selectedDateKey,
     };
   });
-
-  const selectedExists = dates.some((item) => item.key === selectedDateKey);
-
-  if (!selectedExists) {
-    const selectedDate = dateFromKey(selectedDateKey);
-
-    dates.unshift({
-      key: selectedDateKey,
-      day: selectedDate.toLocaleDateString('en-US', { weekday: 'short' }),
-      date: selectedDate.toLocaleDateString('en-US', { day: '2-digit' }),
-      month: selectedDate.toLocaleDateString('en-US', { month: 'short' }),
-      isToday: selectedDateKey === todayKey,
-      isSelected: true,
-    });
-  }
-
-  return dates;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -126,12 +120,10 @@ function getPregnancyProgress(profile: UserProfile | null) {
       const msPerDay = 1000 * 60 * 60 * 24;
       const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / msPerDay);
       const pregnancyDay = clamp(280 - daysRemaining, 0, 280);
-      const week = clamp(Math.floor(pregnancyDay / 7) + 1, 1, 40);
-      const day = pregnancyDay % 7;
 
       return {
-        week,
-        day,
+        week: clamp(Math.floor(pregnancyDay / 7) + 1, 1, 40),
+        day: pregnancyDay % 7,
         progress: Math.round((pregnancyDay / 280) * 100),
         daysRemaining: clamp(daysRemaining, 0, 280),
       };
@@ -170,6 +162,90 @@ function greeting() {
   return 'Good evening';
 }
 
+function StatCard({
+  icon,
+  label,
+  value,
+  detail,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  detail: string;
+  onPress: () => void;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      style={[styles.statCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+    >
+      <View style={[styles.statIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={icon} size={19} color={palette.accent} />
+      </View>
+
+      <Text style={[styles.statValue, { color: palette.ink }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: palette.accent }]}>{label}</Text>
+      <Text style={[styles.statDetail, { color: palette.text }]}>{detail}</Text>
+    </AnimatedPressable>
+  );
+}
+
+function ActionRow({
+  icon,
+  title,
+  detail,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  detail: string;
+  onPress: () => void;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <AnimatedPressable onPress={onPress} style={[styles.actionRow, { borderBottomColor: palette.line }]}>
+      <View style={[styles.actionIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={icon} size={19} color={palette.accent} />
+      </View>
+
+      <View style={styles.actionTextWrap}>
+        <Text style={[styles.actionTitle, { color: palette.ink }]}>{title}</Text>
+        <Text style={[styles.actionDetail, { color: palette.text }]} numberOfLines={1}>
+          {detail}
+        </Text>
+      </View>
+
+      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+    </AnimatedPressable>
+  );
+}
+
+function WellnessPill({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <View style={[styles.wellnessPill, { backgroundColor: palette.accentSoft }]}>
+      <Ionicons name={icon} size={16} color={palette.accent} />
+      <Text style={[styles.wellnessLabel, { color: palette.text }]}>{label}</Text>
+      <Text style={[styles.wellnessValue, { color: palette.ink }]} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const { palette } = useAppTheme();
 
@@ -191,7 +267,6 @@ export default function HomeScreen() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [dateDraft, setDateDraft] = useState(() => toDateKey(new Date()));
 
-
   function openDatePicker() {
     setDateDraft(selectedDateKey);
     setDatePickerOpen(true);
@@ -209,94 +284,111 @@ export default function HomeScreen() {
     setDatePickerOpen(false);
   }
 
-  async function loadDailyCareSummary(dateKey = selectedDateKey) {
-    try {
-      const savedCare = await AsyncStorage.getItem(getChecklistStorageKey(dateKey));
-      const parsedCare = savedCare ? JSON.parse(savedCare) : [];
-
-      const savedWater = await AsyncStorage.getItem(getWaterStorageKey(dateKey));
-      const parsedWater = savedWater ? Number.parseInt(savedWater, 10) : 0;
-
-      setDailyCareDone(Array.isArray(parsedCare) ? Math.min(parsedCare.length, DAILY_CARE_TOTAL) : 0);
-      setWaterCups(Number.isFinite(parsedWater) ? Math.min(Math.max(parsedWater, 0), WATER_TARGET) : 0);
-    } catch (error) {
-      console.log('Daily care summary load error:', error);
-      setDailyCareDone(0);
-      setWaterCups(0);
-    }
-  }
-
-  async function loadKickSummary(dateKey = selectedDateKey) {
-    try {
-      const savedKicks = await AsyncStorage.getItem(getKickStorageKey(dateKey));
-      const parsedKicks = savedKicks ? Number.parseInt(savedKicks, 10) : 0;
-
-      setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
-    } catch (error) {
-      console.log('Kick summary load error:', error);
-      setTodayKicks(0);
-    }
-  }
-
-  async function loadDashboard(dateKey = selectedDateKey) {
-    setLoading(true);
-
-    const profileData = await getMyProfile();
-    setProfile(profileData);
-
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-
-    if (userError) throw userError;
-
-    const userId = userData.user?.id;
-    if (!userId) throw new Error('No logged in user.');
-
-    const [logResult, medsResult, appointmentResult] = await Promise.all([
-      supabase
-        .from('symptom_logs')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('created_at', `${dateKey}T00:00:00`)
-        .lt('created_at', `${dateKey}T23:59:59`)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from('medications')
-        .select('*')
-        .eq('user_id', userId),
-      supabase
-        .from('appointments')
-        .select('*')
-        .eq('user_id', userId)
-        .neq('status', 'Cancelled')
-        .or(`appointment_date.eq.${dateKey},date.eq.${dateKey}`)
-        .order('appointment_at', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-
-    if (logResult.error) throw logResult.error;
-    if (medsResult.error) throw medsResult.error;
-    if (appointmentResult.error) throw appointmentResult.error;
-
-    setLatestLog((logResult.data as SymptomLog | null) ?? null);
-    setMedications((medsResult.data ?? []) as Medication[]);
-    setNextAppointment((appointmentResult.data as Appointment | null) ?? null);
-  }
-
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
 
-      Promise.all([loadDashboard(), loadDailyCareSummary(), loadKickSummary()])
-        .catch((error) => {
+      async function loadHome() {
+        try {
+          setLoading(true);
+
+          const profileData = await getMyProfile();
+          if (!mounted) return;
+
+          setProfile(profileData);
+
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+
+          if (userError) throw userError;
+
+          const userId = userData.user?.id;
+          if (!userId) throw new Error('No logged in user.');
+
+          const [
+            logResult,
+            medsResult,
+            appointmentResult,
+            savedCare,
+            savedWater,
+            savedKicks,
+            moodRaw,
+            sleepRaw,
+            cravingsRaw,
+            weightRaw,
+          ] = await Promise.all([
+            supabase
+              .from('symptom_logs')
+              .select('*')
+              .eq('user_id', userId)
+              .gte('created_at', `${selectedDateKey}T00:00:00`)
+              .lt('created_at', `${selectedDateKey}T23:59:59`)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase.from('medications').select('*').eq('user_id', userId),
+            supabase
+              .from('appointments')
+              .select('*')
+              .eq('user_id', userId)
+              .neq('status', 'Cancelled')
+              .or(`appointment_date.eq.${selectedDateKey},date.eq.${selectedDateKey}`)
+              .order('appointment_at', { ascending: true, nullsFirst: false })
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            AsyncStorage.getItem(getChecklistStorageKey(selectedDateKey)),
+            AsyncStorage.getItem(getWaterStorageKey(selectedDateKey)),
+            AsyncStorage.getItem(getKickStorageKey(selectedDateKey)),
+            AsyncStorage.getItem('preggy:mood-tracker'),
+            AsyncStorage.getItem('preggy:sleep-tracker'),
+            AsyncStorage.getItem('preggy:cravings-tracker'),
+            AsyncStorage.getItem('preggy:weight-tracker'),
+          ]);
+
+          if (!mounted) return;
+
+          if (logResult.error) throw logResult.error;
+          if (medsResult.error) throw medsResult.error;
+          if (appointmentResult.error) throw appointmentResult.error;
+
+          setLatestLog((logResult.data as SymptomLog | null) ?? null);
+          setMedications((medsResult.data ?? []) as Medication[]);
+          setNextAppointment((appointmentResult.data as Appointment | null) ?? null);
+
+          const parsedCare = parseSavedArray(savedCare);
+          const parsedWater = savedWater ? Number.parseInt(savedWater, 10) : 0;
+          const parsedKicks = savedKicks ? Number.parseInt(savedKicks, 10) : 0;
+
+          setDailyCareDone(Math.min(parsedCare.length, DAILY_CARE_TOTAL));
+          setWaterCups(Number.isFinite(parsedWater) ? clamp(parsedWater, 0, WATER_TARGET) : 0);
+          setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
+
+          const moods = parseSavedArray(moodRaw);
+          const sleeps = parseSavedArray(sleepRaw);
+          const cravings = parseSavedArray(cravingsRaw);
+          const weights = parseSavedArray(weightRaw);
+
+          const latestMood = moods[0];
+          const latestSleep = sleeps[0];
+          const latestWeight = weights[0];
+
+          const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+          const recentCravings = cravings.filter((item) => Number(item.createdAt) >= sevenDaysAgo).length;
+
+          setWellnessSnapshot({
+            mood: latestMood?.mood ? String(latestMood.mood) : 'No mood yet',
+            sleep: latestSleep?.hours ? String(latestSleep.hours).replace(/\s*(hours|hrs)$/i, '') + ' hrs' : 'No sleep yet',
+            cravings: recentCravings,
+            weight: latestWeight?.weight ? `${latestWeight.weight} kg` : 'No weight yet',
+          });
+        } catch (error) {
           console.log('Home dashboard error:', error);
-        })
-        .finally(() => {
+        } finally {
           if (mounted) setLoading(false);
-        });
+        }
+      }
+
+      void loadHome();
 
       return () => {
         mounted = false;
@@ -314,100 +406,68 @@ export default function HomeScreen() {
   const appointmentDate = nextAppointment?.appointment_date || nextAppointment?.date;
   const appointmentTime = nextAppointment?.appointment_time || nextAppointment?.time;
   const appointmentPlace = nextAppointment?.clinic_name || nextAppointment?.location;
+  const appointmentTitle = nextAppointment?.title || nextAppointment?.type || 'No appointment today';
   const dailyCareProgress = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
-  const reminderIndex = Math.abs(selectedDateKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)) % gentleReminders.length;
-  const gentleReminder = gentleReminders[reminderIndex];
-
-  useFocusEffect(
-    useCallback(() => {
-      async function loadWellnessSnapshot() {
-        try {
-          const [moodRaw, sleepRaw, cravingsRaw, weightRaw] = await Promise.all([
-            AsyncStorage.getItem('preggy:mood-tracker'),
-            AsyncStorage.getItem('preggy:sleep-tracker'),
-            AsyncStorage.getItem('preggy:cravings-tracker'),
-            AsyncStorage.getItem('preggy:weight-tracker'),
-          ]);
-
-          const moods = moodRaw ? JSON.parse(moodRaw) : [];
-          const sleeps = sleepRaw ? JSON.parse(sleepRaw) : [];
-          const cravings = cravingsRaw ? JSON.parse(cravingsRaw) : [];
-          const weights = weightRaw ? JSON.parse(weightRaw) : [];
-
-          const latestMood = Array.isArray(moods) ? moods[0] : null;
-          const latestSleep = Array.isArray(sleeps) ? sleeps[0] : null;
-          const latestWeight = Array.isArray(weights) ? weights[0] : null;
-
-          const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-          const recentCravings = Array.isArray(cravings)
-            ? cravings.filter((item) => Number(item.createdAt) >= sevenDaysAgo).length
-            : 0;
-
-          setWellnessSnapshot({
-            mood: latestMood?.mood ? String(latestMood.mood) : 'No mood yet',
-            sleep: latestSleep?.hours ? String(latestSleep.hours).replace(/\s*(hours|hrs)$/i, '') + ' hrs' : 'No sleep yet',
-            cravings: recentCravings,
-            weight: latestWeight?.weight ? `${latestWeight.weight} kg` : 'No weight yet',
-          });
-        } catch (error) {
-          console.log('Wellness snapshot load error:', error);
-        }
-      }
-
-      void loadWellnessSnapshot();
-    }, [])
-  );
 
   return (
-    <Screen bottomSpace={120}>
+    <Screen bottomSpace={118}>
       <Header />
 
-      <View style={[styles.appleHeroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.appleHeroTop}>
+      <View style={styles.heroHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>{greeting()}, {firstName}</Text>
+          <Text style={[styles.pageTitle, { color: palette.ink }]}>Your day at a glance</Text>
+        </View>
+
+        <AnimatedPressable
+          onPress={() => router.push('/ai-chat?fromTools=1' as never)}
+          style={[styles.aiButton, { backgroundColor: palette.accentSoft }]}
+        >
+          <Ionicons name="sparkles-outline" size={18} color={palette.accent} />
+          <Text style={[styles.aiButtonText, { color: palette.accent }]}>AI</Text>
+        </AnimatedPressable>
+      </View>
+
+      <View style={[styles.progressCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.accentRail, { backgroundColor: palette.accent }]} />
+
+        <View style={styles.progressTop}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.appleGreeting, { color: palette.text }]}>
-              {greeting()}, {firstName}
-            </Text>
-            <Text style={[styles.appleHeroTitle, { color: palette.ink }]}>
-              Week {progress.week}
-            </Text>
-            <Text style={[styles.appleHeroCopy, { color: palette.text }]}>
+            <Text style={[styles.cardLabel, { color: palette.accent }]}>PREGNANCY</Text>
+            <Text style={[styles.weekTitle, { color: palette.ink }]}>Week {progress.week}</Text>
+            <Text style={[styles.weekDetail, { color: palette.text }]}>
               Day {progress.day} with {babyName} • {progress.daysRemaining > 0 ? `${progress.daysRemaining} days to go` : 'Due date window'}
             </Text>
           </View>
 
-          <AnimatedPressable
-            onPress={() => router.push('/tools' as never)}
-            style={[styles.appleIconButton, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
-          >
-            <Ionicons name="grid-outline" size={22} color={palette.accent} />
+          <View style={[styles.percentBadge, { backgroundColor: palette.accentSoft }]}>
+            <Text style={[styles.percentValue, { color: palette.accent }]}>{progress.progress}%</Text>
+            <Text style={[styles.percentLabel, { color: palette.text }]}>done</Text>
+          </View>
+        </View>
+
+        <View style={[styles.progressTrack, { backgroundColor: palette.accentSoft }]}>
+          <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
+        </View>
+
+        <View style={styles.progressActions}>
+          <AnimatedPressable onPress={() => router.push('/timeline' as never)} style={styles.inlineAction}>
+            <Text style={[styles.inlineActionText, { color: palette.accent }]}>Timeline</Text>
+            <Ionicons name="chevron-forward" size={15} color={palette.accent} />
           </AnimatedPressable>
-        </View>
 
-        <View style={[styles.appleProgressTrack, { backgroundColor: palette.accentSoft }]}>
-          <View style={[styles.appleProgressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
-        </View>
-
-        <View style={styles.appleHeroBottom}>
-          <Text style={[styles.appleProgressText, { color: palette.accent }]}>
-            {progress.progress}% complete
-          </Text>
-
-          <AnimatedPressable
-            onPress={() => router.push('/timeline' as never)}
-            style={styles.appleTextButton}
-          >
-            <Text style={[styles.appleTextButtonLabel, { color: palette.accent }]}>Timeline</Text>
+          <AnimatedPressable onPress={() => router.push('/weekly-growth' as never)} style={styles.inlineAction}>
+            <Text style={[styles.inlineActionText, { color: palette.accent }]}>Growth</Text>
             <Ionicons name="chevron-forward" size={15} color={palette.accent} />
           </AnimatedPressable>
         </View>
       </View>
 
-      <View style={[styles.appleDateCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.appleDateHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>TODAY</Text>
-            <Text style={[styles.appleDateTitle, { color: palette.ink }]}>
+      <View style={[styles.dateCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.dateTop}>
+          <View>
+            <Text style={[styles.cardLabel, { color: palette.accent }]}>SELECTED DAY</Text>
+            <Text style={[styles.dateTitle, { color: palette.ink }]}>
               {dateFromKey(selectedDateKey).toLocaleDateString('en-US', {
                 weekday: 'long',
                 month: 'short',
@@ -418,19 +478,15 @@ export default function HomeScreen() {
 
           <AnimatedPressable
             onPress={openDatePicker}
-            style={[styles.appleSmallButton, { backgroundColor: palette.accentSoft }]}
+            style={[styles.chooseButton, { backgroundColor: palette.accentSoft }]}
           >
             <Ionicons name="calendar-outline" size={16} color={palette.accent} />
-            <Text style={[styles.appleSmallButtonText, { color: palette.accent }]}>Choose</Text>
+            <Text style={[styles.chooseText, { color: palette.accent }]}>Choose</Text>
           </AnimatedPressable>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.appleDateStrip}
-        >
-          {dateStrip.slice(0, 14).map((item) => {
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateStrip}>
+          {dateStrip.map((item) => {
             const active = selectedDateKey === item.key;
 
             return (
@@ -438,23 +494,122 @@ export default function HomeScreen() {
                 key={item.key}
                 onPress={() => setSelectedDateKey(item.key)}
                 style={[
-                  styles.appleDateChip,
+                  styles.dateChip,
                   {
                     backgroundColor: active ? palette.accent : palette.canvas,
                     borderColor: active ? palette.accent : palette.line,
                   },
                 ]}
               >
-                <Text style={[styles.appleDateChipDay, { color: active ? palette.onAccent : palette.text }]}>
+                <Text style={[styles.dateChipDay, { color: active ? palette.onAccent : palette.text }]}>
                   {item.isToday ? 'Today' : item.day}
                 </Text>
-                <Text style={[styles.appleDateChipNumber, { color: active ? palette.onAccent : palette.ink }]}>
+                <Text style={[styles.dateChipNumber, { color: active ? palette.onAccent : palette.ink }]}>
                   {item.date}
                 </Text>
               </AnimatedPressable>
             );
           })}
         </ScrollView>
+      </View>
+
+      <View style={styles.statsGrid}>
+        <StatCard
+          icon="water-outline"
+          label="Care"
+          value={`${dailyCareDone}/${DAILY_CARE_TOTAL}`}
+          detail={`${waterCups}/${WATER_TARGET} water`}
+          onPress={() => router.push('/daily-care' as never)}
+        />
+
+        <StatCard
+          icon="footsteps-outline"
+          label="Movement"
+          value={`${todayKicks}`}
+          detail="kicks today"
+          onPress={() => router.push('/kick-counter' as never)}
+        />
+
+        <StatCard
+          icon="medkit-outline"
+          label="Meds"
+          value={medicationTotal ? `${medicationDone}/${medicationTotal}` : '0'}
+          detail={medicationTotal ? 'taken' : 'no routine'}
+          onPress={() => router.push('/medication' as never)}
+        />
+      </View>
+
+      <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.sectionHead}>
+          <View>
+            <Text style={[styles.cardLabel, { color: palette.accent }]}>TODAY</Text>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Priority check-in</Text>
+          </View>
+
+          {loading ? <ActivityIndicator color={palette.accent} /> : null}
+        </View>
+
+        <ActionRow
+          icon="calendar-outline"
+          title={appointmentTitle}
+          detail={nextAppointment ? `${formatDate(appointmentDate)} ${appointmentTime ?? ''} ${appointmentPlace ?? ''}`.trim() : 'Add or review your next visit'}
+          onPress={() => router.push('/(tabs)/appointments' as never)}
+        />
+
+        <ActionRow
+          icon="pulse-outline"
+          title="Symptoms"
+          detail={symptoms}
+          onPress={() => router.push('/log-symptoms' as never)}
+        />
+
+        <ActionRow
+          icon="checkmark-circle-outline"
+          title="Daily care"
+          detail={`${dailyCareProgress}% complete for this day`}
+          onPress={() => router.push('/daily-care' as never)}
+        />
+      </View>
+
+      <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.sectionHead}>
+          <View>
+            <Text style={[styles.cardLabel, { color: palette.accent }]}>WELLNESS</Text>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Body notes</Text>
+          </View>
+
+          <AnimatedPressable
+            onPress={() => router.push('/weekly-report' as never)}
+            style={[styles.reportButton, { backgroundColor: palette.accentSoft }]}
+          >
+            <Text style={[styles.reportText, { color: palette.accent }]}>Report</Text>
+          </AnimatedPressable>
+        </View>
+
+        <View style={styles.wellnessGrid}>
+          <WellnessPill icon="happy-outline" label="Mood" value={wellnessSnapshot.mood} />
+          <WellnessPill icon="moon-outline" label="Sleep" value={wellnessSnapshot.sleep} />
+          <WellnessPill icon="restaurant-outline" label="Cravings" value={`${wellnessSnapshot.cravings}`} />
+          <WellnessPill icon="scale-outline" label="Weight" value={wellnessSnapshot.weight} />
+        </View>
+      </View>
+
+      <View style={styles.quickRow}>
+        <AnimatedPressable
+          onPress={() => router.push('/log-symptoms' as never)}
+          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        >
+          <Ionicons name="add-outline" size={19} color={palette.onAccent} />
+          <Text style={[styles.primaryButtonText, { color: palette.onAccent }]}>Log symptoms</Text>
+        </AnimatedPressable>
+
+        <AnimatedPressable
+          onPress={() => router.push('/tools' as never)}
+          style={[styles.secondaryButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
+        >
+          <Ionicons name="grid-outline" size={19} color={palette.accent} />
+          <Text style={[styles.secondaryButtonText, { color: palette.ink }]}>Tools</Text>
+        </AnimatedPressable>
       </View>
 
       <Modal visible={datePickerOpen} transparent animationType="fade">
@@ -474,7 +629,7 @@ export default function HomeScreen() {
             <TextInput
               value={dateDraft}
               onChangeText={setDateDraft}
-              placeholder="2026-07-10"
+              placeholder="2026-07-18"
               placeholderTextColor={palette.muted}
               autoCapitalize="none"
               keyboardType="numbers-and-punctuation"
@@ -497,624 +652,307 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-
-      <View style={styles.appleSummaryRow}>
-        <SummaryCard
-          icon="water-outline"
-          label="Care"
-          value={`${dailyCareDone}/${DAILY_CARE_TOTAL}`}
-          copy={`${waterCups}/${WATER_TARGET} water`}
-          onPress={() => router.push('/daily-care' as never)}
-        />
-
-        <SummaryCard
-          icon="footsteps-outline"
-          label="Movement"
-          value={`${todayKicks}`}
-          copy="kicks today"
-          onPress={() => router.push('/kick-counter' as never)}
-        />
-
-        <SummaryCard
-          icon="medkit-outline"
-          label="Meds"
-          value={medicationTotal ? `${medicationDone}/${medicationTotal}` : '—'}
-          copy={medicationTotal ? 'taken' : 'no routine'}
-          onPress={() => router.push('/medication' as never)}
-        />
-      </View>
-
-      <View style={[styles.appleWellnessCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.appleWellnessHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>WELLNESS</Text>
-            <Text style={[styles.appleSectionTitle, { color: palette.ink }]}>Today’s check-in</Text>
-          </View>
-
-          <AnimatedPressable
-            onPress={() => router.push('/weekly-report' as never)}
-            style={[styles.appleSmallButton, { backgroundColor: palette.accentSoft }]}
-          >
-            <Text style={[styles.appleSmallButtonText, { color: palette.accent }]}>Report</Text>
-          </AnimatedPressable>
-        </View>
-
-        <View style={[styles.appleMoodPanel, { backgroundColor: palette.accentSoft }]}>
-          <View style={[styles.appleMoodIcon, { backgroundColor: palette.surface }]}>
-            <Ionicons name="happy-outline" size={22} color={palette.accent} />
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.appleMoodLabel, { color: palette.accent }]}>Mood</Text>
-            <Text style={[styles.appleMoodValue, { color: palette.ink }]} numberOfLines={1}>
-              {wellnessSnapshot.mood}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.appleWellnessTiles}>
-          <WellnessMini icon="moon-outline" label="Sleep" value={wellnessSnapshot.sleep} />
-          <WellnessMini icon="restaurant-outline" label="Cravings" value={`${wellnessSnapshot.cravings}`} />
-          <WellnessMini icon="scale-outline" label="Weight" value={wellnessSnapshot.weight} />
-        </View>
-      </View>
-
-      <View style={[styles.appleActionDock, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <AnimatedPressable
-          onPress={() => router.push('/log-symptoms' as never)}
-          style={[styles.appleDockButton, { backgroundColor: palette.canvas, borderColor: palette.line }]}
-        >
-          <View style={[styles.appleDockIcon, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="add-circle-outline" size={20} color={palette.accent} />
-          </View>
-          <Text style={[styles.appleDockText, { color: palette.ink }]}>Log</Text>
-        </AnimatedPressable>
-
-        <AnimatedPressable
-          onPress={() => router.push('/tools' as never)}
-          style={[styles.appleDockButton, { backgroundColor: palette.canvas, borderColor: palette.line }]}
-        >
-          <View style={[styles.appleDockIcon, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="grid-outline" size={20} color={palette.accent} />
-          </View>
-          <Text style={[styles.appleDockText, { color: palette.ink }]}>Tools</Text>
-        </AnimatedPressable>
-
-        <AnimatedPressable
-          onPress={() => router.push('/ai-chat?fromTools=1' as never)}
-          style={[styles.appleDockButton, { backgroundColor: palette.canvas, borderColor: palette.line }]}
-        >
-          <View style={[styles.appleDockIcon, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="sparkles-outline" size={20} color={palette.accent} />
-          </View>
-          <Text style={[styles.appleDockText, { color: palette.ink }]}>Ask AI</Text>
-        </AnimatedPressable>
-      </View>
-
-      {loading ? (
-        <View style={[styles.loadingCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-          <ActivityIndicator color={palette.accent} />
-          <Text style={[styles.loadingText, { color: palette.text }]}>Refreshing dashboard...</Text>
-        </View>
-      ) : (
-        <>
-          <Text style={[styles.sectionTitle, { color: palette.ink }]}>Quick actions</Text>
-
-          <View style={styles.actionGrid}>
-            <ActionCard
-              icon="add-circle-outline"
-              title="Symptoms"
-              copy="Log mood and notes"
-              onPress={() => router.push('/log-symptoms' as never)}
-            />
-
-            <ActionCard
-              icon="calendar-outline"
-              title="Appointments"
-              copy={
-                nextAppointment
-                  ? `${formatDate(appointmentDate)} ${appointmentTime ?? ''}`.trim()
-                  : 'No visit today'
-              }
-              onPress={() => router.push('/(tabs)/appointments' as never)}
-            />
-
-            <ActionCard
-              icon="sparkles-outline"
-              title="Preggy AI"
-              copy="Ask a pregnancy question"
-              onPress={() => router.push('/ai-chat?fromTools=1' as never)}
-            />
-          </View>
-
-          <View style={styles.infoGrid}>
-            <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-              <View style={[styles.infoIcon, { backgroundColor: palette.accentSoft }]}>
-                <Ionicons name="calendar" size={23} color={palette.accent} />
-              </View>
-
-              <Text style={[styles.eyebrow, { color: palette.accent }]}>NEXT VISIT</Text>
-              <Text style={[styles.infoTitle, { color: palette.ink }]}>
-                {nextAppointment?.title || nextAppointment?.type || 'No appointment on this day'}
-              </Text>
-              <Text style={[styles.infoCopy, { color: palette.text }]}>
-                {nextAppointment
-                  ? `${formatDate(appointmentDate)}${appointmentTime ? ` at ${appointmentTime}` : ''}${
-                      appointmentPlace ? ` • ${appointmentPlace}` : ''
-                    }`
-                  : 'Nothing scheduled for this selected day.'}
-              </Text>
-            </View>
-
-            <View style={[styles.infoCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-              <View style={[styles.infoIcon, { backgroundColor: palette.accentSoft }]}>
-                <Ionicons name="heart-outline" size={23} color={palette.accent} />
-              </View>
-
-              <Text style={[styles.eyebrow, { color: palette.accent }]}>CHECK-IN</Text>
-              <Text style={[styles.infoTitle, { color: palette.ink }]}>
-                {latestLog?.mood || 'No check in yet'}
-              </Text>
-              <Text style={[styles.infoCopy, { color: palette.text }]}>{symptoms}</Text>
-
-              {latestLog?.notes ? (
-                <Text style={[styles.quote, { color: palette.muted }]}>“{latestLog.notes}”</Text>
-              ) : null}
-            </View>
-          </View>
-        </>
-      )}
-
-      <AnimatedPressable
-        onPress={() => router.push('/ai-chat?fromTools=1' as never)}
-        style={[styles.quoteCard, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
-      >
-        <View style={[styles.quoteIcon, { backgroundColor: palette.surface }]}>
-          <Ionicons name="sparkles-outline" size={22} color={palette.accent} />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.quoteLabel, { color: palette.accent }]}>TODAY’S GENTLE REMINDER</Text>
-          <Text style={[styles.quoteMessage, { color: palette.ink }]}>{gentleReminder}</Text>
-          <Text style={[styles.quoteAction, { color: palette.accent }]}>Tap to ask Preggy AI</Text>
-        </View>
-
-        <Ionicons name="chevron-forward" size={21} color={palette.accent} />
-      </AnimatedPressable>
     </Screen>
   );
 }
 
-function WellnessMini({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
-  const { palette } = useAppTheme();
-
-  return (
-    <View style={[styles.wellnessMiniCard, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
-      <View style={[styles.wellnessMiniIcon, { backgroundColor: palette.accentSoft }]}>
-        <Ionicons name={icon} size={17} color={palette.accent} />
-      </View>
-
-      <Text style={[styles.wellnessMiniValue, { color: palette.ink }]} numberOfLines={1}>
-        {value}
-      </Text>
-      <Text style={[styles.wellnessMiniLabel, { color: palette.text }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function SummaryCard({
-  icon,
-  label,
-  value,
-  copy,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  copy: string;
-  onPress: () => void;
-}) {
-  const { palette } = useAppTheme();
-
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-    >
-      <View style={styles.summaryTop}>
-        <View style={[styles.summaryIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name={icon} size={19} color={palette.accent} />
-        </View>
-
-        <Ionicons name="chevron-forward" size={16} color={palette.muted} />
-      </View>
-
-      <Text style={[styles.summaryValue, { color: palette.ink }]}>{value}</Text>
-      <Text style={[styles.summaryLabel, { color: palette.accent }]}>{label}</Text>
-      <Text style={[styles.summaryCopy, { color: palette.text }]}>{copy}</Text>
-    </AnimatedPressable>
-  );
-}
-
-function ActionCard({
-  icon,
-  title,
-  copy,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  copy: string;
-  onPress: () => void;
-}) {
-  const { palette } = useAppTheme();
-
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      style={[styles.actionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-    >
-      <View style={[styles.actionIcon, { backgroundColor: palette.accentSoft }]}>
-        <Ionicons name={icon} size={22} color={palette.accent} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.actionTitle, { color: palette.ink }]}>{title}</Text>
-        <Text style={[styles.actionCopy, { color: palette.text }]}>{copy}</Text>
-      </View>
-
-      <Ionicons name="chevron-forward" size={19} color={palette.muted} />
-    </AnimatedPressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  appleHeroCard: {
-    borderRadius: 36,
-    borderWidth: 1,
-    padding: 20,
-    marginTop: 14,
+  heroHeader: {
+    marginTop: 4,
     marginBottom: 14,
-  },
-  appleHeroTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 14,
   },
-  appleGreeting: {
-    ...type.small,
-    fontWeight: '800',
-    marginBottom: 6,
+  eyebrow: {
+    ...type.section,
+    letterSpacing: 1.4,
   },
-  appleHeroTitle: {
+  pageTitle: {
     ...type.title,
-    fontSize: 46,
-    lineHeight: 50,
-    letterSpacing: -1.6,
+    marginTop: 4,
   },
-  appleHeroCopy: {
+  aiButton: {
+    minHeight: 42,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  aiButtonText: {
     ...type.small,
-    lineHeight: 21,
-    marginTop: 7,
-    fontWeight: '800',
   },
-  appleIconButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
+  progressCard: {
     borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
+  accentRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+  },
+  progressTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  cardLabel: {
+    ...type.tiny,
+    letterSpacing: 1.3,
+  },
+  weekTitle: {
+    fontSize: 38,
+    lineHeight: 43,
+    fontWeight: '900',
+    letterSpacing: 0,
+    marginTop: 4,
+  },
+  weekDetail: {
+    ...type.small,
+    marginTop: 2,
+  },
+  percentBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  appleProgressTrack: {
-    height: 10,
-    borderRadius: 999,
-    overflow: 'hidden',
-    marginTop: 18,
-  },
-  appleProgressFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  appleHeroBottom: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  appleProgressText: {
-    ...type.tiny,
+  percentValue: {
+    fontSize: 22,
+    lineHeight: 26,
     fontWeight: '900',
   },
-  appleTextButton: {
+  percentLabel: {
+    ...type.tiny,
+    marginTop: 1,
+  },
+  progressTrack: {
+    height: 9,
+    borderRadius: 99,
+    overflow: 'hidden',
+    marginTop: 15,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 99,
+  },
+  progressActions: {
+    marginTop: 12,
+    flexDirection: 'row',
+    gap: 18,
+  },
+  inlineAction: {
+    minHeight: 28,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
   },
-  appleTextButtonLabel: {
-    ...type.tiny,
+  inlineActionText: {
+    ...type.small,
     fontWeight: '900',
   },
-  appleDateCard: {
-    borderRadius: 28,
+  dateCard: {
     borderWidth: 1,
-    padding: 14,
+    borderRadius: 24,
+    padding: 15,
     marginBottom: 14,
   },
-  appleDateHeader: {
+  dateTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    gap: 14,
   },
-  appleDateTitle: {
+  dateTitle: {
     ...type.bodyStrong,
-    fontSize: 22,
-    lineHeight: 27,
-    marginTop: 4,
+    fontSize: 21,
+    lineHeight: 26,
+    marginTop: 2,
   },
-  appleSmallButton: {
+  chooseButton: {
     minHeight: 38,
-    borderRadius: 17,
-    paddingHorizontal: 12,
+    borderRadius: 15,
+    paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
   },
-  appleSmallButtonText: {
-    ...type.tiny,
-    fontWeight: '900',
+  chooseText: {
+    ...type.small,
   },
-  appleDateStrip: {
-    gap: 8,
+  dateStrip: {
+    gap: 9,
+    paddingTop: 14,
     paddingRight: 4,
   },
-  appleDateChip: {
-    width: 62,
-    minHeight: 70,
-    borderRadius: 22,
+  dateChip: {
+    width: 63,
+    minHeight: 72,
+    borderRadius: 19,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  appleDateChipDay: {
+  dateChipDay: {
     ...type.tiny,
+    marginBottom: 6,
+  },
+  dateChipNumber: {
+    fontSize: 22,
+    lineHeight: 26,
     fontWeight: '900',
   },
-  appleDateChipNumber: {
-    ...type.bodyStrong,
-    fontSize: 19,
-    lineHeight: 23,
-    marginTop: 4,
-  },
-  appleSummaryRow: {
+  statsGrid: {
     flexDirection: 'row',
-    gap: 9,
+    gap: 10,
     marginBottom: 14,
   },
-  appleWellnessCard: {
-    borderRadius: 32,
+  statCard: {
+    flex: 1,
     borderWidth: 1,
+    borderRadius: 22,
+    padding: 12,
+    minHeight: 134,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  statValue: {
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '900',
+  },
+  statLabel: {
+    ...type.small,
+    marginTop: 1,
+  },
+  statDetail: {
+    ...type.tiny,
+    marginTop: 3,
+  },
+  sectionCard: {
+    borderWidth: 1,
+    borderRadius: 24,
     padding: 16,
     marginBottom: 14,
   },
-  appleWellnessHeader: {
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    ...type.bodyStrong,
+    fontSize: 22,
+    lineHeight: 28,
+    marginTop: 2,
+  },
+  actionRow: {
+    minHeight: 68,
+    borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 14,
   },
-  appleSectionTitle: {
-    ...type.bodyStrong,
-    fontSize: 23,
-    lineHeight: 28,
-    marginTop: 4,
-  },
-  appleMoodPanel: {
-    minHeight: 84,
-    borderRadius: 26,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-    marginBottom: 10,
-  },
-  appleMoodIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
+  actionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  appleMoodLabel: {
-    ...type.tiny,
-    fontWeight: '900',
-    marginBottom: 3,
-  },
-  appleMoodValue: {
-    ...type.bodyStrong,
-    fontSize: 22,
-    lineHeight: 27,
-  },
-  appleWellnessTiles: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  appleActionDock: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 10,
-    marginBottom: 14,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  appleDockButton: {
+  actionTextWrap: {
     flex: 1,
+  },
+  actionTitle: {
+    ...type.bodyStrong,
+  },
+  actionDetail: {
+    ...type.small,
+    marginTop: 1,
+  },
+  reportButton: {
+    minHeight: 36,
+    borderRadius: 15,
+    paddingHorizontal: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportText: {
+    ...type.small,
+  },
+  wellnessGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+  },
+  wellnessPill: {
+    width: '48%',
     minHeight: 82,
-    borderRadius: 22,
+    borderRadius: 18,
+    padding: 12,
+  },
+  wellnessLabel: {
+    ...type.tiny,
+    marginTop: 7,
+  },
+  wellnessValue: {
+    ...type.bodyStrong,
+    marginTop: 2,
+  },
+  quickRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  primaryButton: {
+    flex: 1.45,
+    minHeight: 56,
+    borderRadius: 19,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  primaryButtonText: {
+    ...type.bodyStrong,
+  },
+  secondaryButton: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 19,
     borderWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
   },
-  appleDockIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  appleDockText: {
-    ...type.tiny,
-    fontWeight: '900',
-  },
-  heroIntroCard: {
-    borderRadius: 32,
-    borderWidth: 1,
-    padding: 18,
-    marginTop: 16,
-    marginBottom: 14,
-  },
-  heroIntroTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
-  },
-  greeting: {
-    ...type.small,
-    lineHeight: 20,
-    fontWeight: '800',
-  },
-  title: {
-    ...type.title,
-    fontSize: 30,
-    lineHeight: 35,
-    letterSpacing: -0.9,
-    marginTop: 4,
-  },
-  introSubtext: {
-    ...type.small,
-    lineHeight: 20,
-    marginTop: 7,
-    fontWeight: '800',
-  },
-  toolsCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroIntroStats: {
-    marginTop: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  introMiniPill: {
-    minHeight: 36,
-    borderRadius: 16,
-    paddingHorizontal: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  introMiniText: {
-    ...type.tiny,
-    fontWeight: '900',
-  },
-  datePickerPanel: {
-    borderRadius: 30,
-    borderWidth: 1,
-    paddingTop: 16,
-    paddingBottom: 12,
-    marginBottom: 14,
-  },
-  dateHeader: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  dateHeaderLabel: {
-    ...type.section,
-    letterSpacing: 1.1,
-  },
-  dateHeaderTitle: {
+  secondaryButtonText: {
     ...type.bodyStrong,
-    fontSize: 18,
-    lineHeight: 23,
-    marginTop: 3,
   },
-  dateHeaderActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-
-  chooseDateButton: {
-    minHeight: 40,
-    borderRadius: 17,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  chooseDateText: {
-    ...type.tiny,
-    fontWeight: '900',
-  },
-  dateScroll: {
-    marginHorizontal: 0,
-    marginBottom: 0,
-  },
-  dateScroller: {
-    paddingHorizontal: 16,
-    gap: 9,
-  },
-  dateChip: {
-    width: 86,
-    minHeight: 96,
-    borderRadius: 26,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 9,
-  },
-  dateMonth: {
-    ...type.tiny,
-    fontWeight: '900',
-    marginBottom: 2,
-  },
-  dateDay: {
-    ...type.tiny,
-    fontWeight: '900',
-  },
-  dateNumber: {
-    ...type.bodyStrong,
-    fontSize: 19,
-    marginTop: 3,
-  },
-
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(23, 13, 18, 0.36)',
-    alignItems: 'center',
+    backgroundColor: 'rgba(37,23,29,0.42)',
     justifyContent: 'center',
-    padding: 22,
+    padding: 24,
   },
   dateModal: {
-    width: '100%',
-    borderRadius: 30,
     borderWidth: 1,
-    padding: 18,
+    borderRadius: 26,
+    padding: 20,
   },
   dateModalTop: {
     flexDirection: 'row',
@@ -1126,516 +964,31 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   modalClose: {
-    width: 40,
-    height: 40,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dateModalCopy: {
-    ...type.small,
-    lineHeight: 20,
-    marginTop: 8,
-    fontWeight: '800',
+    ...type.body,
+    marginTop: 10,
   },
   dateInput: {
-    minHeight: 54,
-    borderRadius: 20,
+    minHeight: 56,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    marginTop: 14,
-    ...type.bodyStrong,
-    fontSize: 16,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    ...type.body,
   },
   applyDateButton: {
-    minHeight: 52,
-    borderRadius: 20,
-    marginTop: 12,
+    minHeight: 54,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 14,
   },
   applyDateText: {
-    ...type.small,
-    fontWeight: '900',
-  },
-  hero: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 14,
-  },
-  heroTopClean: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  heroLabel: {
-    ...type.section,
-    letterSpacing: 1.15,
-  },
-  heroTitle: {
-    ...type.title,
-    fontSize: 31,
-    lineHeight: 35,
-    letterSpacing: -0.9,
-    marginTop: 3,
-  },
-  heroSubtitle: {
-    ...type.small,
-    lineHeight: 19,
-    fontWeight: '800',
-    marginTop: 4,
-  },
-  heroWeekBadge: {
-    minWidth: 48,
-    height: 44,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  heroWeekBadgeText: {
-    ...type.small,
-    fontWeight: '900',
-  },
-  heroBodyClean: {
-    marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  heroDiagramClean: {
-    width: 94,
-    height: 94,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroDiagramRingLarge: {
-    position: 'absolute',
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 1.5,
-    opacity: 0.24,
-  },
-  heroDiagramRingSmall: {
-    position: 'absolute',
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 1.5,
-    opacity: 0.32,
-  },
-  heroDiagramCenter: {
-    width: 45,
-    height: 45,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroDiagramEmoji: {
-    fontSize: 25,
-  },
-  heroMetricClean: {
-    flex: 1,
-  },
-  heroMetricValue: {
-    ...type.title,
-    fontSize: 36,
-    lineHeight: 39,
-    letterSpacing: -1.1,
-  },
-  heroMetricLabel: {
-    ...type.small,
-    fontWeight: '900',
-    marginTop: 0,
-  },
-  heroDueChip: {
-    minHeight: 33,
-    borderRadius: 15,
-    paddingHorizontal: 10,
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroDueText: {
-    ...type.tiny,
-    fontWeight: '900',
-  },
-  heroTrack: {
-    height: 9,
-    borderRadius: 999,
-    overflow: 'hidden',
-    marginTop: 15,
-  },
-  heroFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  heroFooter: {
-    marginTop: 11,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  heroFooterText: {
-    ...type.small,
-    fontWeight: '900',
-  },
-  heroArrow: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wellnessSnapshotCard: {
-    borderRadius: 32,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
-  },
-  wellnessSnapshotHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  snapshotButton: {
-    minHeight: 38,
-    borderRadius: 18,
-    paddingHorizontal: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  snapshotButtonText: {
-    ...type.tiny,
-    fontWeight: '900',
-  },
-  wellnessHeroMetric: {
-    minHeight: 86,
-    borderRadius: 26,
-    borderWidth: 1,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-    marginBottom: 10,
-  },
-  wellnessHeroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wellnessHeroLabel: {
-    ...type.tiny,
-    fontWeight: '900',
-    marginBottom: 3,
-  },
-  wellnessHeroValue: {
     ...type.bodyStrong,
-    fontSize: 22,
-    lineHeight: 27,
-  },
-  wellnessMetricRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  wellnessMiniCard: {
-    flex: 1,
-    minHeight: 96,
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 11,
-  },
-  wellnessMiniIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  wellnessMiniValue: {
-    ...type.bodyStrong,
-    fontSize: 14.5,
-    lineHeight: 19,
-  },
-  wellnessMiniLabel: {
-    ...type.tiny,
-    fontWeight: '900',
-    marginTop: 3,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 14,
-  },
-  summaryCard: {
-    flex: 1,
-    minHeight: 124,
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 13,
-    justifyContent: 'space-between',
-  },
-  summaryTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  summaryLabel: {
-    ...type.tiny,
-    fontWeight: '900',
-    letterSpacing: 0.2,
-  },
-  summaryValue: {
-    ...type.bodyStrong,
-    fontSize: 24,
-    lineHeight: 28,
-    marginTop: 9,
-  },
-  summaryCopy: {
-    ...type.tiny,
-    lineHeight: 16,
-    marginTop: 2,
-    fontWeight: '800',
-  },
-  timelineFeatureCard: {
-    minHeight: 106,
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  timelineFeatureIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineFeatureTitle: {
-    ...type.bodyStrong,
-    fontSize: 19,
-    lineHeight: 24,
-    marginTop: 5,
-  },
-  timelineFeatureCopy: {
-    ...type.small,
-    lineHeight: 19,
-    marginTop: 4,
-    fontWeight: '800',
-  },
-  careCard: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 16,
-  },
-  careTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  careIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  eyebrow: {
-    ...type.section,
-    letterSpacing: 1.2,
-  },
-  careTitle: {
-    ...type.bodyStrong,
-    fontSize: 19,
-    lineHeight: 24,
-    marginTop: 5,
-  },
-  careCopy: {
-    ...type.small,
-    lineHeight: 19,
-    marginTop: 4,
-    fontWeight: '800',
-  },
-  careTrack: {
-    height: 10,
-    borderRadius: 999,
-    overflow: 'hidden',
-    marginTop: 15,
-  },
-  careFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  toolsFeatureCard: {
-    minHeight: 112,
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  toolsFeatureIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toolsFeatureTitle: {
-    ...type.bodyStrong,
-    fontSize: 19,
-    lineHeight: 24,
-    marginTop: 5,
-  },
-  toolsFeatureCopy: {
-    ...type.small,
-    lineHeight: 19,
-    marginTop: 4,
-    fontWeight: '800',
-  },
-  toolsFeatureArrow: {
-    width: 42,
-    height: 42,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingCard: {
-    minHeight: 120,
-    borderRadius: 28,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  loadingText: {
-    ...type.small,
-    fontWeight: '800',
-  },
-  sectionTitle: {
-    ...type.bodyStrong,
-    fontSize: 20,
-    marginBottom: 12,
-  },
-  actionGrid: {
-    gap: 10,
-    marginBottom: 16,
-  },
-  actionCard: {
-    minHeight: 82,
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionTitle: {
-    ...type.bodyStrong,
-    fontSize: 16,
-  },
-  actionCopy: {
-    ...type.small,
-    lineHeight: 18,
-    marginTop: 3,
-    fontWeight: '800',
-  },
-  infoGrid: {
-    gap: 14,
-  },
-  infoCard: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 18,
-  },
-  infoIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 13,
-  },
-  infoTitle: {
-    ...type.bodyStrong,
-    fontSize: 20,
-    lineHeight: 25,
-    marginTop: 5,
-  },
-  infoCopy: {
-    ...type.body,
-    lineHeight: 23,
-    marginTop: 10,
-  },
-  quote: {
-    ...type.small,
-    lineHeight: 20,
-    marginTop: 10,
-    fontWeight: '700',
-  },
-  quoteCard: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 18,
-    marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  quoteIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quoteLabel: {
-    ...type.section,
-    letterSpacing: 1.1,
-  },
-  quoteMessage: {
-    ...type.bodyStrong,
-    fontSize: 17,
-    lineHeight: 23,
-    marginTop: 5,
-  },
-  quoteAction: {
-    ...type.tiny,
-    fontWeight: '900',
-    marginTop: 8,
   },
 });
