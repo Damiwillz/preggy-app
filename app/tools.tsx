@@ -56,6 +56,14 @@ const categories: Array<ToolCategory | 'All'> = ['All', 'Tracking', 'Planning', 
 
 const tools: ToolItem[] = [
   {
+    icon: 'shield-checkmark-outline',
+    title: 'Safety Center',
+    copy: 'Warning signs and quick safety links',
+    route: '/safety-center',
+    category: 'Support',
+    featured: true,
+  },
+  {
     icon: 'water-outline',
     title: 'Daily Care',
     copy: 'Checklist and water intake',
