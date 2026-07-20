@@ -64,6 +64,14 @@ const tools: ToolItem[] = [
     featured: true,
   },
   {
+    icon: 'people-outline',
+    title: 'Partner Support',
+    copy: 'Plan help from your people',
+    route: '/partner-support',
+    category: 'Support',
+    featured: true,
+  },
+  {
     icon: 'heart-circle-outline',
     title: 'Blood Pressure',
     copy: 'Log pressure, pulse and notes',
