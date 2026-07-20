@@ -56,6 +56,13 @@ const categories: Array<ToolCategory | 'All'> = ['All', 'Tracking', 'Planning', 
 
 const tools: ToolItem[] = [
   {
+    icon: 'folder-outline',
+    title: 'Documents Checklist',
+    copy: 'Keep important papers ready',
+    route: '/documents-checklist',
+    category: 'Planning',
+  },
+  {
     icon: 'shield-checkmark-outline',
     title: 'Safety Center',
     copy: 'Warning signs and quick safety links',
