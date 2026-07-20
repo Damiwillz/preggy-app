@@ -152,6 +152,14 @@ const tools: ToolItem[] = [
     category: 'Planning',
   },
   {
+    icon: 'folder-open-outline',
+    title: 'Doctor Visit Pack',
+    copy: 'Review questions, symptoms and meds',
+    route: '/doctor-visit-pack',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'chatbubbles-outline',
     title: 'Doctor Questions',
     copy: 'Prepare for visits',
