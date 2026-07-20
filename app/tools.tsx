@@ -183,6 +183,14 @@ const tools: ToolItem[] = [
     category: 'Planning',
   },
   {
+    icon: 'cart-outline',
+    title: 'Baby Budget',
+    copy: 'Plan baby costs and purchases',
+    route: '/baby-budget',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'folder-open-outline',
     title: 'Doctor Visit Pack',
     copy: 'Review questions, symptoms and meds',
