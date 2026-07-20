@@ -199,6 +199,14 @@ const tools: ToolItem[] = [
     featured: true,
   },
   {
+    icon: 'gift-outline',
+    title: 'Baby Registry',
+    copy: 'Track wanted and received gifts',
+    route: '/baby-registry',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'folder-open-outline',
     title: 'Doctor Visit Pack',
     copy: 'Review questions, symptoms and meds',
