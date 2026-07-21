@@ -61,7 +61,6 @@ const tools: ToolItem[] = [
     copy: 'Prepare recovery and home support',
     route: '/postpartum-plan',
     category: 'Planning',
-    featured: true,
   },
   {
     icon: 'briefcase-outline',
@@ -69,7 +68,6 @@ const tools: ToolItem[] = [
     copy: 'Plan dates, HR notes and tasks',
     route: '/maternity-leave-plan',
     category: 'Planning',
-    featured: true,
   },
   {
     icon: 'people-outline',
@@ -77,7 +75,6 @@ const tools: ToolItem[] = [
     copy: 'Plan help from your people',
     route: '/partner-support',
     category: 'Support',
-    featured: true,
   },
   {
     icon: 'heart-circle-outline',
@@ -85,7 +82,6 @@ const tools: ToolItem[] = [
     copy: 'Log pressure, pulse and notes',
     route: '/blood-pressure-tracker',
     category: 'Tracking',
-    featured: true,
   },
   {
     icon: 'folder-outline',
@@ -100,7 +96,6 @@ const tools: ToolItem[] = [
     copy: 'Warning signs and quick safety links',
     route: '/safety-center',
     category: 'Support',
-    featured: true,
   },
   {
     icon: 'water-outline',
@@ -160,7 +155,6 @@ const tools: ToolItem[] = [
     copy: 'Check mood and energy',
     route: '/mood-tracker',
     category: 'Wellness',
-    featured: true,
   },
   {
     icon: 'moon-outline',
@@ -204,7 +198,6 @@ const tools: ToolItem[] = [
     copy: 'Plan baby costs and purchases',
     route: '/baby-budget',
     category: 'Planning',
-    featured: true,
   },
   {
     icon: 'gift-outline',
@@ -212,7 +205,6 @@ const tools: ToolItem[] = [
     copy: 'Track wanted and received gifts',
     route: '/baby-registry',
     category: 'Planning',
-    featured: true,
   },
   {
     icon: 'folder-open-outline',
@@ -249,7 +241,6 @@ const tools: ToolItem[] = [
     copy: 'Save favorite name ideas',
     route: '/baby-names',
     category: 'Memories',
-    featured: true,
   },
   {
     icon: 'book-outline',
@@ -286,7 +277,6 @@ const tools: ToolItem[] = [
     copy: 'Review your 7-day summary',
     route: '/weekly-report',
     category: 'Support',
-    featured: true,
   },
   {
     icon: 'notifications-outline',
@@ -294,7 +284,6 @@ const tools: ToolItem[] = [
     copy: 'Manage reminder preferences',
     route: '/reminder-settings',
     category: 'Support',
-    featured: true,
   },
 ];
 
