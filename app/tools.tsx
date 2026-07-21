@@ -64,6 +64,14 @@ const tools: ToolItem[] = [
     featured: true,
   },
   {
+    icon: 'briefcase-outline',
+    title: 'Maternity Leave',
+    copy: 'Plan dates, HR notes and tasks',
+    route: '/maternity-leave-plan',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'people-outline',
     title: 'Partner Support',
     copy: 'Plan help from your people',
