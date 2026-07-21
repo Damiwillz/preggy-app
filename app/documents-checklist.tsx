@@ -203,7 +203,7 @@ export default function DocumentsChecklistScreen() {
         </View>
 
         <View style={[styles.track, { backgroundColor: palette.accentSoft }]}>
-          <View style={[styles.fill, { width: progress + '%', backgroundColor: palette.accent }]} />
+          <View style={[styles.fill, { width: `${progress}%` as `${number}%`, backgroundColor: palette.accent }]} />
         </View>
       </View>
 
