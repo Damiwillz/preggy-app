@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import React, { PropsWithChildren, useRef } from 'react';
 import {
   Animated,
@@ -10,6 +11,7 @@ import {
 type Props = PropsWithChildren<
   PressableProps & {
     style?: StyleProp<ViewStyle>;
+    haptic?: boolean;
   }
 >;
 
@@ -21,17 +23,23 @@ export function AnimatedPressable({
   onPressIn,
   onPressOut,
   disabled,
+  haptic = true,
   ...props
 }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn: PressableProps['onPressIn'] = event => {
+    if (!disabled && haptic) {
+      void Haptics.selectionAsync().catch(() => undefined);
+    }
+
     Animated.spring(scale, {
       toValue: 0.97,
       useNativeDriver: true,
       friction: 7,
       tension: 170,
     }).start();
+
     onPressIn?.(event);
   };
 
@@ -42,6 +50,7 @@ export function AnimatedPressable({
       friction: 7,
       tension: 170,
     }).start();
+
     onPressOut?.(event);
   };
 
