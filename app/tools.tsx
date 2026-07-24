@@ -244,6 +244,13 @@ const tools: ToolItem[] = [
     category: 'Memories',
   },
   {
+    icon: 'image-outline',
+    title: 'Bump Gallery',
+    copy: 'Save weekly bump photos',
+    route: '/bump-gallery',
+    category: 'Memories',
+  },
+  {
     icon: 'book-outline',
     title: 'Journal',
     copy: 'Save memories and moods',
