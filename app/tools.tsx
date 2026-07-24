@@ -208,6 +208,13 @@ const tools: ToolItem[] = [
     category: 'Planning',
   },
   {
+    icon: 'balloon-outline',
+    title: 'Baby Shower',
+    copy: 'Plan party details and tasks',
+    route: '/baby-shower-planner',
+    category: 'Planning',
+  },
+  {
     icon: 'folder-open-outline',
     title: 'Doctor Visit Pack',
     copy: 'Review questions, symptoms and meds',
