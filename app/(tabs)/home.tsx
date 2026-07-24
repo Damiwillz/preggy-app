@@ -224,6 +224,42 @@ function ActionRow({
   );
 }
 
+function FocusCard({
+  icon,
+  title,
+  detail,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  detail: string;
+  onPress: () => void;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      style={[styles.focusCard, { backgroundColor: palette.canvas, borderColor: palette.line }]}
+    >
+      <View style={[styles.focusIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={icon} size={19} color={palette.accent} />
+      </View>
+
+      <View style={styles.focusTextWrap}>
+        <Text style={[styles.focusTitle, { color: palette.ink }]} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={[styles.focusDetail, { color: palette.text }]} numberOfLines={1}>
+          {detail}
+        </Text>
+      </View>
+
+      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+    </AnimatedPressable>
+  );
+}
+
 function WellnessPill({
   icon,
   label,
@@ -408,6 +444,36 @@ export default function HomeScreen() {
   const appointmentPlace = nextAppointment?.clinic_name || nextAppointment?.location;
   const appointmentTitle = nextAppointment?.title || nextAppointment?.type || 'No appointment today';
   const dailyCareProgress = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
+  const todayFocus = useMemo<Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; detail: string; route: string }>>(
+    () => [
+      {
+        icon: 'checkmark-circle-outline',
+        title: 'Finish daily care',
+        detail: `${dailyCareProgress}% complete today`,
+        route: '/daily-care',
+      },
+      {
+        icon: 'footsteps-outline',
+        title: 'Count movements',
+        detail: `${todayKicks} kicks logged`,
+        route: '/kick-counter',
+      },
+      progress.week >= 28
+        ? {
+            icon: 'bag-handle-outline',
+            title: 'Pack hospital bag',
+            detail: 'Get birth day ready',
+            route: '/hospital-bag-checklist',
+          }
+        : {
+            icon: 'folder-open-outline',
+            title: 'Prep next visit',
+            detail: 'Questions, symptoms, meds',
+            route: '/doctor-visit-pack',
+          },
+    ],
+    [dailyCareProgress, progress.week, todayKicks]
+  );
 
   return (
     <Screen bottomSpace={118}>
@@ -537,6 +603,27 @@ export default function HomeScreen() {
           detail={medicationTotal ? 'taken' : 'no routine'}
           onPress={() => router.push('/medication' as never)}
         />
+      </View>
+
+      <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.sectionHead}>
+          <View>
+            <Text style={[styles.cardLabel, { color: palette.accent }]}>TODAY'S FOCUS</Text>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Start with these</Text>
+          </View>
+        </View>
+
+        <View style={styles.focusGrid}>
+          {todayFocus.map((item) => (
+            <FocusCard
+              key={item.route}
+              icon={item.icon}
+              title={item.title}
+              detail={item.detail}
+              onPress={() => router.push(item.route as never)}
+            />
+          ))}
+        </View>
       </View>
 
       <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
@@ -894,6 +981,38 @@ const styles = StyleSheet.create({
   },
   reportText: {
     ...type.small,
+  },
+  focusGrid: {
+    gap: 9,
+  },
+  focusCard: {
+    minHeight: 68,
+    borderRadius: 21,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  focusIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  focusTextWrap: {
+    flex: 1,
+  },
+  focusTitle: {
+    ...type.bodyStrong,
+    fontSize: 15.5,
+    lineHeight: 20,
+  },
+  focusDetail: {
+    ...type.small,
+    marginTop: 1,
   },
   wellnessGrid: {
     flexDirection: 'row',
