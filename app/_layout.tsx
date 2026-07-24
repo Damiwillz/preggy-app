@@ -60,6 +60,7 @@ export default function RootLayout() {
           <Stack.Screen name="baby-registry" />
           <Stack.Screen name="maternity-leave-plan" />
           <Stack.Screen name="bump-gallery" />
+          <Stack.Screen name="letters-to-baby" />
           <Stack.Screen name="ai-chat" />
         <Stack.Screen name="reminders" options={{ headerShown: false }} />
           <Stack.Screen name="appearance" />

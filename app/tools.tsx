@@ -258,6 +258,13 @@ const tools: ToolItem[] = [
     category: 'Memories',
   },
   {
+    icon: 'mail-outline',
+    title: 'Letters to Baby',
+    copy: 'Write weekly notes to baby',
+    route: '/letters-to-baby',
+    category: 'Memories',
+  },
+  {
     icon: 'albums-outline',
     title: 'Timeline',
     copy: 'Capture pregnancy moments',
