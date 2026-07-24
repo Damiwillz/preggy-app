@@ -208,6 +208,13 @@ const tools: ToolItem[] = [
     category: 'Planning',
   },
   {
+    icon: 'home-outline',
+    title: 'Nursery Planner',
+    copy: 'Plan the baby room setup',
+    route: '/nursery-planner',
+    category: 'Planning',
+  },
+  {
     icon: 'balloon-outline',
     title: 'Baby Shower',
     copy: 'Plan party details and tasks',
