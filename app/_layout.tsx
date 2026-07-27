@@ -8,6 +8,7 @@ import { colors } from '@/constants/colors';
 import { applySavedAppearanceFromAccount } from '@/services/appAppearance';
 import { AuthProvider } from '@/context/AuthContext';
 import { AppThemeProvider } from '@/context/AppThemeContext';
+import { AppErrorBoundary } from '@/components/ui/AppErrorBoundary';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -20,6 +21,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
       <AppThemeProvider>
+        <AppErrorBoundary>
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
@@ -68,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="appearance" />
             <Stack.Screen name="edit-profile" />
         </Stack>
+        </AppErrorBoundary>
       </AppThemeProvider>
     </AuthProvider>
     </GestureHandlerRootView>
