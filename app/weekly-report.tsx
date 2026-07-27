@@ -79,7 +79,7 @@ function buildRecentDates(days = 7) {
 
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(today);
-    date.setDate(today.getDate() - index);
+    date.setDate(today.getDate() - index); 
     return date.toISOString().slice(0, 10);
   });
 }

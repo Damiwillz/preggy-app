@@ -31,7 +31,7 @@ export default function DeleteAccountScreen() {
           {
             text: 'OK',
             onPress: () => {
-              void signOut().then(() => router.replace('/auth/login' as never));
+              void signOut().then(() => router.replace('/auth/log-in' as never));
             },
           },
         ]
