@@ -251,13 +251,7 @@ export function Header({
       icon: 'help-circle-outline',
       label: 'Help & FAQ',
       subtitle: 'Support and common questions',
-      onPress: () =>
-        closeMenu(() =>
-          Alert.alert(
-            'Help & FAQ',
-            'Support resources, pregnancy guidance, account help and frequently asked questions will appear here.'
-          )
-        ),
+      onPress: () => navigate('/support/faq'),
     },
   ];
 
