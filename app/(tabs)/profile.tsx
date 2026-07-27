@@ -358,7 +358,7 @@ export default function ProfileScreen() {
           icon="help-circle-outline"
           label="Help & FAQ"
           detail="Common questions and guidance"
-          onPress={() => Alert.alert('Help & FAQ', 'Help content is coming next.')}
+          onPress={() => router.push('/support/faq' as never)}
         />
 
         <Row
