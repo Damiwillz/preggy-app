@@ -23,6 +23,31 @@ import { getMyProfile, type UserProfile } from '@/services/profile';
 
 const fallbackAvatar = require('../../assets/images/profile-avatar.jpg');
 
+function DetailPill({
+  icon,
+  label,
+  value,
+  palette,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  palette: ReturnType<typeof useAppTheme>['palette'];
+}) {
+  return (
+    <View style={[styles.detailPill, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+      <View style={[styles.detailPillIcon, { backgroundColor: palette.accentSoft }]}>
+        <Ionicons name={icon} size={18} color={palette.accent} />
+      </View>
+
+      <Text style={[styles.detailPillLabel, { color: palette.text }]}>{label}</Text>
+      <Text style={[styles.detailPillValue, { color: palette.ink }]} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 function Row({
   icon,
   label,
@@ -245,6 +270,30 @@ export default function ProfileScreen() {
 
         <View style={[styles.track, { backgroundColor: palette.accentSoft }]}>
           <View style={[styles.fill, { width: `${progress}%`, backgroundColor: palette.accent }]} />
+        </View>
+      </View>
+
+      <View style={[styles.detailsCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.detailsTop}>
+          <View>
+            <Text style={[styles.detailsLabel, { color: palette.accent }]}>PREGNANCY DETAILS</Text>
+            <Text style={[styles.detailsTitle, { color: palette.ink }]}>Your journey</Text>
+          </View>
+
+          <AnimatedPressable
+            onPress={() => router.push('/edit-profile' as never)}
+            style={[styles.detailsEditButton, { backgroundColor: palette.accentSoft }]}
+          >
+            <Ionicons name="create-outline" size={17} color={palette.accent} />
+            <Text style={[styles.detailsEditText, { color: palette.accent }]}>Edit</Text>
+          </AnimatedPressable>
+        </View>
+
+        <View style={styles.detailGrid}>
+          <DetailPill palette={palette} icon="heart-outline" label="Baby" value={nickname} />
+          <DetailPill palette={palette} icon="calendar-outline" label="Due date" value={dueDate} />
+          <DetailPill palette={palette} icon="sparkles-outline" label="Progress" value={pregnancyLabel} />
+          <DetailPill palette={palette} icon="time-outline" label="Complete" value={`${progress}%`} />
         </View>
       </View>
 
@@ -504,6 +553,68 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: 999,
+  },
+  detailsCard: {
+    marginTop: 16,
+    borderRadius: 30,
+    padding: 18,
+    borderWidth: 1,
+  },
+  detailsTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 14,
+  },
+  detailsLabel: {
+    ...type.section,
+  },
+  detailsTitle: {
+    ...type.bodyStrong,
+    fontSize: 22,
+    lineHeight: 27,
+    marginTop: 3,
+  },
+  detailsEditButton: {
+    minHeight: 38,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailsEditText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  detailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  detailPill: {
+    width: '48%',
+    minHeight: 112,
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 13,
+  },
+  detailPillIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  detailPillLabel: {
+    ...type.tiny,
+    textTransform: 'uppercase',
+  },
+  detailPillValue: {
+    ...type.bodyStrong,
+    marginTop: 4,
   },
   section: {
     ...type.section,
