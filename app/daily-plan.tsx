@@ -15,11 +15,13 @@ const DAILY_CARE_TOTAL = 5;
 const WATER_TARGET = 8;
 
 type PlanItem = {
+  id: string;
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   detail: string;
   route: string;
   done: boolean;
+  canMarkDone?: boolean;
 };
 
 function toDateKey(date: Date) {
@@ -40,6 +42,10 @@ function getWaterStorageKey(dateKey: string) {
 
 function getKickStorageKey(dateKey: string) {
   return `preggy:kicks:${dateKey}`;
+}
+
+function getPlanDoneStorageKey(dateKey: string) {
+  return `preggy:daily-plan-done:${dateKey}`;
 }
 
 function parseSavedArray(raw: string | null) {
@@ -110,6 +116,7 @@ export default function DailyPlanScreen() {
   const [dailyCareDone, setDailyCareDone] = useState(0);
   const [waterCups, setWaterCups] = useState(0);
   const [kicks, setKicks] = useState(0);
+  const [manualDone, setManualDone] = useState<string[]>([]);
 
   const dateKey = useMemo(() => toDateKey(new Date()), []);
 
@@ -121,11 +128,12 @@ export default function DailyPlanScreen() {
         try {
           setLoading(true);
 
-          const [profileData, savedCare, savedWater, savedKicks] = await Promise.all([
+          const [profileData, savedCare, savedWater, savedKicks, savedManualDone] = await Promise.all([
             getMyProfile(),
             AsyncStorage.getItem(getChecklistStorageKey(dateKey)),
             AsyncStorage.getItem(getWaterStorageKey(dateKey)),
             AsyncStorage.getItem(getKickStorageKey(dateKey)),
+            AsyncStorage.getItem(getPlanDoneStorageKey(dateKey)),
           ]);
 
           if (!mounted) return;
@@ -138,6 +146,7 @@ export default function DailyPlanScreen() {
           setDailyCareDone(Math.min(parsedCare.length, DAILY_CARE_TOTAL));
           setWaterCups(Number.isFinite(parsedWater) ? clamp(parsedWater, 0, WATER_TARGET) : 0);
           setKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
+          setManualDone(parseSavedArray(savedManualDone).filter((item): item is string => typeof item === 'string'));
         } catch (error) {
           console.log('Daily plan load error:', error);
         } finally {
@@ -153,6 +162,20 @@ export default function DailyPlanScreen() {
     }, [dateKey])
   );
 
+  async function toggleManualDone(itemId: string) {
+    const nextDone = manualDone.includes(itemId)
+      ? manualDone.filter((item) => item !== itemId)
+      : [...manualDone, itemId];
+
+    setManualDone(nextDone);
+
+    try {
+      await AsyncStorage.setItem(getPlanDoneStorageKey(dateKey), JSON.stringify(nextDone));
+    } catch (error) {
+      console.log('Daily plan save error:', error);
+    }
+  }
+
   const babyName = profile?.baby_nickname || 'baby';
   const week = profile?.pregnancy_week ?? 20;
   const carePercent = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
@@ -160,6 +183,7 @@ export default function DailyPlanScreen() {
 
   const planItems: PlanItem[] = [
     {
+      id: 'daily-care',
       icon: 'checkmark-circle-outline',
       title: 'Daily care',
       detail: `${dailyCareDone}/${DAILY_CARE_TOTAL} care tasks • ${waterCups}/${WATER_TARGET} water`,
@@ -167,13 +191,16 @@ export default function DailyPlanScreen() {
       done: dailyCareDone >= DAILY_CARE_TOTAL && waterCups >= WATER_TARGET,
     },
     {
+      id: 'symptoms',
       icon: 'pulse-outline',
       title: 'Symptom check-in',
       detail: 'Log mood, symptoms, and notes for today',
       route: '/log-symptoms',
-      done: false,
+      done: manualDone.includes('symptoms'),
+      canMarkDone: true,
     },
     {
+      id: 'movement',
       icon: 'footsteps-outline',
       title: 'Baby movement',
       detail: `${kicks} movements logged today`,
@@ -181,18 +208,22 @@ export default function DailyPlanScreen() {
       done: kicks > 0,
     },
     {
+      id: 'medication',
       icon: 'medkit-outline',
       title: 'Medication routine',
       detail: 'Review vitamins, supplements, or care routines',
       route: '/medication',
-      done: false,
+      done: manualDone.includes('medication'),
+      canMarkDone: true,
     },
     {
+      id: 'appointments',
       icon: 'calendar-outline',
       title: 'Appointment prep',
       detail: 'Check visits, questions, and notes',
       route: '/(tabs)/appointments',
-      done: false,
+      done: manualDone.includes('appointments'),
+      canMarkDone: true,
     },
   ];
 
@@ -260,28 +291,39 @@ export default function DailyPlanScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: palette.ink }]}>Start here</Text>
+      <Text style={[styles.planHint, { color: palette.text }]}>Open an item or tap the circle to mark it done.</Text>
 
       <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         {planItems.map((item, index) => (
-          <AnimatedPressable
-            key={item.title}
-            onPress={() => router.push(item.route as never)}
+          <View
+            key={item.id}
             style={[
               styles.planRow,
               index < planItems.length - 1 && { borderBottomColor: palette.line, borderBottomWidth: 1 },
             ]}
           >
-            <View style={[styles.planIcon, { backgroundColor: item.done ? palette.accent : palette.accentSoft }]}>
-              <Ionicons name={item.done ? 'checkmark' : item.icon} size={21} color={item.done ? palette.onAccent : palette.accent} />
-            </View>
+            <AnimatedPressable onPress={() => router.push(item.route as never)} style={styles.planMain}>
+              <View style={[styles.planIcon, { backgroundColor: item.done ? palette.accent : palette.accentSoft }]}>
+                <Ionicons name={item.done ? 'checkmark' : item.icon} size={21} color={item.done ? palette.onAccent : palette.accent} />
+              </View>
 
-            <View style={styles.planText}>
-              <Text style={[styles.planTitle, { color: palette.ink }]}>{item.title}</Text>
-              <Text style={[styles.planDetail, { color: palette.text }]}>{item.detail}</Text>
-            </View>
+              <View style={styles.planText}>
+                <Text style={[styles.planTitle, { color: palette.ink }]}>{item.title}</Text>
+                <Text style={[styles.planDetail, { color: palette.text }]}>{item.detail}</Text>
+              </View>
+            </AnimatedPressable>
 
-            <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-          </AnimatedPressable>
+            {item.canMarkDone ? (
+              <AnimatedPressable
+                onPress={() => toggleManualDone(item.id)}
+                style={[styles.doneButton, { backgroundColor: item.done ? palette.accent : palette.accentSoft }]}
+              >
+                <Ionicons name={item.done ? 'checkmark' : 'ellipse-outline'} size={20} color={item.done ? palette.onAccent : palette.accent} />
+              </AnimatedPressable>
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+            )}
+          </View>
         ))}
       </View>
 
@@ -439,6 +481,12 @@ const styles = StyleSheet.create({
     marginTop: 22,
     marginBottom: 12,
   },
+  planHint: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: -6,
+    marginBottom: 12,
+  },
   card: {
     borderRadius: 28,
     borderWidth: 1,
@@ -451,6 +499,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
+  },
+  planMain: {
+    flex: 1,
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  doneButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   planIcon: {
     width: 44,
