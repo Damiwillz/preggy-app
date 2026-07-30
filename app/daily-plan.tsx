@@ -66,6 +66,42 @@ function todayLabel() {
   });
 }
 
+function getGentleFocus(week: number): {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  copy: string;
+  route: string;
+  action: string;
+} {
+  if (week >= 28) {
+    return {
+      icon: 'bag-handle-outline',
+      title: 'Tonight prep',
+      copy: 'Choose one small birth-prep task tonight: bag, questions, documents, or support plan.',
+      route: '/hospital-bag-checklist',
+      action: 'Open checklist',
+    };
+  }
+
+  if (week >= 14) {
+    return {
+      icon: 'pulse-outline',
+      title: 'Body note',
+      copy: 'Take one minute to log how your body feels today, even if it is just a simple mood note.',
+      route: '/log-symptoms',
+      action: 'Log symptoms',
+    };
+  }
+
+  return {
+    icon: 'water-outline',
+    title: 'Small routine',
+    copy: 'Keep today light: drink water, do one care task, and write down anything you want to remember.',
+    route: '/daily-care',
+    action: 'Start care',
+  };
+}
+
 export default function DailyPlanScreen() {
   const { palette } = useAppTheme();
 
@@ -120,6 +156,7 @@ export default function DailyPlanScreen() {
   const babyName = profile?.baby_nickname || 'baby';
   const week = profile?.pregnancy_week ?? 20;
   const carePercent = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
+  const gentleFocus = getGentleFocus(week);
 
   const planItems: PlanItem[] = [
     {
@@ -200,6 +237,26 @@ export default function DailyPlanScreen() {
             <Text style={[styles.percentText, { color: palette.accent }]}>{completedItems}/{planItems.length}</Text>
           </View>
         )}
+      </View>
+
+      <View style={[styles.focusCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.focusIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name={gentleFocus.icon} size={24} color={palette.accent} />
+        </View>
+
+        <View style={styles.focusText}>
+          <Text style={[styles.focusKicker, { color: palette.accent }]}>GENTLE FOCUS</Text>
+          <Text style={[styles.focusTitle, { color: palette.ink }]}>{gentleFocus.title}</Text>
+          <Text style={[styles.focusCopy, { color: palette.text }]}>{gentleFocus.copy}</Text>
+
+          <AnimatedPressable
+            onPress={() => router.push(gentleFocus.route as never)}
+            style={[styles.focusButton, { backgroundColor: palette.accentSoft }]}
+          >
+            <Text style={[styles.focusButtonText, { color: palette.accent }]}>{gentleFocus.action}</Text>
+            <Ionicons name="arrow-forward" size={17} color={palette.accent} />
+          </AnimatedPressable>
+        </View>
       </View>
 
       <Text style={[styles.sectionTitle, { color: palette.ink }]}>Start here</Text>
@@ -326,6 +383,55 @@ const styles = StyleSheet.create({
   percentText: {
     ...type.bodyStrong,
     fontSize: 18,
+  },
+  focusCard: {
+    borderRadius: 28,
+    borderWidth: 1,
+    padding: 18,
+    marginTop: 16,
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'flex-start',
+  },
+  focusIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  focusText: {
+    flex: 1,
+  },
+  focusKicker: {
+    ...type.tiny,
+    letterSpacing: 1.3,
+    fontWeight: '900',
+  },
+  focusTitle: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    lineHeight: 25,
+    marginTop: 4,
+  },
+  focusCopy: {
+    ...type.small,
+    lineHeight: 21,
+    marginTop: 6,
+  },
+  focusButton: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    borderRadius: 17,
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 13,
+  },
+  focusButtonText: {
+    ...type.small,
+    fontWeight: '900',
   },
   sectionTitle: {
     ...type.bodyStrong,
