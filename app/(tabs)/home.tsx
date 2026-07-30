@@ -144,6 +144,52 @@ function getPregnancyProgress(profile: UserProfile | null) {
   };
 }
 
+function getBabyNote(week: number, babyName: string): {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  copy: string;
+  action: string;
+  route: string;
+} {
+  if (week >= 34) {
+    return {
+      icon: 'bag-handle-outline',
+      title: `${babyName}'s arrival prep`,
+      copy: 'Keep today simple: review one bag item, one appointment note, or one support task.',
+      action: 'Open daily plan',
+      route: '/daily-plan',
+    };
+  }
+
+  if (week >= 28) {
+    return {
+      icon: 'footsteps-outline',
+      title: `${babyName}'s daily rhythm`,
+      copy: 'A small check-in can help you keep movement, water, symptoms, and routines in one calm place.',
+      action: 'Open daily plan',
+      route: '/daily-plan',
+    };
+  }
+
+  if (week >= 14) {
+    return {
+      icon: 'leaf-outline',
+      title: `${babyName}'s steady weeks`,
+      copy: 'Use today to notice one pattern: mood, sleep, energy, symptoms, or cravings.',
+      action: 'Log today',
+      route: '/log-symptoms',
+    };
+  }
+
+  return {
+    icon: 'heart-outline',
+    title: `${babyName}'s gentle start`,
+    copy: 'Keep it light today: drink water, add one note, and save anything you want to remember.',
+    action: 'Start care',
+    route: '/daily-care',
+  };
+}
+
 function formatDate(date?: string | null) {
   if (!date) return 'No date';
 
@@ -512,6 +558,7 @@ export default function HomeScreen() {
   const dateStrip = useMemo(() => buildDateStrip(selectedDateKey), [selectedDateKey]);
   const babyName = profile?.baby_nickname || 'Baby';
   const firstName = profile?.full_name?.split(' ')?.[0] || 'Mama';
+  const babyNote = useMemo(() => getBabyNote(progress.week, babyName), [babyName, progress.week]);
   const medicationDone = medications.filter((item) => item.taken).length;
   const medicationTotal = medications.length;
   const symptoms = latestLog?.symptoms?.length ? latestLog.symptoms.join(', ') : 'No symptoms logged for this day';
@@ -604,6 +651,26 @@ export default function HomeScreen() {
           </AnimatedPressable>
         </View>
       </View>
+
+      <AnimatedPressable
+        onPress={() => router.push(babyNote.route as never)}
+        style={[styles.babyNoteCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+      >
+        <View style={[styles.babyNoteIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name={babyNote.icon} size={24} color={palette.accent} />
+        </View>
+
+        <View style={styles.babyNoteText}>
+          <Text style={[styles.cardLabel, { color: palette.accent }]}>TODAY'S BABY NOTE</Text>
+          <Text style={[styles.babyNoteTitle, { color: palette.ink }]}>{babyNote.title}</Text>
+          <Text style={[styles.babyNoteCopy, { color: palette.text }]}>{babyNote.copy}</Text>
+
+          <View style={styles.babyNoteAction}>
+            <Text style={[styles.babyNoteActionText, { color: palette.accent }]}>{babyNote.action}</Text>
+            <Ionicons name="arrow-forward" size={16} color={palette.accent} />
+          </View>
+        </View>
+      </AnimatedPressable>
 
       <View style={[styles.dateCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.dateTop}>
@@ -918,6 +985,46 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   inlineActionText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  babyNoteCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 14,
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'flex-start',
+  },
+  babyNoteIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  babyNoteText: {
+    flex: 1,
+  },
+  babyNoteTitle: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    lineHeight: 25,
+    marginTop: 4,
+  },
+  babyNoteCopy: {
+    ...type.small,
+    lineHeight: 21,
+    marginTop: 6,
+  },
+  babyNoteAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 10,
+  },
+  babyNoteActionText: {
     ...type.small,
     fontWeight: '900',
   },
