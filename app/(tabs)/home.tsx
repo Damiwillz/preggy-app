@@ -51,6 +51,24 @@ type Appointment = {
   status: string | null;
 };
 
+type WeeklySummary = {
+  careDays: number;
+  careTasks: number;
+  waterCups: number;
+  kickDays: number;
+  kickTotal: number;
+  symptomLogs: number;
+};
+
+const emptyWeeklySummary: WeeklySummary = {
+  careDays: 0,
+  careTasks: 0,
+  waterCups: 0,
+  kickDays: 0,
+  kickTotal: 0,
+  symptomLogs: 0,
+};
+
 const DAILY_CARE_TOTAL = 5;
 const WATER_TARGET = 8;
 const GUEST_SYMPTOM_LOGS_KEY = 'preggy:guest-symptom-logs';
@@ -65,6 +83,54 @@ function getWaterStorageKey(dateKey: string) {
 
 function getKickStorageKey(dateKey: string) {
   return `preggy:kicks:${dateKey}`;
+}
+
+function buildLastSevenDateKeys() {
+  const today = new Date();
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - index);
+
+    return toDateKey(date);
+  });
+}
+
+async function getWeeklyLocalSummary(): Promise<WeeklySummary> {
+  const dateKeys = buildLastSevenDateKeys();
+
+  const [careValues, waterValues, kickValues, guestSymptomsRaw] = await Promise.all([
+    Promise.all(dateKeys.map((key) => AsyncStorage.getItem(getChecklistStorageKey(key)))),
+    Promise.all(dateKeys.map((key) => AsyncStorage.getItem(getWaterStorageKey(key)))),
+    Promise.all(dateKeys.map((key) => AsyncStorage.getItem(getKickStorageKey(key)))),
+    AsyncStorage.getItem(GUEST_SYMPTOM_LOGS_KEY),
+  ]);
+
+  const careLists = careValues.map(parseSavedArray);
+  const waterCounts = waterValues.map((value) => {
+    const parsed = value ? Number.parseInt(value, 10) : 0;
+    return Number.isFinite(parsed) ? clamp(parsed, 0, WATER_TARGET) : 0;
+  });
+  const kickCounts = kickValues.map((value) => {
+    const parsed = value ? Number.parseInt(value, 10) : 0;
+    return Number.isFinite(parsed) ? Math.max(parsed, 0) : 0;
+  });
+
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const symptomLogs = parseSavedArray(guestSymptomsRaw).filter((item) => {
+    const createdAt = typeof item.created_at === 'string' ? Date.parse(item.created_at) : 0;
+
+    return Number.isFinite(createdAt) && createdAt >= sevenDaysAgo;
+  }).length;
+
+  return {
+    careDays: careLists.filter((list) => list.length > 0).length,
+    careTasks: careLists.reduce((sum, list) => sum + list.length, 0),
+    waterCups: waterCounts.reduce((sum, value) => sum + value, 0),
+    kickDays: kickCounts.filter((value) => value > 0).length,
+    kickTotal: kickCounts.reduce((sum, value) => sum + value, 0),
+    symptomLogs,
+  };
 }
 
 function toDateKey(date: Date) {
@@ -348,6 +414,7 @@ export default function HomeScreen() {
     cravings: 0,
     weight: 'No weight yet',
   });
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary>(emptyWeeklySummary);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [dateDraft, setDateDraft] = useState(() => toDateKey(new Date()));
 
@@ -432,6 +499,10 @@ export default function HomeScreen() {
             setDailyCareDone(Math.min(parsedCare.length, DAILY_CARE_TOTAL));
             setWaterCups(Number.isFinite(parsedWater) ? clamp(parsedWater, 0, WATER_TARGET) : 0);
             setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
+
+            const nextWeeklySummary = await getWeeklyLocalSummary();
+            if (!mounted) return;
+            setWeeklySummary(nextWeeklySummary);
 
             const moods = parseSavedArray(moodRaw);
             const sleeps = parseSavedArray(sleepRaw);
@@ -520,6 +591,10 @@ export default function HomeScreen() {
           setDailyCareDone(Math.min(parsedCare.length, DAILY_CARE_TOTAL));
           setWaterCups(Number.isFinite(parsedWater) ? clamp(parsedWater, 0, WATER_TARGET) : 0);
           setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
+
+          const nextWeeklySummary = await getWeeklyLocalSummary();
+          if (!mounted) return;
+          setWeeklySummary(nextWeeklySummary);
 
           const moods = parseSavedArray(moodRaw);
           const sleeps = parseSavedArray(sleepRaw);
@@ -746,6 +821,48 @@ export default function HomeScreen() {
           detail={medicationTotal ? 'taken' : 'no routine'}
           onPress={() => router.push('/medication' as never)}
         />
+      </View>
+
+      <View style={[styles.weeklyCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.weeklyTop}>
+          <View>
+            <Text style={[styles.cardLabel, { color: palette.accent }]}>WEEKLY SNAPSHOT</Text>
+            <Text style={[styles.weeklyTitle, { color: palette.ink }]}>Last 7 days</Text>
+          </View>
+
+          <AnimatedPressable
+            onPress={() => router.push('/weekly-report' as never)}
+            style={[styles.weeklyButton, { backgroundColor: palette.accentSoft }]}
+          >
+            <Text style={[styles.weeklyButtonText, { color: palette.accent }]}>Report</Text>
+          </AnimatedPressable>
+        </View>
+
+        <View style={styles.weeklyGrid}>
+          <View style={[styles.weeklyItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Ionicons name="checkmark-circle-outline" size={19} color={palette.accent} />
+            <Text style={[styles.weeklyValue, { color: palette.ink }]}>{weeklySummary.careDays}/7</Text>
+            <Text style={[styles.weeklyLabel, { color: palette.text }]}>care days</Text>
+          </View>
+
+          <View style={[styles.weeklyItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Ionicons name="water-outline" size={19} color={palette.accent} />
+            <Text style={[styles.weeklyValue, { color: palette.ink }]}>{weeklySummary.waterCups}</Text>
+            <Text style={[styles.weeklyLabel, { color: palette.text }]}>water cups</Text>
+          </View>
+
+          <View style={[styles.weeklyItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Ionicons name="footsteps-outline" size={19} color={palette.accent} />
+            <Text style={[styles.weeklyValue, { color: palette.ink }]}>{weeklySummary.kickDays}</Text>
+            <Text style={[styles.weeklyLabel, { color: palette.text }]}>kick days</Text>
+          </View>
+
+          <View style={[styles.weeklyItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Ionicons name="pulse-outline" size={19} color={palette.accent} />
+            <Text style={[styles.weeklyValue, { color: palette.ink }]}>{weeklySummary.symptomLogs}</Text>
+            <Text style={[styles.weeklyLabel, { color: palette.text }]}>symptoms</Text>
+          </View>
+        </View>
       </View>
 
       <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
@@ -1111,6 +1228,58 @@ const styles = StyleSheet.create({
   statDetail: {
     ...type.tiny,
     marginTop: 3,
+  },
+  weeklyCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 14,
+  },
+  weeklyTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    marginBottom: 12,
+  },
+  weeklyTitle: {
+    ...type.bodyStrong,
+    fontSize: 21,
+    lineHeight: 26,
+    marginTop: 3,
+  },
+  weeklyButton: {
+    minHeight: 38,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weeklyButtonText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  weeklyGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  weeklyItem: {
+    flex: 1,
+    minHeight: 84,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 10,
+    justifyContent: 'space-between',
+  },
+  weeklyValue: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '900',
+    marginTop: 5,
+  },
+  weeklyLabel: {
+    ...type.tiny,
+    marginTop: 2,
   },
   sectionCard: {
     borderWidth: 1,
