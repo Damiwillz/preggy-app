@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getGuestProfile, isGuestMode, updateGuestProfile } from '@/services/guest';
 
 export type UserProfile = {
   id: string;
@@ -79,6 +80,10 @@ function shouldRetryWithoutDueDate(error: unknown, profile: Partial<UserProfile>
 }
 
 export async function getMyProfile() {
+  if (await isGuestMode()) {
+    return getGuestProfile();
+  }
+
   const user = await getCurrentUser();
 
   const { data, error } = await supabase
@@ -154,5 +159,9 @@ async function updateMyProfileAttempt(profile: Partial<UserProfile>, canRetryDue
 }
 
 export async function updateMyProfile(profile: Partial<UserProfile>) {
+  if (await isGuestMode()) {
+    return updateGuestProfile(profile);
+  }
+
   return updateMyProfileAttempt(profile, true);
 }

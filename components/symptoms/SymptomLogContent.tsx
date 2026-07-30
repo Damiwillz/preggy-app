@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -9,6 +10,7 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
+import { isGuestMode } from '@/services/guest';
 
 const moods = [
   { emoji: '😊', label: 'Happy' },
@@ -30,6 +32,8 @@ const symptomOptions = [
 ];
 
 const intensityLevels = [1, 2, 3, 4, 5];
+
+const GUEST_SYMPTOM_LOGS_KEY = 'preggy:guest-symptom-logs';
 
 function getTodayLabel() {
   return new Date().toLocaleDateString('en-US', {
@@ -69,6 +73,31 @@ export function SymptomLogContent({ back = false }: Props) {
     setSaving(true);
 
     try {
+      if (await isGuestMode()) {
+        const savedLogs = await AsyncStorage.getItem(GUEST_SYMPTOM_LOGS_KEY);
+        const logs = savedLogs ? JSON.parse(savedLogs) : [];
+
+        const nextLog = {
+          id: String(Date.now()),
+          mood,
+          symptoms,
+          intensity,
+          notes: notes.trim() || null,
+          created_at: new Date().toISOString(),
+        };
+
+        await AsyncStorage.setItem(GUEST_SYMPTOM_LOGS_KEY, JSON.stringify([nextLog, ...logs]));
+
+        Alert.alert('Saved', 'Your guest symptom log has been saved on this device.', [
+          {
+            text: 'Go Home',
+            onPress: () => router.replace('/(tabs)/home' as never),
+          },
+        ]);
+
+        return;
+      }
+
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError) throw userError;

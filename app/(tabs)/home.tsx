@@ -19,6 +19,7 @@ import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 import { getMyProfile, type UserProfile } from '@/services/profile';
+import { isGuestMode } from '@/services/guest';
 
 type SymptomLog = {
   id: string;
@@ -52,6 +53,7 @@ type Appointment = {
 
 const DAILY_CARE_TOTAL = 5;
 const WATER_TARGET = 8;
+const GUEST_SYMPTOM_LOGS_KEY = 'preggy:guest-symptom-logs';
 
 function getChecklistStorageKey(dateKey: string) {
   return `preggy:daily-care:${dateKey}`;
@@ -332,6 +334,70 @@ export default function HomeScreen() {
           if (!mounted) return;
 
           setProfile(profileData);
+
+          const guest = await isGuestMode();
+
+          if (guest) {
+            const [
+              savedCare,
+              savedWater,
+              savedKicks,
+              moodRaw,
+              sleepRaw,
+              cravingsRaw,
+              weightRaw,
+              guestSymptomRaw,
+            ] = await Promise.all([
+              AsyncStorage.getItem(getChecklistStorageKey(selectedDateKey)),
+              AsyncStorage.getItem(getWaterStorageKey(selectedDateKey)),
+              AsyncStorage.getItem(getKickStorageKey(selectedDateKey)),
+              AsyncStorage.getItem('preggy:mood-tracker'),
+              AsyncStorage.getItem('preggy:sleep-tracker'),
+              AsyncStorage.getItem('preggy:cravings-tracker'),
+              AsyncStorage.getItem('preggy:weight-tracker'),
+              AsyncStorage.getItem(GUEST_SYMPTOM_LOGS_KEY),
+            ]);
+
+            if (!mounted) return;
+
+            const guestSymptoms = parseSavedArray(guestSymptomRaw);
+            const latestGuestLog = guestSymptoms.find((item) =>
+              typeof item.created_at === 'string' && item.created_at.startsWith(selectedDateKey)
+            );
+
+            setLatestLog((latestGuestLog as SymptomLog | undefined) ?? null);
+            setMedications([]);
+            setNextAppointment(null);
+
+            const parsedCare = parseSavedArray(savedCare);
+            const parsedWater = savedWater ? Number.parseInt(savedWater, 10) : 0;
+            const parsedKicks = savedKicks ? Number.parseInt(savedKicks, 10) : 0;
+
+            setDailyCareDone(Math.min(parsedCare.length, DAILY_CARE_TOTAL));
+            setWaterCups(Number.isFinite(parsedWater) ? clamp(parsedWater, 0, WATER_TARGET) : 0);
+            setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
+
+            const moods = parseSavedArray(moodRaw);
+            const sleeps = parseSavedArray(sleepRaw);
+            const cravings = parseSavedArray(cravingsRaw);
+            const weights = parseSavedArray(weightRaw);
+
+            const latestMood = moods[0];
+            const latestSleep = sleeps[0];
+            const latestWeight = weights[0];
+
+            const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            const recentCravings = cravings.filter((item) => Number(item.createdAt) >= sevenDaysAgo).length;
+
+            setWellnessSnapshot({
+              mood: latestMood?.mood ? String(latestMood.mood) : 'No mood yet',
+              sleep: latestSleep?.hours ? String(latestSleep.hours).replace(/\s*(hours|hrs)$/i, '') + ' hrs' : 'No sleep yet',
+              cravings: recentCravings,
+              weight: latestWeight?.weight ? `${latestWeight.weight} kg` : 'No weight yet',
+            });
+
+            return;
+          }
 
           const { data: userData, error: userError } = await supabase.auth.getUser();
 

@@ -6,10 +6,12 @@ import { router } from 'expo-router';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { signInWithEmail } from '@/services/auth';
 
 export default function LoginScreen() {
   const { palette } = useAppTheme();
+  const { startGuestMode } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +32,20 @@ export default function LoginScreen() {
     } catch (error) {
       console.log('Login error:', error);
       Alert.alert('Could not log in', 'Check your email and password, then try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGuestMode() {
+    setLoading(true);
+
+    try {
+      await startGuestMode();
+      router.replace('/(tabs)/home' as never);
+    } catch (error) {
+      console.log('Guest mode error:', error);
+      Alert.alert('Guest mode unavailable', 'Please try again in a moment.');
     } finally {
       setLoading(false);
     }
@@ -116,6 +132,15 @@ export default function LoginScreen() {
                 <Ionicons name="arrow-forward" size={20} color={palette.onAccent} />
               </>
             )}
+          </AnimatedPressable>
+
+          <AnimatedPressable
+            onPress={handleGuestMode}
+            disabled={loading}
+            style={[styles.guestButton, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
+          >
+            <Ionicons name="person-circle-outline" size={20} color={palette.accent} />
+            <Text style={[styles.guestText, { color: palette.accent }]}>Continue as guest</Text>
           </AnimatedPressable>
 
           <View style={styles.footer}>
@@ -235,6 +260,19 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   primaryText: {
+    ...type.bodyStrong,
+  },
+  guestButton: {
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  guestText: {
     ...type.bodyStrong,
   },
   footer: {

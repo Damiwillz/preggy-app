@@ -15,14 +15,14 @@ const icons: Record<string, React.ComponentType<{ size?: number; color?: string 
 };
 
 export default function TabLayout() {
-  const { session, loading } = useAuth();
+  const { session, loading, isGuest } = useAuth();
   const { palette } = useAppTheme();
 
   useEffect(() => {
-    if (!loading && !session) {
+    if (!loading && !session && !isGuest) {
       router.replace('/auth/log-in');
     }
-  }, [loading, session]);
+  }, [isGuest, loading, session]);
 
   if (loading) {
     return (
@@ -32,7 +32,7 @@ export default function TabLayout() {
     );
   }
 
-  if (!session) {
+  if (!session && !isGuest) {
     return null;
   }
 

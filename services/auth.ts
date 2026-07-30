@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { disableGuestMode } from '@/services/guest';
 
 async function createStarterRows(userId: string, fullName: string) {
   const { error: profileError } = await supabase.from('profiles').upsert(
@@ -46,6 +47,8 @@ export async function signUpWithEmail(email: string, password: string, fullName:
     await createStarterRows(data.session.user.id, cleanName);
   }
 
+  await disableGuestMode();
+
   return data;
 }
 
@@ -56,6 +59,8 @@ export async function signInWithEmail(email: string, password: string) {
   });
 
   if (error) throw error;
+
+  await disableGuestMode();
 
   return data;
 }
@@ -81,7 +86,11 @@ export async function updatePassword(newPassword: string) {
 }
 
 export async function signOut() {
+  await disableGuestMode();
+
   const { error } = await supabase.auth.signOut();
 
-  if (error) throw error;
+  if (error && !error.message.toLowerCase().includes('session')) {
+    throw error;
+  }
 }

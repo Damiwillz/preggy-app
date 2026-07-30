@@ -7,18 +7,18 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function IndexScreen() {
   const { palette } = useAppTheme();
-  const { session, loading } = useAuth();
+  const { session, loading, isGuest } = useAuth();
 
   useEffect(() => {
     if (loading) return;
 
-    if (session) {
+    if (session || isGuest) {
       router.replace('/(tabs)/home' as never);
       return;
     }
 
     router.replace('/onboarding' as never);
-  }, [loading, session]);
+  }, [isGuest, loading, session]);
 
   return (
     <View style={[styles.container, { backgroundColor: palette.canvas }]}>
