@@ -18,6 +18,7 @@ import { Header } from '@/components/layout/Header';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { signOut } from '@/services/auth';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 
@@ -102,6 +103,7 @@ function getProgress(week: number, days: number) {
 
 export default function ProfileScreen() {
   const { palette } = useAppTheme();
+  const { isGuest } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -260,7 +262,7 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.progressLabel, { color: palette.accent }]}>Pregnancy progress</Text>
             <Text style={[styles.progressTitle, { color: palette.ink }]}>{progress}% complete</Text>
-            <Text style={[styles.progressCopy, { color: palette.text }]}>Your profile is synced securely.</Text>
+            <Text style={[styles.progressCopy, { color: palette.text }]}>{isGuest ? 'Guest data is saved on this phone only.' : 'Your profile is synced securely.'}</Text>
           </View>
 
           <View style={[styles.weekBadge, { backgroundColor: palette.accentSoft }]}>
@@ -272,6 +274,41 @@ export default function ProfileScreen() {
           <View style={[styles.fill, { width: `${progress}%`, backgroundColor: palette.accent }]} />
         </View>
       </View>
+
+      {isGuest ? (
+        <View style={[styles.guestCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <View style={styles.guestTop}>
+            <View style={[styles.guestIcon, { backgroundColor: palette.accentSoft }]}>
+              <Ionicons name="person-circle-outline" size={25} color={palette.accent} />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.guestKicker, { color: palette.accent }]}>GUEST MODE</Text>
+              <Text style={[styles.guestTitle, { color: palette.ink }]}>Save your journey</Text>
+              <Text style={[styles.guestCopy, { color: palette.text }]}>
+                Your guest data stays on this phone. Create an account when you want to sync, backup, and keep everything safe.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.guestActions}>
+            <AnimatedPressable
+              onPress={() => router.replace('/auth/create-account' as never)}
+              style={[styles.guestPrimary, { backgroundColor: palette.accent }]}
+            >
+              <Text style={[styles.guestPrimaryText, { color: palette.onAccent }]}>Create account</Text>
+              <Ionicons name="arrow-forward" size={18} color={palette.onAccent} />
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              onPress={() => router.replace('/auth/log-in' as never)}
+              style={[styles.guestSecondary, { backgroundColor: palette.accentSoft }]}
+            >
+              <Text style={[styles.guestSecondaryText, { color: palette.accent }]}>Log in</Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+      ) : null}
 
       <View style={[styles.detailsCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.detailsTop}>
@@ -553,6 +590,65 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: 999,
+  },
+  guestCard: {
+    marginTop: 16,
+    borderRadius: 30,
+    padding: 18,
+    borderWidth: 1,
+  },
+  guestTop: {
+    flexDirection: 'row',
+    gap: 13,
+    alignItems: 'flex-start',
+  },
+  guestIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestKicker: {
+    ...type.section,
+  },
+  guestTitle: {
+    ...type.bodyStrong,
+    fontSize: 21,
+    lineHeight: 26,
+    marginTop: 3,
+  },
+  guestCopy: {
+    ...type.small,
+    lineHeight: 21,
+    marginTop: 5,
+  },
+  guestActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  guestPrimary: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  guestPrimaryText: {
+    ...type.bodyStrong,
+  },
+  guestSecondary: {
+    minHeight: 50,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestSecondaryText: {
+    ...type.bodyStrong,
   },
   detailsCard: {
     marginTop: 16,
