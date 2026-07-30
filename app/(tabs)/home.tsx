@@ -523,10 +523,10 @@ export default function HomeScreen() {
   const todayFocus = useMemo<Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; detail: string; route: string }>>(
     () => [
       {
-        icon: 'checkmark-circle-outline',
-        title: 'Finish daily care',
-        detail: `${dailyCareProgress}% complete today`,
-        route: '/daily-care',
+        icon: 'list-circle-outline',
+        title: 'Open daily plan',
+        detail: `${dailyCareProgress}% care • ${todayKicks} kicks`,
+        route: '/daily-plan',
       },
       {
         icon: 'footsteps-outline',

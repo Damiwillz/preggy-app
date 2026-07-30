@@ -52,6 +52,7 @@ export default function RootLayout() {
           <Stack.Screen name="privacy/index" />
           <Stack.Screen name="privacy/download-data" />
           <Stack.Screen name="privacy/biometric" />
+          <Stack.Screen name="daily-plan" />
           <Stack.Screen name="doctor-visit-pack" />
           <Stack.Screen name="safety-center" />
           <Stack.Screen name="documents-checklist" />
