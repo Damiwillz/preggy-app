@@ -9,6 +9,7 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
+import { getGuestAppointment, isGuestMode, saveGuestAppointment } from '@/services/guest';
 
 export default function AddAppointmentScreen() {
   const { palette } = useAppTheme();
@@ -28,6 +29,21 @@ export default function AddAppointmentScreen() {
       if (!appointmentId) return;
 
       try {
+        if (await isGuestMode()) {
+          const guestAppointment = await getGuestAppointment(appointmentId);
+
+          if (guestAppointment) {
+            setTitle(guestAppointment.title || guestAppointment.type || '');
+            setDoctor(guestAppointment.doctor_name || guestAppointment.doctor || '');
+            setClinic(guestAppointment.clinic_name || guestAppointment.clinic || guestAppointment.location || '');
+            setDate(guestAppointment.appointment_date || guestAppointment.date || '');
+            setTime(guestAppointment.appointment_time || guestAppointment.time || '');
+            setNotes(guestAppointment.notes || '');
+          }
+
+          return;
+        }
+
         const { data, error } = await supabase
           .from('appointments')
           .select('*')
@@ -69,6 +85,43 @@ export default function AddAppointmentScreen() {
     setSaving(true);
 
     try {
+      if (await isGuestMode()) {
+        const cleanDate = date.trim();
+        const cleanTime = time.trim() || 'Time not set';
+
+        await saveGuestAppointment(
+          {
+            title: title.trim(),
+            type: title.trim(),
+            doctor: doctor.trim() || null,
+            doctor_name: doctor.trim() || null,
+            clinic: clinic.trim() || null,
+            clinic_name: clinic.trim() || null,
+            location: clinic.trim() || null,
+            appointment_date: cleanDate,
+            appointment_time: cleanTime,
+            date: cleanDate,
+            time: cleanTime,
+            status: 'Upcoming',
+            notes: notes.trim() || null,
+          },
+          appointmentId
+        );
+
+        Alert.alert(
+          isEditing ? 'Appointment updated' : 'Appointment added',
+          isEditing ? 'Your guest appointment has been updated on this device.' : 'Your guest appointment has been saved on this device.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.back(),
+            },
+          ]
+        );
+
+        return;
+      }
+
       const { data, error: userError } = await supabase.auth.getUser();
 
       if (userError) throw userError;

@@ -10,6 +10,7 @@ import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
+import { getGuestMedication, isGuestMode, saveGuestMedication } from '@/services/guest';
 
 type Props = {
   medicationId?: string | null;
@@ -34,6 +35,19 @@ export function MedicationFormContent({ medicationId = null }: Props) {
 
       try {
         setLoading(true);
+
+        if (await isGuestMode()) {
+          const guestMedication = await getGuestMedication(medicationId);
+
+          if (guestMedication) {
+            setName(guestMedication.name || '');
+            setDosage(guestMedication.dosage || '');
+            setFrequency(guestMedication.frequency || 'Daily');
+            setInstructions(guestMedication.instructions || '');
+          }
+
+          return;
+        }
 
         const { data, error } = await supabase
           .from('medications')
@@ -71,6 +85,31 @@ export function MedicationFormContent({ medicationId = null }: Props) {
     setSaving(true);
 
     try {
+      if (await isGuestMode()) {
+        await saveGuestMedication(
+          {
+            name: name.trim(),
+            dosage: dosage.trim() || null,
+            frequency: frequency.trim() || 'Daily',
+            instructions: instructions.trim() || null,
+          },
+          medicationId
+        );
+
+        Alert.alert(
+          isEditing ? 'Medication updated' : 'Medication added',
+          isEditing ? 'Your guest medication has been updated on this device.' : 'Your guest medication has been saved on this device.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.back(),
+            },
+          ]
+        );
+
+        return;
+      }
+
       const { data, error: userError } = await supabase.auth.getUser();
 
       if (userError) throw userError;

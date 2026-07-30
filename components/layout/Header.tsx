@@ -21,6 +21,7 @@ import { BackIcon, HeartIcon } from '@/components/ui/icons';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 import { signOut } from '@/services/auth';
 import { uploadMyAvatar } from '@/services/avatar';
+import { isGuestMode } from '@/services/guest';
 
 type MenuItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -159,6 +160,14 @@ export function Header({
 
     setTimeout(async () => {
       try {
+        if (await isGuestMode()) {
+          Alert.alert(
+            'Create account to save photos',
+            'Guest mode keeps your profile local. Create an account when you want to upload and sync a profile photo.'
+          );
+          return;
+        }
+
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (!permission.granted) {

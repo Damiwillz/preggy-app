@@ -3,6 +3,7 @@ import { Appearance, useColorScheme } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { getMyPrivacySettings, updateMyPrivacySettings } from '@/services/privacy';
+import { getGuestThemeSettings, isGuestMode, updateGuestThemeSettings } from '@/services/guest';
 
 type AppearanceMode = 'system' | 'light' | 'dark';
 type AccentColor = 'rose' | 'plum' | 'peach' | 'mint';
@@ -128,6 +129,18 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
 
   const refreshTheme = useCallback(async () => {
     try {
+      if (await isGuestMode()) {
+        const settings = await getGuestThemeSettings();
+
+        const nextMode = (settings.appearance_mode ?? 'system') as AppearanceMode;
+        const nextAccent = (settings.accent_color ?? 'rose') as AccentColor;
+
+        setModeState(nextMode);
+        setAccentColorState(nextAccent);
+        applyNativeMode(nextMode);
+        return;
+      }
+
       const { data } = await supabase.auth.getSession();
 
       if (!data.session) {
@@ -159,6 +172,13 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
     applyNativeMode(nextMode);
 
     try {
+      if (await isGuestMode()) {
+        await updateGuestThemeSettings({
+          appearance_mode: nextMode,
+        });
+        return;
+      }
+
       await updateMyPrivacySettings({
         appearance_mode: nextMode,
       });
@@ -171,6 +191,13 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
     setAccentColorState(nextAccent);
 
     try {
+      if (await isGuestMode()) {
+        await updateGuestThemeSettings({
+          accent_color: nextAccent,
+        });
+        return;
+      }
+
       await updateMyPrivacySettings({
         accent_color: nextAccent,
       });

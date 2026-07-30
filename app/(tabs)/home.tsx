@@ -19,7 +19,7 @@ import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 import { getMyProfile, type UserProfile } from '@/services/profile';
-import { isGuestMode } from '@/services/guest';
+import { getGuestAppointments, getGuestMedications, isGuestMode } from '@/services/guest';
 
 type SymptomLog = {
   id: string;
@@ -347,6 +347,8 @@ export default function HomeScreen() {
               cravingsRaw,
               weightRaw,
               guestSymptomRaw,
+              guestMedications,
+              guestAppointments,
             ] = await Promise.all([
               AsyncStorage.getItem(getChecklistStorageKey(selectedDateKey)),
               AsyncStorage.getItem(getWaterStorageKey(selectedDateKey)),
@@ -356,6 +358,8 @@ export default function HomeScreen() {
               AsyncStorage.getItem('preggy:cravings-tracker'),
               AsyncStorage.getItem('preggy:weight-tracker'),
               AsyncStorage.getItem(GUEST_SYMPTOM_LOGS_KEY),
+              getGuestMedications(),
+              getGuestAppointments(),
             ]);
 
             if (!mounted) return;
@@ -366,8 +370,14 @@ export default function HomeScreen() {
             );
 
             setLatestLog((latestGuestLog as SymptomLog | undefined) ?? null);
-            setMedications([]);
-            setNextAppointment(null);
+            setMedications(guestMedications as Medication[]);
+
+            const upcomingGuestAppointment = guestAppointments.find((item) => {
+              const appointmentDate = item.appointment_date || item.date;
+              return item.status !== 'Cancelled' && appointmentDate === selectedDateKey;
+            });
+
+            setNextAppointment((upcomingGuestAppointment as Appointment | undefined) ?? null);
 
             const parsedCare = parseSavedArray(savedCare);
             const parsedWater = savedWater ? Number.parseInt(savedWater, 10) : 0;

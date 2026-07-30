@@ -10,6 +10,7 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
+import { deleteGuestMedication, getGuestMedications, isGuestMode, updateGuestMedication } from '@/services/guest';
 
 type Medication = {
   id: string;
@@ -54,6 +55,13 @@ export default function MedicationScreen() {
   }
 
   async function loadMedications() {
+    if (await isGuestMode()) {
+      const guestMedications = await getGuestMedications();
+
+      setMedications(guestMedications as Medication[]);
+      return;
+    }
+
     const userId = await getUserId();
 
     const { data, error } = await supabase
@@ -112,6 +120,11 @@ export default function MedicationScreen() {
             setMedications((old) => old.filter((item) => item.id !== medication.id));
 
             try {
+              if (await isGuestMode()) {
+                await deleteGuestMedication(medication.id);
+                return;
+              }
+
               const { error } = await supabase
                 .from('medications')
                 .delete()
@@ -150,6 +163,14 @@ export default function MedicationScreen() {
     );
 
     try {
+      if (await isGuestMode()) {
+        await updateGuestMedication(medication.id, {
+          taken: nextTaken,
+          updated_at: new Date().toISOString(),
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('medications')
         .update({

@@ -10,6 +10,7 @@ import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
+import { deleteGuestAppointment, getGuestAppointment, isGuestMode, updateGuestAppointment } from '@/services/guest';
 
 type Appointment = {
   id: string;
@@ -79,6 +80,19 @@ export default function AppointmentDetailsScreen() {
     try {
       setLoading(true);
 
+      if (await isGuestMode()) {
+        if (!appointmentId) {
+          Alert.alert('Appointment missing', 'Please open this appointment from the appointment list.');
+          router.back();
+          return;
+        }
+
+        const guestAppointment = await getGuestAppointment(appointmentId);
+
+        setAppointment((guestAppointment as Appointment | null) ?? null);
+        return;
+      }
+
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError) throw userError;
@@ -133,6 +147,21 @@ export default function AppointmentDetailsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (await isGuestMode()) {
+                await updateGuestAppointment(appointment.id, {
+                  status: 'Cancelled',
+                  updated_at: new Date().toISOString(),
+                });
+
+                setAppointment({
+                  ...appointment,
+                  status: 'Cancelled',
+                });
+
+                Alert.alert('Appointment cancelled', 'This appointment has been marked as cancelled.');
+                return;
+              }
+
               const { error } = await supabase
                 .from('appointments')
                 .update({
@@ -173,6 +202,18 @@ export default function AppointmentDetailsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (await isGuestMode()) {
+                await deleteGuestAppointment(appointment.id);
+
+                Alert.alert('Appointment deleted', 'This appointment has been removed.', [
+                  {
+                    text: 'OK',
+                    onPress: () => router.replace('/(tabs)/appointments' as never),
+                  },
+                ]);
+                return;
+              }
+
               const { error } = await supabase
                 .from('appointments')
                 .delete()

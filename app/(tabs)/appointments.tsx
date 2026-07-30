@@ -9,6 +9,7 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
+import { getGuestAppointments, isGuestMode } from '@/services/guest';
 
 type Appointment = {
   id: string;
@@ -85,6 +86,13 @@ export default function AppointmentsScreen() {
   }
 
   async function loadAppointments() {
+    if (await isGuestMode()) {
+      const guestAppointments = await getGuestAppointments();
+
+      setAppointments(guestAppointments as Appointment[]);
+      return;
+    }
+
     const userId = await getUserId();
 
     const { data, error } = await supabase
