@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  View,
   ViewProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 
 import { colors } from '@/constants/colors';
 import { screenPad } from '@/utils/responsive';
@@ -16,10 +18,61 @@ type Props = ViewProps & {
   scroll?: boolean;
   children: React.ReactNode;
   bottomSpace?: number;
+  animate?: boolean;
 };
 
-export function Screen({ children, scroll = true, bottomSpace = 120, style }: Props) {
-  const content = <View style={[styles.content, { paddingBottom: bottomSpace }, style]}>{children}</View>;
+export function Screen({ children, scroll = true, bottomSpace = 120, style, animate = true }: Props) {
+  const entrance = useRef(new Animated.Value(1)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!animate) {
+        entrance.setValue(1);
+        return;
+      }
+
+      entrance.setValue(0);
+
+      const animation = Animated.timing(entrance, {
+        toValue: 1,
+        duration: 360,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      });
+
+      animation.start();
+
+      return () => {
+        animation.stop();
+      };
+    }, [animate, entrance])
+  );
+
+  const animatedStyle = animate
+    ? {
+        opacity: entrance,
+        transform: [
+          {
+            translateY: entrance.interpolate({
+              inputRange: [0, 1],
+              outputRange: [18, 0],
+            }),
+          },
+          {
+            scale: entrance.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.985, 1],
+            }),
+          },
+        ],
+      }
+    : null;
+
+  const content = (
+    <Animated.View style={[styles.content, { paddingBottom: bottomSpace }, animatedStyle, style]}>
+      {children}
+    </Animated.View>
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
