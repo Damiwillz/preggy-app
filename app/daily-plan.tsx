@@ -406,6 +406,14 @@ export default function DailyPlanScreen() {
           </Text>
           <Ionicons name="checkmark" size={18} color={palette.onAccent} />
         </AnimatedPressable>
+
+        <AnimatedPressable
+          onPress={() => router.push('/reflection-history' as never)}
+          style={[styles.reflectionHistoryButton, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}
+        >
+          <Ionicons name="book-outline" size={18} color={palette.accent} />
+          <Text style={[styles.reflectionHistoryText, { color: palette.accent }]}>View reflection history</Text>
+        </AnimatedPressable>
       </View>
 
       <View style={[styles.note, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
@@ -671,6 +679,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   reflectionButtonText: {
+    ...type.bodyStrong,
+  },
+  reflectionHistoryButton: {
+    minHeight: 48,
+    borderRadius: 21,
+    borderWidth: 1,
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  reflectionHistoryText: {
     ...type.bodyStrong,
   },
   note: {
