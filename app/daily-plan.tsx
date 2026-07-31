@@ -24,6 +24,18 @@ type PlanItem = {
   canMarkDone?: boolean;
 };
 
+type DailyStreak = {
+  current: number;
+  best: number;
+  checkedInToday: boolean;
+};
+
+const emptyDailyStreak: DailyStreak = {
+  current: 0,
+  best: 0,
+  checkedInToday: false,
+};
+
 function toDateKey(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -62,6 +74,77 @@ function parseSavedArray(raw: string | null) {
   } catch {
     return [];
   }
+}
+
+function buildRecentDateKeys(days = 60) {
+  const today = new Date();
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - index);
+
+    return toDateKey(date);
+  });
+}
+
+async function hasDailyCheckIn(dateKey: string) {
+  const [doneRaw, reflectionRaw, careRaw, waterRaw, kicksRaw] = await Promise.all([
+    AsyncStorage.getItem(getPlanDoneStorageKey(dateKey)),
+    AsyncStorage.getItem(getReflectionStorageKey(dateKey)),
+    AsyncStorage.getItem(getChecklistStorageKey(dateKey)),
+    AsyncStorage.getItem(getWaterStorageKey(dateKey)),
+    AsyncStorage.getItem(getKickStorageKey(dateKey)),
+  ]);
+
+  const manualDone = parseSavedArray(doneRaw).length > 0;
+  const reflectionDone = Boolean(reflectionRaw?.trim());
+  const careDone = parseSavedArray(careRaw).length > 0;
+  const waterCount = waterRaw ? Number.parseInt(waterRaw, 10) : 0;
+  const kickCount = kicksRaw ? Number.parseInt(kicksRaw, 10) : 0;
+
+  return manualDone ||
+    reflectionDone ||
+    careDone ||
+    (Number.isFinite(waterCount) && waterCount > 0) ||
+    (Number.isFinite(kickCount) && kickCount > 0);
+}
+
+async function getDailyStreak(): Promise<DailyStreak> {
+  const dateKeys = buildRecentDateKeys();
+  const statuses = await Promise.all(
+    dateKeys.map(async (dateKey) => ({
+      dateKey,
+      checked: await hasDailyCheckIn(dateKey),
+    }))
+  );
+
+  const checkedInToday = statuses[0]?.checked ?? false;
+  const startIndex = checkedInToday ? 0 : 1;
+
+  let current = 0;
+
+  for (let index = startIndex; index < statuses.length; index += 1) {
+    if (!statuses[index]?.checked) break;
+    current += 1;
+  }
+
+  let best = 0;
+  let running = 0;
+
+  [...statuses].reverse().forEach((item) => {
+    if (item.checked) {
+      running += 1;
+      best = Math.max(best, running);
+    } else {
+      running = 0;
+    }
+  });
+
+  return {
+    current,
+    best: Math.max(best, current),
+    checkedInToday,
+  };
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -124,6 +207,7 @@ export default function DailyPlanScreen() {
   const [reflection, setReflection] = useState('');
   const [savedReflection, setSavedReflection] = useState('');
   const [savingReflection, setSavingReflection] = useState(false);
+  const [streak, setStreak] = useState<DailyStreak>(emptyDailyStreak);
 
   const dateKey = useMemo(() => toDateKey(new Date()), []);
 
@@ -157,6 +241,10 @@ export default function DailyPlanScreen() {
           setManualDone(parseSavedArray(savedManualDone).filter((item): item is string => typeof item === 'string'));
           setReflection(savedReflectionText ?? '');
           setSavedReflection(savedReflectionText ?? '');
+
+          const nextStreak = await getDailyStreak();
+          if (!mounted) return;
+          setStreak(nextStreak);
         } catch (error) {
           console.log('Daily plan load error:', error);
         } finally {
@@ -181,6 +269,7 @@ export default function DailyPlanScreen() {
 
     try {
       await AsyncStorage.setItem(getPlanDoneStorageKey(dateKey), JSON.stringify(nextDone));
+      setStreak(await getDailyStreak());
     } catch (error) {
       console.log('Daily plan save error:', error);
     }
@@ -200,6 +289,7 @@ export default function DailyPlanScreen() {
 
       setReflection(cleanReflection);
       setSavedReflection(cleanReflection);
+      setStreak(await getDailyStreak());
     } catch (error) {
       console.log('Reflection save error:', error);
     } finally {
@@ -299,6 +389,31 @@ export default function DailyPlanScreen() {
             <Text style={[styles.percentText, { color: palette.accent }]}>{completedItems}/{planItems.length}</Text>
           </View>
         )}
+      </View>
+
+      <View style={[styles.streakCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={[styles.streakIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name="flame-outline" size={25} color={palette.accent} />
+        </View>
+
+        <View style={styles.streakText}>
+          <Text style={[styles.cardLabel, { color: palette.accent }]}>DAILY STREAK</Text>
+          <Text style={[styles.streakTitle, { color: palette.ink }]}>
+            {streak.current} {streak.current === 1 ? 'day' : 'days'}
+          </Text>
+          <Text style={[styles.streakCopy, { color: palette.text }]}>
+            {streak.checkedInToday
+              ? 'You checked in today. Tiny wins count.'
+              : streak.current
+                ? `Check in today to keep your ${streak.current}-day streak going.`
+                : 'Start today with one tiny check-in.'}
+          </Text>
+        </View>
+
+        <View style={[styles.bestStreakPill, { backgroundColor: palette.accentSoft }]}>
+          <Text style={[styles.bestStreakValue, { color: palette.accent }]}>{streak.best}</Text>
+          <Text style={[styles.bestStreakLabel, { color: palette.text }]}>best</Text>
+        </View>
       </View>
 
       <View style={[styles.focusCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
@@ -514,6 +629,52 @@ const styles = StyleSheet.create({
   percentText: {
     ...type.bodyStrong,
     fontSize: 18,
+  },
+  streakCard: {
+    borderRadius: 28,
+    borderWidth: 1,
+    padding: 18,
+    marginTop: 16,
+    flexDirection: 'row',
+    gap: 13,
+    alignItems: 'center',
+  },
+  streakIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakText: {
+    flex: 1,
+  },
+  streakTitle: {
+    ...type.bodyStrong,
+    fontSize: 22,
+    lineHeight: 27,
+    marginTop: 4,
+  },
+  streakCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  bestStreakPill: {
+    width: 58,
+    height: 58,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bestStreakValue: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '900',
+  },
+  bestStreakLabel: {
+    ...type.tiny,
+    marginTop: 1,
   },
   focusCard: {
     borderRadius: 28,
