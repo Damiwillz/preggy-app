@@ -1,15 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 
 import { Header } from '@/components/layout/Header';
@@ -18,8 +11,8 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
-import { getMyProfile, type UserProfile } from '@/services/profile';
 import { getGuestAppointments, getGuestMedications, isGuestMode } from '@/services/guest';
+import { getMyProfile, type UserProfile } from '@/services/profile';
 
 type SymptomLog = {
   id: string;
@@ -53,10 +46,8 @@ type Appointment = {
 
 type WeeklySummary = {
   careDays: number;
-  careTasks: number;
   waterCups: number;
   kickDays: number;
-  kickTotal: number;
   symptomLogs: number;
 };
 
@@ -66,12 +57,14 @@ type DailyStreak = {
   checkedInToday: boolean;
 };
 
+const DAILY_CARE_TOTAL = 5;
+const WATER_TARGET = 8;
+const GUEST_SYMPTOM_LOGS_KEY = 'preggy:guest-symptom-logs';
+
 const emptyWeeklySummary: WeeklySummary = {
   careDays: 0,
-  careTasks: 0,
   waterCups: 0,
   kickDays: 0,
-  kickTotal: 0,
   symptomLogs: 0,
 };
 
@@ -81,9 +74,13 @@ const emptyDailyStreak: DailyStreak = {
   checkedInToday: false,
 };
 
-const DAILY_CARE_TOTAL = 5;
-const WATER_TARGET = 8;
-const GUEST_SYMPTOM_LOGS_KEY = 'preggy:guest-symptom-logs';
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
 
 function getChecklistStorageKey(dateKey: string) {
   return `preggy:daily-care:${dateKey}`;
@@ -103,6 +100,36 @@ function getPlanDoneStorageKey(dateKey: string) {
 
 function getReflectionStorageKey(dateKey: string) {
   return `preggy:daily-reflection:${dateKey}`;
+}
+
+function parseSavedArray<T = Record<string, unknown>>(raw: string | null): T[] {
+  try {
+    const parsed = raw ? JSON.parse(raw) : [];
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function percentWidth(value: number) {
+  return `${clamp(value, 0, 100)}%` as `${number}%`;
+}
+
+function withAlpha(hex: string, alpha: number) {
+  const clean = hex.replace('#', '');
+
+  if (clean.length !== 6) return hex;
+
+  const red = Number.parseInt(clean.slice(0, 2), 16);
+  const green = Number.parseInt(clean.slice(2, 4), 16);
+  const blue = Number.parseInt(clean.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
 function buildLastSevenDateKeys() {
@@ -142,11 +169,13 @@ async function hasDailyCheckIn(dateKey: string) {
   const waterCount = waterRaw ? Number.parseInt(waterRaw, 10) : 0;
   const kickCount = kicksRaw ? Number.parseInt(kicksRaw, 10) : 0;
 
-  return manualDone ||
+  return (
+    manualDone ||
     reflectionDone ||
     careDone ||
     (Number.isFinite(waterCount) && waterCount > 0) ||
-    (Number.isFinite(kickCount) && kickCount > 0);
+    (Number.isFinite(kickCount) && kickCount > 0)
+  );
 }
 
 async function getDailyStreak(): Promise<DailyStreak> {
@@ -208,7 +237,7 @@ async function getWeeklyLocalSummary(): Promise<WeeklySummary> {
   });
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const symptomLogs = parseSavedArray(guestSymptomsRaw).filter((item) => {
+  const symptomLogs = parseSavedArray<SymptomLog>(guestSymptomsRaw).filter((item) => {
     const createdAt = typeof item.created_at === 'string' ? Date.parse(item.created_at) : 0;
 
     return Number.isFinite(createdAt) && createdAt >= sevenDaysAgo;
@@ -216,58 +245,10 @@ async function getWeeklyLocalSummary(): Promise<WeeklySummary> {
 
   return {
     careDays: careLists.filter((list) => list.length > 0).length,
-    careTasks: careLists.reduce((sum, list) => sum + list.length, 0),
     waterCups: waterCounts.reduce((sum, value) => sum + value, 0),
     kickDays: kickCounts.filter((value) => value > 0).length,
-    kickTotal: kickCounts.reduce((sum, value) => sum + value, 0),
     symptomLogs,
   };
-}
-
-function toDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-}
-
-function dateFromKey(dateKey: string) {
-  const parsed = new Date(`${dateKey}T12:00:00`);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-}
-
-function parseSavedArray(raw: string | null) {
-  try {
-    const value = raw ? JSON.parse(raw) : [];
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
-}
-
-function buildDateStrip(selectedDateKey: string) {
-  const today = new Date();
-  const todayKey = toDateKey(today);
-
-  return Array.from({ length: 10 }, (_, offset) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() + offset);
-    const key = toDateKey(date);
-
-    return {
-      key,
-      day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      date: date.toLocaleDateString('en-US', { day: '2-digit' }),
-      month: date.toLocaleDateString('en-US', { month: 'short' }),
-      isToday: key === todayKey,
-      isSelected: key === selectedDateKey,
-    };
-  });
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
 }
 
 function getPregnancyProgress(profile: UserProfile | null) {
@@ -301,49 +282,41 @@ function getPregnancyProgress(profile: UserProfile | null) {
   };
 }
 
-function getBabyNote(week: number, babyName: string): {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  copy: string;
-  action: string;
-  route: string;
-} {
-  if (week >= 34) {
+function buildWeekChips(currentWeek: number) {
+  const start = clamp(currentWeek - 2, 1, 36);
+
+  return Array.from({ length: 5 }, (_, index) => start + index).filter((week) => week >= 1 && week <= 40);
+}
+
+function getStageCopy(week: number, babyName: string) {
+  if (week >= 37) {
     return {
-      icon: 'bag-handle-outline',
-      title: `${babyName}'s arrival prep`,
-      copy: 'Keep today simple: review one bag item, one appointment note, or one support task.',
-      action: 'Open daily plan',
-      route: '/daily-plan',
+      label: 'Term window',
+      title: `${babyName} is getting ready`,
+      copy: 'Keep your care team, hospital info, and daily notes close.',
     };
   }
 
   if (week >= 28) {
     return {
-      icon: 'footsteps-outline',
-      title: `${babyName}'s daily rhythm`,
-      copy: 'A small check-in can help you keep movement, water, symptoms, and routines in one calm place.',
-      action: 'Open daily plan',
-      route: '/daily-plan',
+      label: 'Third trimester',
+      title: `${babyName} is building rhythm`,
+      copy: 'Track movement, appointments, and your daily comfort gently.',
     };
   }
 
   if (week >= 14) {
     return {
-      icon: 'leaf-outline',
-      title: `${babyName}'s steady weeks`,
-      copy: 'Use today to notice one pattern: mood, sleep, energy, symptoms, or cravings.',
-      action: 'Log today',
-      route: '/log-symptoms',
+      label: 'Second trimester',
+      title: `${babyName} is growing steadily`,
+      copy: 'A soft daily check-in helps you notice patterns over time.',
     };
   }
 
   return {
-    icon: 'heart-outline',
-    title: `${babyName}'s gentle start`,
-    copy: 'Keep it light today: drink water, add one note, and save anything you want to remember.',
-    action: 'Start care',
-    route: '/daily-care',
+    label: 'First trimester',
+    title: `${babyName} is beginning beautifully`,
+    copy: 'Keep notes simple: symptoms, water, rest, and questions.',
   };
 }
 
@@ -362,21 +335,45 @@ function formatDate(date?: string | null) {
 function greeting() {
   const hour = new Date().getHours();
 
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'Morning';
+  if (hour < 18) return 'Afternoon';
+  return 'Evening';
 }
 
-function StatCard({
+function BabyVisual({
+  week,
+  palette,
+}: {
+  week: number;
+  palette: ReturnType<typeof useAppTheme>['palette'];
+}) {
+  const scale = 0.76 + clamp(week / 40, 0.35, 1) * 0.18;
+
+  return (
+    <View style={styles.visualWrap}>
+      <View style={[styles.visualGlowOne, { backgroundColor: withAlpha(palette.accent, 0.18) }]} />
+      <View style={[styles.visualGlowTwo, { backgroundColor: withAlpha(palette.accent, 0.12) }]} />
+
+      <View style={[styles.babyShape, { transform: [{ scale }] }]}>
+        <View style={[styles.babyHead, { backgroundColor: withAlpha(palette.accent, 0.36) }]} />
+        <View style={[styles.babyBody, { backgroundColor: withAlpha(palette.accent, 0.3) }]} />
+        <View style={[styles.babyBelly, { backgroundColor: withAlpha(palette.accent, 0.18) }]} />
+        <View style={[styles.babyArm, { backgroundColor: withAlpha(palette.accent, 0.26) }]} />
+      </View>
+    </View>
+  );
+}
+
+function MetricCard({
   icon,
-  label,
   value,
+  label,
   detail,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
   value: string;
+  label: string;
   detail: string;
   onPress: () => void;
 }) {
@@ -385,105 +382,50 @@ function StatCard({
   return (
     <AnimatedPressable
       onPress={onPress}
-      style={[styles.statCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+      style={[styles.metricCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
     >
-      <View style={[styles.statIcon, { backgroundColor: palette.accentSoft }]}>
+      <View style={[styles.metricIcon, { backgroundColor: palette.accentSoft }]}>
         <Ionicons name={icon} size={19} color={palette.accent} />
       </View>
 
-      <Text style={[styles.statValue, { color: palette.ink }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: palette.accent }]}>{label}</Text>
-      <Text style={[styles.statDetail, { color: palette.text }]}>{detail}</Text>
+      <Text style={[styles.metricValue, { color: palette.ink }]}>{value}</Text>
+      <Text style={[styles.metricLabel, { color: palette.text }]}>{label}</Text>
+      <Text style={[styles.metricDetail, { color: palette.muted }]}>{detail}</Text>
     </AnimatedPressable>
   );
 }
 
-function ActionRow({
+function ActionCard({
   icon,
   title,
   detail,
-  onPress,
+  route,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   detail: string;
-  onPress: () => void;
+  route: string;
 }) {
   const { palette } = useAppTheme();
 
   return (
-    <AnimatedPressable onPress={onPress} style={[styles.actionRow, { borderBottomColor: palette.line }]}>
+    <AnimatedPressable
+      onPress={() => router.push(route as never)}
+      style={[styles.actionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+    >
       <View style={[styles.actionIcon, { backgroundColor: palette.accentSoft }]}>
-        <Ionicons name={icon} size={19} color={palette.accent} />
+        <Ionicons name={icon} size={21} color={palette.accent} />
       </View>
 
-      <View style={styles.actionTextWrap}>
+      <View style={styles.actionCopy}>
         <Text style={[styles.actionTitle, { color: palette.ink }]}>{title}</Text>
         <Text style={[styles.actionDetail, { color: palette.text }]} numberOfLines={1}>
           {detail}
         </Text>
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+      <Ionicons name="chevron-forward" size={19} color={palette.muted} />
     </AnimatedPressable>
-  );
-}
-
-function FocusCard({
-  icon,
-  title,
-  detail,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  detail: string;
-  onPress: () => void;
-}) {
-  const { palette } = useAppTheme();
-
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      style={[styles.focusCard, { backgroundColor: palette.canvas, borderColor: palette.line }]}
-    >
-      <View style={[styles.focusIcon, { backgroundColor: palette.accentSoft }]}>
-        <Ionicons name={icon} size={19} color={palette.accent} />
-      </View>
-
-      <View style={styles.focusTextWrap}>
-        <Text style={[styles.focusTitle, { color: palette.ink }]} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={[styles.focusDetail, { color: palette.text }]} numberOfLines={1}>
-          {detail}
-        </Text>
-      </View>
-
-      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-    </AnimatedPressable>
-  );
-}
-
-function WellnessPill({
-  icon,
-  label,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-}) {
-  const { palette } = useAppTheme();
-
-  return (
-    <View style={[styles.wellnessPill, { backgroundColor: palette.accentSoft }]}>
-      <Ionicons name={icon} size={16} color={palette.accent} />
-      <Text style={[styles.wellnessLabel, { color: palette.text }]}>{label}</Text>
-      <Text style={[styles.wellnessValue, { color: palette.ink }]} numberOfLines={1}>
-        {value}
-      </Text>
-    </View>
   );
 }
 
@@ -494,187 +436,56 @@ export default function HomeScreen() {
   const [latestLog, setLatestLog] = useState<SymptomLog | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
   const [dailyCareDone, setDailyCareDone] = useState(0);
   const [waterCups, setWaterCups] = useState(0);
   const [todayKicks, setTodayKicks] = useState(0);
-  const [wellnessSnapshot, setWellnessSnapshot] = useState({
-    mood: 'No mood yet',
-    sleep: 'No sleep yet',
-    cravings: 0,
-    weight: 'No weight yet',
-  });
   const [weeklySummary, setWeeklySummary] = useState<WeeklySummary>(emptyWeeklySummary);
   const [dailyStreak, setDailyStreak] = useState<DailyStreak>(emptyDailyStreak);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [dateDraft, setDateDraft] = useState(() => toDateKey(new Date()));
+  const [loading, setLoading] = useState(true);
+  const [previewWeek, setPreviewWeek] = useState<number | null>(null);
 
-  function openDatePicker() {
-    setDateDraft(selectedDateKey);
-    setDatePickerOpen(true);
-  }
+  const todayKey = useMemo(() => toDateKey(new Date()), []);
+  const progress = useMemo(() => getPregnancyProgress(profile), [profile]);
+  const babyName = profile?.baby_nickname || 'Baby';
+  const firstName = profile?.full_name?.split(' ')?.[0] || 'Mama';
 
-  function applyManualDate() {
-    const clean = dateDraft.trim();
-    const parsed = new Date(`${clean}T12:00:00`);
+  useEffect(() => {
+    setPreviewWeek(null);
+  }, [progress.week]);
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(clean) || Number.isNaN(parsed.getTime())) {
-      return;
-    }
-
-    setSelectedDateKey(toDateKey(parsed));
-    setDatePickerOpen(false);
-  }
+  const activeWeek = previewWeek ?? progress.week;
+  const activeDay = activeWeek === progress.week ? progress.day : 0;
+  const activePregnancyDay = clamp((activeWeek - 1) * 7 + activeDay, 0, 280);
+  const activeProgress = Math.round((activePregnancyDay / 280) * 100);
+  const activeDaysRemaining = clamp(280 - activePregnancyDay, 0, 280);
+  const stage = useMemo(() => getStageCopy(activeWeek, babyName), [activeWeek, babyName]);
+  const weekChips = useMemo(() => buildWeekChips(progress.week), [progress.week]);
 
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
 
       async function loadHome() {
+        setLoading(true);
+
         try {
-          setLoading(true);
+          const guest = await isGuestMode().catch(() => false);
 
-          const profileData = await getMyProfile();
-          if (!mounted) return;
-
-          setProfile(profileData);
-
-          const guest = await isGuestMode();
-
-          if (guest) {
-            const [
-              savedCare,
-              savedWater,
-              savedKicks,
-              moodRaw,
-              sleepRaw,
-              cravingsRaw,
-              weightRaw,
-              guestSymptomRaw,
-              guestMedications,
-              guestAppointments,
-            ] = await Promise.all([
-              AsyncStorage.getItem(getChecklistStorageKey(selectedDateKey)),
-              AsyncStorage.getItem(getWaterStorageKey(selectedDateKey)),
-              AsyncStorage.getItem(getKickStorageKey(selectedDateKey)),
-              AsyncStorage.getItem('preggy:mood-tracker'),
-              AsyncStorage.getItem('preggy:sleep-tracker'),
-              AsyncStorage.getItem('preggy:cravings-tracker'),
-              AsyncStorage.getItem('preggy:weight-tracker'),
-              AsyncStorage.getItem(GUEST_SYMPTOM_LOGS_KEY),
-              getGuestMedications(),
-              getGuestAppointments(),
-            ]);
-
-            if (!mounted) return;
-
-            const guestSymptoms = parseSavedArray(guestSymptomRaw);
-            const latestGuestLog = guestSymptoms.find((item) =>
-              typeof item.created_at === 'string' && item.created_at.startsWith(selectedDateKey)
-            );
-
-            setLatestLog((latestGuestLog as SymptomLog | undefined) ?? null);
-            setMedications(guestMedications as Medication[]);
-
-            const upcomingGuestAppointment = guestAppointments.find((item) => {
-              const appointmentDate = item.appointment_date || item.date;
-              return item.status !== 'Cancelled' && appointmentDate === selectedDateKey;
-            });
-
-            setNextAppointment((upcomingGuestAppointment as Appointment | undefined) ?? null);
-
-            const parsedCare = parseSavedArray(savedCare);
-            const parsedWater = savedWater ? Number.parseInt(savedWater, 10) : 0;
-            const parsedKicks = savedKicks ? Number.parseInt(savedKicks, 10) : 0;
-
-            setDailyCareDone(Math.min(parsedCare.length, DAILY_CARE_TOTAL));
-            setWaterCups(Number.isFinite(parsedWater) ? clamp(parsedWater, 0, WATER_TARGET) : 0);
-            setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
-
-            const nextWeeklySummary = await getWeeklyLocalSummary();
-            if (!mounted) return;
-            setWeeklySummary(nextWeeklySummary);
-
-            const moods = parseSavedArray(moodRaw);
-            const sleeps = parseSavedArray(sleepRaw);
-            const cravings = parseSavedArray(cravingsRaw);
-            const weights = parseSavedArray(weightRaw);
-
-            const latestMood = moods[0];
-            const latestSleep = sleeps[0];
-            const latestWeight = weights[0];
-
-            const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-            const recentCravings = cravings.filter((item) => Number(item.createdAt) >= sevenDaysAgo).length;
-
-            setWellnessSnapshot({
-              mood: latestMood?.mood ? String(latestMood.mood) : 'No mood yet',
-              sleep: latestSleep?.hours ? String(latestSleep.hours).replace(/\s*(hours|hrs)$/i, '') + ' hrs' : 'No sleep yet',
-              cravings: recentCravings,
-              weight: latestWeight?.weight ? `${latestWeight.weight} kg` : 'No weight yet',
-            });
-
-            return;
+          try {
+            const profileData = await getMyProfile();
+            if (mounted) setProfile(profileData);
+          } catch (error) {
+            console.log('Home profile skipped:', error);
+            if (mounted) setProfile(null);
           }
 
-          const { data: userData, error: userError } = await supabase.auth.getUser();
-
-          if (userError) throw userError;
-
-          const userId = userData.user?.id;
-          if (!userId) throw new Error('No logged in user.');
-
-          const [
-            logResult,
-            medsResult,
-            appointmentResult,
-            savedCare,
-            savedWater,
-            savedKicks,
-            moodRaw,
-            sleepRaw,
-            cravingsRaw,
-            weightRaw,
-          ] = await Promise.all([
-            supabase
-              .from('symptom_logs')
-              .select('*')
-              .eq('user_id', userId)
-              .gte('created_at', `${selectedDateKey}T00:00:00`)
-              .lt('created_at', `${selectedDateKey}T23:59:59`)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-            supabase.from('medications').select('*').eq('user_id', userId),
-            supabase
-              .from('appointments')
-              .select('*')
-              .eq('user_id', userId)
-              .neq('status', 'Cancelled')
-              .or(`appointment_date.eq.${selectedDateKey},date.eq.${selectedDateKey}`)
-              .order('appointment_at', { ascending: true, nullsFirst: false })
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-            AsyncStorage.getItem(getChecklistStorageKey(selectedDateKey)),
-            AsyncStorage.getItem(getWaterStorageKey(selectedDateKey)),
-            AsyncStorage.getItem(getKickStorageKey(selectedDateKey)),
-            AsyncStorage.getItem('preggy:mood-tracker'),
-            AsyncStorage.getItem('preggy:sleep-tracker'),
-            AsyncStorage.getItem('preggy:cravings-tracker'),
-            AsyncStorage.getItem('preggy:weight-tracker'),
+          const [savedCare, savedWater, savedKicks] = await Promise.all([
+            AsyncStorage.getItem(getChecklistStorageKey(todayKey)),
+            AsyncStorage.getItem(getWaterStorageKey(todayKey)),
+            AsyncStorage.getItem(getKickStorageKey(todayKey)),
           ]);
 
           if (!mounted) return;
-
-          if (logResult.error) throw logResult.error;
-          if (medsResult.error) throw medsResult.error;
-          if (appointmentResult.error) throw appointmentResult.error;
-
-          setLatestLog((logResult.data as SymptomLog | null) ?? null);
-          setMedications((medsResult.data ?? []) as Medication[]);
-          setNextAppointment((appointmentResult.data as Appointment | null) ?? null);
 
           const parsedCare = parseSavedArray(savedCare);
           const parsedWater = savedWater ? Number.parseInt(savedWater, 10) : 0;
@@ -684,30 +495,95 @@ export default function HomeScreen() {
           setWaterCups(Number.isFinite(parsedWater) ? clamp(parsedWater, 0, WATER_TARGET) : 0);
           setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
 
-          const nextWeeklySummary = await getWeeklyLocalSummary();
-          const nextDailyStreak = await getDailyStreak();
+          if (guest) {
+            const [guestSymptomRaw, guestMedications, guestAppointments] = await Promise.all([
+              AsyncStorage.getItem(GUEST_SYMPTOM_LOGS_KEY),
+              getGuestMedications(),
+              getGuestAppointments(),
+            ]);
+
+            if (!mounted) return;
+
+            const guestSymptoms = parseSavedArray<SymptomLog>(guestSymptomRaw);
+            const latestGuestLog = guestSymptoms.find((item) =>
+              typeof item.created_at === 'string' && item.created_at.startsWith(todayKey)
+            );
+
+            setLatestLog(latestGuestLog ?? null);
+            setMedications(
+              guestMedications.map((item) => ({
+                id: item.id,
+                name: item.name,
+                dosage: item.dosage,
+                time: item.time,
+                taken: item.taken,
+              }))
+            );
+
+            const upcomingGuestAppointment = guestAppointments.find((item) => {
+              const appointmentDate = item.appointment_date || item.date;
+              return item.status !== 'Cancelled' && appointmentDate === todayKey;
+            });
+
+            setNextAppointment(
+              upcomingGuestAppointment
+                ? {
+                    id: upcomingGuestAppointment.id,
+                    title: upcomingGuestAppointment.title,
+                    type: upcomingGuestAppointment.type,
+                    date: upcomingGuestAppointment.date,
+                    appointment_date: upcomingGuestAppointment.appointment_date,
+                    time: upcomingGuestAppointment.time,
+                    appointment_time: upcomingGuestAppointment.appointment_time,
+                    location: upcomingGuestAppointment.location,
+                    clinic_name: upcomingGuestAppointment.clinic_name,
+                    status: upcomingGuestAppointment.status,
+                  }
+                : null
+            );
+          } else {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const userId = sessionData.session?.user?.id;
+
+            if (userId) {
+              const [logResult, medsResult, appointmentResult] = await Promise.all([
+                supabase
+                  .from('symptom_logs')
+                  .select('*')
+                  .eq('user_id', userId)
+                  .gte('created_at', `${todayKey}T00:00:00`)
+                  .lt('created_at', `${todayKey}T23:59:59`)
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle(),
+                supabase.from('medications').select('*').eq('user_id', userId),
+                supabase
+                  .from('appointments')
+                  .select('*')
+                  .eq('user_id', userId)
+                  .neq('status', 'Cancelled')
+                  .or(`appointment_date.eq.${todayKey},date.eq.${todayKey}`)
+                  .limit(1)
+                  .maybeSingle(),
+              ]);
+
+              if (!mounted) return;
+
+              if (!logResult.error) setLatestLog((logResult.data as SymptomLog | null) ?? null);
+              if (!medsResult.error) setMedications((medsResult.data ?? []) as Medication[]);
+              if (!appointmentResult.error) setNextAppointment((appointmentResult.data as Appointment | null) ?? null);
+            }
+          }
+
+          const [nextWeeklySummary, nextDailyStreak] = await Promise.all([
+            getWeeklyLocalSummary(),
+            getDailyStreak(),
+          ]);
+
           if (!mounted) return;
+
           setWeeklySummary(nextWeeklySummary);
           setDailyStreak(nextDailyStreak);
-
-          const moods = parseSavedArray(moodRaw);
-          const sleeps = parseSavedArray(sleepRaw);
-          const cravings = parseSavedArray(cravingsRaw);
-          const weights = parseSavedArray(weightRaw);
-
-          const latestMood = moods[0];
-          const latestSleep = sleeps[0];
-          const latestWeight = weights[0];
-
-          const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-          const recentCravings = cravings.filter((item) => Number(item.createdAt) >= sevenDaysAgo).length;
-
-          setWellnessSnapshot({
-            mood: latestMood?.mood ? String(latestMood.mood) : 'No mood yet',
-            sleep: latestSleep?.hours ? String(latestSleep.hours).replace(/\s*(hours|hrs)$/i, '') + ' hrs' : 'No sleep yet',
-            cravings: recentCravings,
-            weight: latestWeight?.weight ? `${latestWeight.weight} kg` : 'No weight yet',
-          });
         } catch (error) {
           console.log('Home dashboard error:', error);
         } finally {
@@ -720,327 +596,194 @@ export default function HomeScreen() {
       return () => {
         mounted = false;
       };
-    }, [selectedDateKey])
+    }, [todayKey])
   );
 
-  const progress = useMemo(() => getPregnancyProgress(profile), [profile]);
-  const dateStrip = useMemo(() => buildDateStrip(selectedDateKey), [selectedDateKey]);
-  const babyName = profile?.baby_nickname || 'Baby';
-  const firstName = profile?.full_name?.split(' ')?.[0] || 'Mama';
-  const babyNote = useMemo(() => getBabyNote(progress.week, babyName), [babyName, progress.week]);
   const medicationDone = medications.filter((item) => item.taken).length;
   const medicationTotal = medications.length;
-  const symptoms = latestLog?.symptoms?.length ? latestLog.symptoms.join(', ') : 'No symptoms logged for this day';
+  const dailyCareProgress = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
+
+  const symptomText = latestLog?.symptoms?.length
+    ? latestLog.symptoms.join(', ')
+    : latestLog?.mood
+      ? `${latestLog.mood} mood logged`
+      : 'No symptoms logged today';
+
   const appointmentDate = nextAppointment?.appointment_date || nextAppointment?.date;
   const appointmentTime = nextAppointment?.appointment_time || nextAppointment?.time;
-  const appointmentPlace = nextAppointment?.clinic_name || nextAppointment?.location;
   const appointmentTitle = nextAppointment?.title || nextAppointment?.type || 'No appointment today';
-  const dailyCareProgress = Math.round(((dailyCareDone + waterCups) / (DAILY_CARE_TOTAL + WATER_TARGET)) * 100);
-  const todayFocus = useMemo<Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; detail: string; route: string }>>(
-    () => [
-      {
-        icon: 'list-circle-outline',
-        title: 'Open daily plan',
-        detail: `${dailyCareProgress}% care • ${todayKicks} kicks`,
-        route: '/daily-plan',
-      },
-      {
-        icon: 'footsteps-outline',
-        title: 'Count movements',
-        detail: `${todayKicks} kicks logged`,
-        route: '/kick-counter',
-      },
-      progress.week >= 28
-        ? {
-            icon: 'bag-handle-outline',
-            title: 'Pack hospital bag',
-            detail: 'Get birth day ready',
-            route: '/hospital-bag-checklist',
-          }
-        : {
-            icon: 'folder-open-outline',
-            title: 'Prep next visit',
-            detail: 'Questions, symptoms, meds',
-            route: '/doctor-visit-pack',
-          },
-    ],
-    [dailyCareProgress, progress.week, todayKicks]
-  );
+  const appointmentDetail = nextAppointment
+    ? `${formatDate(appointmentDate)}${appointmentTime ? ` • ${appointmentTime}` : ''}`
+    : 'Add or review your next visit';
 
   return (
     <Screen bottomSpace={118}>
-      <Header />
+      <Header title="Preggy" />
 
-      <View style={styles.heroHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.eyebrow, { color: palette.accent }]}>{greeting()}, {firstName}</Text>
-          <Text style={[styles.pageTitle, { color: palette.ink }]}>Your day at a glance</Text>
-        </View>
+      <View style={styles.topCenter}>
+        <Text style={[styles.daysTitle, { color: palette.ink }]}>
+          {activeDaysRemaining > 0 ? `${activeDaysRemaining} days to go` : 'Due date window'}
+        </Text>
+        <Text style={[styles.daysSubtitle, { color: palette.text }]}>
+          Week {activeWeek} {activeDay ? `• Day ${activeDay}` : ''} • {stage.label}
+        </Text>
+      </View>
 
-        <AnimatedPressable
-          onPress={() => router.push('/ai-chat?fromTools=1' as never)}
-          style={[styles.aiButton, { backgroundColor: palette.accentSoft }]}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.weekStrip}
+      >
+        {weekChips.map((week) => {
+          const active = week === activeWeek;
+
+          return (
+            <AnimatedPressable
+              key={week}
+              onPress={() => setPreviewWeek(week)}
+              style={[
+                styles.weekChip,
+                {
+                  backgroundColor: active ? palette.accent : palette.accentSoft,
+                  borderColor: active ? palette.accent : palette.line,
+                },
+              ]}
+            >
+              <Text style={[styles.weekChipText, { color: active ? palette.onAccent : palette.accent }]}>
+                {week} week
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </ScrollView>
+
+      <AnimatedPressable onPress={() => router.push('/timeline' as never)}>
+        <LinearGradient
+          colors={[
+            palette.surface,
+            withAlpha(palette.accent, palette.isDark ? 0.2 : 0.16),
+            palette.softSurface,
+          ]}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.babyCard, { borderColor: palette.line }]}
         >
-          <Ionicons name="sparkles-outline" size={18} color={palette.accent} />
-          <Text style={[styles.aiButtonText, { color: palette.accent }]}>AI</Text>
-        </AnimatedPressable>
-      </View>
-
-      <View style={[styles.progressCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={[styles.accentRail, { backgroundColor: palette.accent }]} />
-
-        <View style={styles.progressTop}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.cardLabel, { color: palette.accent }]}>PREGNANCY</Text>
-            <Text style={[styles.weekTitle, { color: palette.ink }]}>Week {progress.week}</Text>
-            <Text style={[styles.weekDetail, { color: palette.text }]}>
-              Day {progress.day} with {babyName} • {progress.daysRemaining > 0 ? `${progress.daysRemaining} days to go` : 'Due date window'}
-            </Text>
+          <View style={styles.openPill}>
+            <Ionicons name="play-circle" size={16} color="#FFFFFF" />
+            <Text style={styles.openText}>Open</Text>
           </View>
 
-          <View style={[styles.percentBadge, { backgroundColor: palette.accentSoft }]}>
-            <Text style={[styles.percentValue, { color: palette.accent }]}>{progress.progress}%</Text>
-            <Text style={[styles.percentLabel, { color: palette.text }]}>done</Text>
+          <BabyVisual week={activeWeek} palette={palette} />
+
+          <View style={styles.glassPill}>
+            <Text style={[styles.stageLabel, { color: palette.text }]}>{stage.label}</Text>
+            <View style={styles.glassLine}>
+              <Text style={[styles.glassWeek, { color: palette.ink }]}>{activeWeek}</Text>
+              <Text style={[styles.glassSmall, { color: palette.text }]}>Weeks</Text>
+              <Text style={[styles.glassWeek, { color: palette.ink }]}>{activeDay}</Text>
+              <Text style={[styles.glassSmall, { color: palette.text }]}>Days</Text>
+            </View>
           </View>
+        </LinearGradient>
+      </AnimatedPressable>
+
+      <View style={[styles.progressMini, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>TODAY WITH {babyName.toUpperCase()}</Text>
+          <Text style={[styles.stageTitle, { color: palette.ink }]}>{stage.title}</Text>
+          <Text style={[styles.stageCopy, { color: palette.text }]}>{stage.copy}</Text>
         </View>
 
-        <View style={[styles.progressTrack, { backgroundColor: palette.accentSoft }]}>
-          <View style={[styles.progressFill, { width: `${progress.progress}%`, backgroundColor: palette.accent }]} />
-        </View>
-
-        <View style={styles.progressActions}>
-          <AnimatedPressable onPress={() => router.push('/timeline' as never)} style={styles.inlineAction}>
-            <Text style={[styles.inlineActionText, { color: palette.accent }]}>Timeline</Text>
-            <Ionicons name="chevron-forward" size={15} color={palette.accent} />
-          </AnimatedPressable>
-
-          <AnimatedPressable onPress={() => router.push('/weekly-growth' as never)} style={styles.inlineAction}>
-            <Text style={[styles.inlineActionText, { color: palette.accent }]}>Growth</Text>
-            <Ionicons name="chevron-forward" size={15} color={palette.accent} />
-          </AnimatedPressable>
+        <View style={[styles.percentBubble, { backgroundColor: palette.accentSoft }]}>
+          <Text style={[styles.percentValue, { color: palette.accent }]}>{activeProgress}%</Text>
         </View>
       </View>
 
+      <View style={[styles.progressTrack, { backgroundColor: palette.accentSoft }]}>
+        <View style={[styles.progressFill, { width: percentWidth(activeProgress), backgroundColor: palette.accent }]} />
+      </View>
+
       <AnimatedPressable
-        onPress={() => router.push(babyNote.route as never)}
-        style={[styles.babyNoteCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+        onPress={() => router.push('/ai-chat?fromHome=1' as never)}
+        style={[styles.aiCard, { backgroundColor: palette.accent }]}
       >
-        <View style={[styles.babyNoteIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name={babyNote.icon} size={24} color={palette.accent} />
-        </View>
-
-        <View style={styles.babyNoteText}>
-          <Text style={[styles.cardLabel, { color: palette.accent }]}>TODAY'S BABY NOTE</Text>
-          <Text style={[styles.babyNoteTitle, { color: palette.ink }]}>{babyNote.title}</Text>
-          <Text style={[styles.babyNoteCopy, { color: palette.text }]}>{babyNote.copy}</Text>
-
-          <View style={styles.babyNoteAction}>
-            <Text style={[styles.babyNoteActionText, { color: palette.accent }]}>{babyNote.action}</Text>
-            <Ionicons name="arrow-forward" size={16} color={palette.accent} />
+        <View style={styles.aiLeft}>
+          <View style={[styles.aiIcon, { backgroundColor: palette.onAccent }]}>
+            <Ionicons name="sparkles-outline" size={20} color={palette.accent} />
           </View>
-        </View>
-      </AnimatedPressable>
 
-      <AnimatedPressable
-        onPress={() => router.push('/daily-plan' as never)}
-        style={[styles.homeStreakCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
-      >
-        <View style={[styles.homeStreakIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name="flame-outline" size={24} color={palette.accent} />
-        </View>
-
-        <View style={styles.homeStreakText}>
-          <Text style={[styles.cardLabel, { color: palette.accent }]}>HOME STREAK</Text>
-          <Text style={[styles.homeStreakTitle, { color: palette.ink }]}>
-            {dailyStreak.current} {dailyStreak.current === 1 ? 'day' : 'days'}
-          </Text>
-          <Text style={[styles.homeStreakCopy, { color: palette.text }]}>
-            {dailyStreak.checkedInToday ? 'Checked in today. Keep the glow going.' : 'Open Daily Plan for one tiny check-in.'}
-          </Text>
-        </View>
-
-        <View style={[styles.homeBestPill, { backgroundColor: palette.accentSoft }]}>
-          <Text style={[styles.homeBestValue, { color: palette.accent }]}>{dailyStreak.best}</Text>
-          <Text style={[styles.homeBestLabel, { color: palette.text }]}>best</Text>
-        </View>
-      </AnimatedPressable>
-
-      <View style={[styles.dateCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.dateTop}>
           <View>
-            <Text style={[styles.cardLabel, { color: palette.accent }]}>SELECTED DAY</Text>
-            <Text style={[styles.dateTitle, { color: palette.ink }]}>
-              {dateFromKey(selectedDateKey).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric',
-              })}
-            </Text>
+            <Text style={[styles.aiTitle, { color: palette.onAccent }]}>Ask Preggy AI</Text>
+            <Text style={[styles.aiDetail, { color: palette.onAccent }]}>Questions, planning, symptoms, reminders</Text>
           </View>
-
-          <AnimatedPressable
-            onPress={openDatePicker}
-            style={[styles.chooseButton, { backgroundColor: palette.accentSoft }]}
-          >
-            <Ionicons name="calendar-outline" size={16} color={palette.accent} />
-            <Text style={[styles.chooseText, { color: palette.accent }]}>Choose</Text>
-          </AnimatedPressable>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateStrip}>
-          {dateStrip.map((item) => {
-            const active = selectedDateKey === item.key;
+        <Ionicons name="arrow-forward" size={21} color={palette.onAccent} />
+      </AnimatedPressable>
 
-            return (
-              <AnimatedPressable
-                key={item.key}
-                onPress={() => setSelectedDateKey(item.key)}
-                style={[
-                  styles.dateChip,
-                  {
-                    backgroundColor: active ? palette.accent : palette.canvas,
-                    borderColor: active ? palette.accent : palette.line,
-                  },
-                ]}
-              >
-                <Text style={[styles.dateChipDay, { color: active ? palette.onAccent : palette.text }]}>
-                  {item.isToday ? 'Today' : item.day}
-                </Text>
-                <Text style={[styles.dateChipNumber, { color: active ? palette.onAccent : palette.ink }]}>
-                  {item.date}
-                </Text>
-              </AnimatedPressable>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      <View style={styles.statsGrid}>
-        <StatCard
+      <View style={styles.metricGrid}>
+        <MetricCard
           icon="water-outline"
-          label="Care"
           value={`${dailyCareDone}/${DAILY_CARE_TOTAL}`}
+          label="Care"
           detail={`${waterCups}/${WATER_TARGET} water`}
           onPress={() => router.push('/daily-care' as never)}
         />
 
-        <StatCard
+        <MetricCard
           icon="footsteps-outline"
-          label="Movement"
           value={`${todayKicks}`}
+          label="Movement"
           detail="kicks today"
           onPress={() => router.push('/kick-counter' as never)}
         />
 
-        <StatCard
+        <MetricCard
           icon="medkit-outline"
-          label="Meds"
           value={medicationTotal ? `${medicationDone}/${medicationTotal}` : '0'}
+          label="Meds"
           detail={medicationTotal ? 'taken' : 'no routine'}
           onPress={() => router.push('/medication' as never)}
         />
       </View>
 
-      <View style={[styles.weeklyCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.weeklyTop}>
-          <View>
-            <Text style={[styles.cardLabel, { color: palette.accent }]}>WEEKLY SNAPSHOT</Text>
-            <Text style={[styles.weeklyTitle, { color: palette.ink }]}>Last 7 days</Text>
-          </View>
-
-          <AnimatedPressable
-            onPress={() => router.push('/weekly-report' as never)}
-            style={[styles.weeklyButton, { backgroundColor: palette.accentSoft }]}
-          >
-            <Text style={[styles.weeklyButtonText, { color: palette.accent }]}>Report</Text>
-          </AnimatedPressable>
-        </View>
-
-        <View style={styles.weeklyGrid}>
-          <View style={[styles.weeklyItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
-            <Ionicons name="checkmark-circle-outline" size={19} color={palette.accent} />
-            <Text style={[styles.weeklyValue, { color: palette.ink }]}>{weeklySummary.careDays}/7</Text>
-            <Text style={[styles.weeklyLabel, { color: palette.text }]}>care days</Text>
-          </View>
-
-          <View style={[styles.weeklyItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
-            <Ionicons name="water-outline" size={19} color={palette.accent} />
-            <Text style={[styles.weeklyValue, { color: palette.ink }]}>{weeklySummary.waterCups}</Text>
-            <Text style={[styles.weeklyLabel, { color: palette.text }]}>water cups</Text>
-          </View>
-
-          <View style={[styles.weeklyItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
-            <Ionicons name="footsteps-outline" size={19} color={palette.accent} />
-            <Text style={[styles.weeklyValue, { color: palette.ink }]}>{weeklySummary.kickDays}</Text>
-            <Text style={[styles.weeklyLabel, { color: palette.text }]}>kick days</Text>
-          </View>
-
-          <View style={[styles.weeklyItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
-            <Ionicons name="pulse-outline" size={19} color={palette.accent} />
-            <Text style={[styles.weeklyValue, { color: palette.ink }]}>{weeklySummary.symptomLogs}</Text>
-            <Text style={[styles.weeklyLabel, { color: palette.text }]}>symptoms</Text>
-          </View>
-        </View>
-      </View>
-
       <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.sectionHead}>
+        <View style={styles.sectionTop}>
           <View>
-            <Text style={[styles.cardLabel, { color: palette.accent }]}>TODAY'S FOCUS</Text>
-            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Start with these</Text>
-          </View>
-        </View>
-
-        <View style={styles.focusGrid}>
-          {todayFocus.map((item) => (
-            <FocusCard
-              key={item.route}
-              icon={item.icon}
-              title={item.title}
-              detail={item.detail}
-              onPress={() => router.push(item.route as never)}
-            />
-          ))}
-        </View>
-      </View>
-
-      <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.sectionHead}>
-          <View>
-            <Text style={[styles.cardLabel, { color: palette.accent }]}>TODAY</Text>
-            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Priority check-in</Text>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>{greeting().toUpperCase()}, {firstName.toUpperCase()}</Text>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Today’s plan</Text>
           </View>
 
           {loading ? <ActivityIndicator color={palette.accent} /> : null}
         </View>
 
-        <ActionRow
+        <ActionCard
+          icon="list-circle-outline"
+          title="Open daily plan"
+          detail={`${dailyCareProgress}% care complete • ${dailyStreak.current} day streak`}
+          route="/daily-plan"
+        />
+
+        <ActionCard
+          icon="pulse-outline"
+          title="Log symptoms"
+          detail={symptomText}
+          route="/log-symptoms"
+        />
+
+        <ActionCard
           icon="calendar-outline"
           title={appointmentTitle}
-          detail={nextAppointment ? `${formatDate(appointmentDate)} ${appointmentTime ?? ''} ${appointmentPlace ?? ''}`.trim() : 'Add or review your next visit'}
-          onPress={() => router.push('/(tabs)/appointments' as never)}
-        />
-
-        <ActionRow
-          icon="pulse-outline"
-          title="Symptoms"
-          detail={symptoms}
-          onPress={() => router.push('/log-symptoms' as never)}
-        />
-
-        <ActionRow
-          icon="checkmark-circle-outline"
-          title="Daily care"
-          detail={`${dailyCareProgress}% complete for this day`}
-          onPress={() => router.push('/daily-care' as never)}
+          detail={appointmentDetail}
+          route="/(tabs)/appointments"
         />
       </View>
 
-      <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={styles.sectionHead}>
+      <View style={[styles.weeklyCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.sectionTop}>
           <View>
-            <Text style={[styles.cardLabel, { color: palette.accent }]}>WELLNESS</Text>
-            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Body notes</Text>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>WEEKLY SNAPSHOT</Text>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Soft progress</Text>
           </View>
 
           <AnimatedPressable
@@ -1051,422 +794,331 @@ export default function HomeScreen() {
           </AnimatedPressable>
         </View>
 
-        <View style={styles.wellnessGrid}>
-          <WellnessPill icon="happy-outline" label="Mood" value={wellnessSnapshot.mood} />
-          <WellnessPill icon="moon-outline" label="Sleep" value={wellnessSnapshot.sleep} />
-          <WellnessPill icon="restaurant-outline" label="Cravings" value={`${wellnessSnapshot.cravings}`} />
-          <WellnessPill icon="scale-outline" label="Weight" value={wellnessSnapshot.weight} />
+        <View style={styles.snapshotRow}>
+          <View style={[styles.snapshotItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Text style={[styles.snapshotValue, { color: palette.ink }]}>{weeklySummary.careDays}/7</Text>
+            <Text style={[styles.snapshotLabel, { color: palette.text }]}>care days</Text>
+          </View>
+
+          <View style={[styles.snapshotItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Text style={[styles.snapshotValue, { color: palette.ink }]}>{weeklySummary.waterCups}</Text>
+            <Text style={[styles.snapshotLabel, { color: palette.text }]}>water</Text>
+          </View>
+
+          <View style={[styles.snapshotItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Text style={[styles.snapshotValue, { color: palette.ink }]}>{weeklySummary.kickDays}</Text>
+            <Text style={[styles.snapshotLabel, { color: palette.text }]}>kick days</Text>
+          </View>
+
+          <View style={[styles.snapshotItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}>
+            <Text style={[styles.snapshotValue, { color: palette.ink }]}>{weeklySummary.symptomLogs}</Text>
+            <Text style={[styles.snapshotLabel, { color: palette.text }]}>logs</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.quickRow}>
+      <View style={styles.bottomActions}>
         <AnimatedPressable
-          onPress={() => router.push('/log-symptoms' as never)}
-          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+          onPress={() => router.push('/timeline' as never)}
+          style={[styles.bottomButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
         >
-          <Ionicons name="add-outline" size={19} color={palette.onAccent} />
-          <Text style={[styles.primaryButtonText, { color: palette.onAccent }]}>Log symptoms</Text>
+          <Ionicons name="calendar-outline" size={20} color={palette.accent} />
+          <Text style={[styles.bottomButtonText, { color: palette.ink }]}>Timeline</Text>
         </AnimatedPressable>
 
         <AnimatedPressable
           onPress={() => router.push('/tools' as never)}
-          style={[styles.secondaryButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
+          style={[styles.bottomButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
         >
-          <Ionicons name="grid-outline" size={19} color={palette.accent} />
-          <Text style={[styles.secondaryButtonText, { color: palette.ink }]}>Tools</Text>
+          <Ionicons name="grid-outline" size={20} color={palette.accent} />
+          <Text style={[styles.bottomButtonText, { color: palette.ink }]}>Tools</Text>
         </AnimatedPressable>
       </View>
-
-      <Modal visible={datePickerOpen} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.dateModal, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-            <View style={styles.dateModalTop}>
-              <Text style={[styles.dateModalTitle, { color: palette.ink }]}>Choose date</Text>
-              <AnimatedPressable onPress={() => setDatePickerOpen(false)} style={styles.modalClose}>
-                <Ionicons name="close" size={22} color={palette.muted} />
-              </AnimatedPressable>
-            </View>
-
-            <Text style={[styles.dateModalCopy, { color: palette.text }]}>
-              Type a date in this format: YYYY-MM-DD
-            </Text>
-
-            <TextInput
-              value={dateDraft}
-              onChangeText={setDateDraft}
-              placeholder="2026-07-18"
-              placeholderTextColor={palette.muted}
-              autoCapitalize="none"
-              keyboardType="numbers-and-punctuation"
-              style={[
-                styles.dateInput,
-                {
-                  color: palette.ink,
-                  backgroundColor: palette.canvas,
-                  borderColor: palette.line,
-                },
-              ]}
-            />
-
-            <AnimatedPressable
-              onPress={applyManualDate}
-              style={[styles.applyDateButton, { backgroundColor: palette.accent }]}
-            >
-              <Text style={[styles.applyDateText, { color: palette.onAccent }]}>Use this date</Text>
-            </AnimatedPressable>
-          </View>
-        </View>
-      </Modal>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  heroHeader: {
-    marginTop: 4,
+  topCenter: {
+    alignItems: 'center',
+    marginTop: 2,
     marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
   },
-  eyebrow: {
-    ...type.section,
-    letterSpacing: 1.4,
+  daysTitle: {
+    ...type.bodyStrong,
+    fontSize: 19,
+    lineHeight: 24,
   },
-  pageTitle: {
-    ...type.title,
-    marginTop: 4,
-  },
-  aiButton: {
-    minHeight: 42,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  aiButtonText: {
-    ...type.small,
-  },
-  progressCard: {
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 14,
-    overflow: 'hidden',
-  },
-  accentRail: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 5,
-  },
-  progressTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  cardLabel: {
-    ...type.tiny,
-    letterSpacing: 1.3,
-  },
-  weekTitle: {
-    fontSize: 38,
-    lineHeight: 43,
-    fontWeight: '900',
-    letterSpacing: 0,
-    marginTop: 4,
-  },
-  weekDetail: {
+  daysSubtitle: {
     ...type.small,
     marginTop: 2,
   },
-  percentBadge: {
-    width: 72,
-    height: 72,
+  weekStrip: {
+    gap: 9,
+    paddingBottom: 16,
+    paddingRight: 8,
+  },
+  weekChip: {
+    minHeight: 34,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekChipText: {
+    ...type.tiny,
+    fontSize: 12,
+  },
+  babyCard: {
+    height: 330,
+    borderRadius: 28,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openPill: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    zIndex: 5,
+    minHeight: 30,
+    borderRadius: 15,
+    paddingHorizontal: 11,
+    backgroundColor: 'rgba(255,255,255,0.42)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  openText: {
+    ...type.tiny,
+    color: '#FFFFFF',
+  },
+  visualWrap: {
+    position: 'absolute',
+    inset: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  visualGlowOne: {
+    position: 'absolute',
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    top: 48,
+  },
+  visualGlowTwo: {
+    position: 'absolute',
+    width: 310,
+    height: 310,
+    borderRadius: 155,
+    bottom: -70,
+    right: -80,
+  },
+  babyShape: {
+    width: 190,
+    height: 230,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  babyHead: {
+    width: 102,
+    height: 108,
+    borderRadius: 54,
+    marginBottom: -10,
+    opacity: 0.92,
+  },
+  babyBody: {
+    width: 126,
+    height: 145,
+    borderRadius: 65,
+    opacity: 0.78,
+  },
+  babyBelly: {
+    position: 'absolute',
+    width: 86,
+    height: 96,
+    borderRadius: 45,
+    bottom: 24,
+    right: 32,
+  },
+  babyArm: {
+    position: 'absolute',
+    width: 54,
+    height: 20,
+    borderRadius: 99,
+    right: 19,
+    top: 124,
+    transform: [{ rotate: '26deg' }],
+  },
+  glassPill: {
+    position: 'absolute',
+    bottom: 22,
+    minWidth: 138,
+    minHeight: 64,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.68)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stageLabel: {
+    ...type.tiny,
+    opacity: 0.78,
+  },
+  glassLine: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+    marginTop: 2,
+  },
+  glassWeek: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '900',
+  },
+  glassSmall: {
+    ...type.tiny,
+  },
+  progressMini: {
+    borderWidth: 1,
     borderRadius: 24,
+    padding: 16,
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  eyebrow: {
+    ...type.tiny,
+    letterSpacing: 1.25,
+  },
+  stageTitle: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    lineHeight: 25,
+    marginTop: 3,
+  },
+  stageCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  percentBubble: {
+    width: 62,
+    height: 62,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   percentValue: {
-    fontSize: 22,
-    lineHeight: 26,
+    fontSize: 20,
+    lineHeight: 24,
     fontWeight: '900',
   },
-  percentLabel: {
-    ...type.tiny,
-    marginTop: 1,
-  },
   progressTrack: {
-    height: 9,
+    height: 8,
     borderRadius: 99,
     overflow: 'hidden',
-    marginTop: 15,
+    marginBottom: 14,
   },
   progressFill: {
     height: '100%',
     borderRadius: 99,
   },
-  progressActions: {
-    marginTop: 12,
-    flexDirection: 'row',
-    gap: 18,
-  },
-  inlineAction: {
-    minHeight: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  inlineActionText: {
-    ...type.small,
-    fontWeight: '900',
-  },
-  babyNoteCard: {
-    borderWidth: 1,
+  aiCard: {
+    minHeight: 68,
     borderRadius: 24,
-    padding: 16,
+    padding: 14,
     marginBottom: 14,
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'flex-start',
-  },
-  babyNoteIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  babyNoteText: {
-    flex: 1,
-  },
-  babyNoteTitle: {
-    ...type.bodyStrong,
-    fontSize: 20,
-    lineHeight: 25,
-    marginTop: 4,
-  },
-  babyNoteCopy: {
-    ...type.small,
-    lineHeight: 21,
-    marginTop: 6,
-  },
-  babyNoteAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 10,
-  },
-  babyNoteActionText: {
-    ...type.small,
-    fontWeight: '900',
-  },
-  homeStreakCard: {
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 14,
-    flexDirection: 'row',
-    gap: 13,
-    alignItems: 'center',
-  },
-  homeStreakIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  homeStreakText: {
-    flex: 1,
-  },
-  homeStreakTitle: {
-    ...type.bodyStrong,
-    fontSize: 21,
-    lineHeight: 26,
-    marginTop: 3,
-  },
-  homeStreakCopy: {
-    ...type.small,
-    lineHeight: 20,
-    marginTop: 3,
-  },
-  homeBestPill: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  homeBestValue: {
-    fontSize: 19,
-    lineHeight: 23,
-    fontWeight: '900',
-  },
-  homeBestLabel: {
-    ...type.tiny,
-    marginTop: 1,
-  },
-  dateCard: {
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 15,
-    marginBottom: 14,
-  },
-  dateTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 14,
   },
-  dateTitle: {
-    ...type.bodyStrong,
-    fontSize: 21,
-    lineHeight: 26,
-    marginTop: 2,
-  },
-  chooseButton: {
-    minHeight: 38,
-    borderRadius: 15,
-    paddingHorizontal: 13,
+  aiLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 12,
+    flex: 1,
   },
-  chooseText: {
-    ...type.small,
-  },
-  dateStrip: {
-    gap: 9,
-    paddingTop: 14,
-    paddingRight: 4,
-  },
-  dateChip: {
-    width: 63,
-    minHeight: 72,
-    borderRadius: 19,
-    borderWidth: 1,
+  aiIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dateChipDay: {
+  aiTitle: {
+    ...type.bodyStrong,
+    fontSize: 17,
+  },
+  aiDetail: {
     ...type.tiny,
-    marginBottom: 6,
+    opacity: 0.84,
+    marginTop: 1,
   },
-  dateChipNumber: {
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: '900',
-  },
-  statsGrid: {
+  metricGrid: {
     flexDirection: 'row',
     gap: 10,
     marginBottom: 14,
   },
-  statCard: {
+  metricCard: {
     flex: 1,
-    borderWidth: 1,
+    minHeight: 126,
     borderRadius: 22,
+    borderWidth: 1,
     padding: 12,
-    minHeight: 134,
   },
-  statIcon: {
-    width: 40,
-    height: 40,
+  metricIcon: {
+    width: 38,
+    height: 38,
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 9,
   },
-  statValue: {
-    fontSize: 25,
-    lineHeight: 30,
+  metricValue: {
+    fontSize: 24,
+    lineHeight: 28,
     fontWeight: '900',
   },
-  statLabel: {
+  metricLabel: {
     ...type.small,
     marginTop: 1,
   },
-  statDetail: {
+  metricDetail: {
     ...type.tiny,
     marginTop: 3,
-  },
-  weeklyCard: {
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 14,
-  },
-  weeklyTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 14,
-    marginBottom: 12,
-  },
-  weeklyTitle: {
-    ...type.bodyStrong,
-    fontSize: 21,
-    lineHeight: 26,
-    marginTop: 3,
-  },
-  weeklyButton: {
-    minHeight: 38,
-    borderRadius: 16,
-    paddingHorizontal: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  weeklyButtonText: {
-    ...type.small,
-    fontWeight: '900',
-  },
-  weeklyGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  weeklyItem: {
-    flex: 1,
-    minHeight: 84,
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 10,
-    justifyContent: 'space-between',
-  },
-  weeklyValue: {
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '900',
-    marginTop: 5,
-  },
-  weeklyLabel: {
-    ...type.tiny,
-    marginTop: 2,
   },
   sectionCard: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 16,
     marginBottom: 14,
   },
-  sectionHead: {
+  sectionTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 14,
-    marginBottom: 10,
+    gap: 12,
+    marginBottom: 11,
   },
   sectionTitle: {
-    ...type.bodyStrong,
-    fontSize: 22,
-    lineHeight: 28,
+    ...type.title,
+    fontSize: 25,
+    lineHeight: 30,
     marginTop: 2,
   },
-  actionRow: {
-    minHeight: 68,
-    borderBottomWidth: 1,
+  actionCard: {
+    minHeight: 66,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -1478,7 +1130,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionTextWrap: {
+  actionCopy: {
     flex: 1,
   },
   actionTitle: {
@@ -1488,142 +1140,59 @@ const styles = StyleSheet.create({
     ...type.small,
     marginTop: 1,
   },
+  weeklyCard: {
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
+    marginBottom: 14,
+  },
   reportButton: {
-    minHeight: 36,
-    borderRadius: 15,
+    minHeight: 38,
+    borderRadius: 16,
     paddingHorizontal: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reportText: {
     ...type.small,
+    fontWeight: '900',
   },
-  focusGrid: {
-    gap: 9,
-  },
-  focusCard: {
-    minHeight: 68,
-    borderRadius: 21,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  snapshotRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
+    gap: 8,
   },
-  focusIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  focusTextWrap: {
+  snapshotItem: {
     flex: 1,
-  },
-  focusTitle: {
-    ...type.bodyStrong,
-    fontSize: 15.5,
-    lineHeight: 20,
-  },
-  focusDetail: {
-    ...type.small,
-    marginTop: 1,
-  },
-  wellnessGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 9,
-  },
-  wellnessPill: {
-    width: '48%',
     minHeight: 82,
     borderRadius: 18,
-    padding: 12,
+    borderWidth: 1,
+    padding: 10,
+    justifyContent: 'center',
   },
-  wellnessLabel: {
+  snapshotValue: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '900',
+  },
+  snapshotLabel: {
     ...type.tiny,
-    marginTop: 7,
+    marginTop: 4,
   },
-  wellnessValue: {
-    ...type.bodyStrong,
-    marginTop: 2,
-  },
-  quickRow: {
+  bottomActions: {
     flexDirection: 'row',
     gap: 10,
   },
-  primaryButton: {
-    flex: 1.45,
+  bottomButton: {
+    flex: 1,
     minHeight: 56,
-    borderRadius: 19,
+    borderRadius: 21,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  primaryButtonText: {
-    ...type.bodyStrong,
-  },
-  secondaryButton: {
-    flex: 1,
-    minHeight: 56,
-    borderRadius: 19,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-  },
-  secondaryButtonText: {
-    ...type.bodyStrong,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(37,23,29,0.42)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  dateModal: {
-    borderWidth: 1,
-    borderRadius: 26,
-    padding: 20,
-  },
-  dateModalTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dateModalTitle: {
-    ...type.bodyStrong,
-    fontSize: 22,
-  },
-  modalClose: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dateModalCopy: {
-    ...type.body,
-    marginTop: 10,
-  },
-  dateInput: {
-    minHeight: 56,
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    marginTop: 16,
-    ...type.body,
-  },
-  applyDateButton: {
-    minHeight: 54,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 14,
-  },
-  applyDateText: {
+  bottomButtonText: {
     ...type.bodyStrong,
   },
 });
