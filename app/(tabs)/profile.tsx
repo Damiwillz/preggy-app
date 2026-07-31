@@ -392,6 +392,14 @@ export default function ProfileScreen() {
       <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <Row
           palette={palette}
+          icon="people-outline"
+          label="Care Team"
+          detail="Doctor, hospital and emergency contacts"
+          onPress={() => router.push('/care-team' as never)}
+        />
+
+        <Row
+          palette={palette}
           icon="sparkles-outline"
           label="Chat with Preggy AI"
           detail="Ask pregnancy and app questions"
