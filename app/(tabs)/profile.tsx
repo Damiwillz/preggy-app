@@ -371,6 +371,14 @@ export default function ProfileScreen() {
 
         <Row
           palette={palette}
+          icon="download-outline"
+          label="Backup & Export"
+          detail="Export guest and local app data"
+          onPress={() => router.push('/backup-export' as never)}
+        />
+
+        <Row
+          palette={palette}
           icon="moon-outline"
           label="Appearance"
           detail={`${scheme === 'dark' ? 'Dark' : 'Light'} mode active`}
