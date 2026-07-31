@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,10 +61,32 @@ function makeBackupPayload(pairs: ReadonlyArray<StoragePair>) {
     app: 'Preggy',
     backup_type: 'local_phone_backup',
     exported_at: new Date().toISOString(),
-    note: 'This backup contains local Preggy data saved on this phone, including guest mode data and local tool data.',
+    note: 'This backup contains local Preggy data saved on this phone.',
     item_count: pairs.length,
     data: Object.fromEntries(pairs),
   };
+}
+
+function getRestorablePairs(payload: unknown) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return [];
+  }
+
+  const data = (payload as { data?: unknown }).data;
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return [];
+  }
+
+  const pairs: [string, string][] = [];
+
+  Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
+    if (isPreggyKey(key) && typeof value === 'string') {
+      pairs.push([key, value]);
+    }
+  });
+
+  return pairs;
 }
 
 function formatDate(value: string | null) {
@@ -75,6 +97,19 @@ function formatDate(value: string | null) {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+  });
+}
+
+function confirmRestore(count: number) {
+  return new Promise<boolean>((resolve) => {
+    Alert.alert(
+      'Restore this backup?',
+      `This will overwrite ${count} local Preggy item${count === 1 ? '' : 's'} on this phone.`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Restore', style: 'destructive', onPress: () => resolve(true) },
+      ]
+    );
   });
 }
 
@@ -110,6 +145,9 @@ export default function BackupExportScreen() {
   const [summary, setSummary] = useState<BackupSummary>(emptySummary);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [showRestore, setShowRestore] = useState(false);
+  const [restoreText, setRestoreText] = useState('');
 
   const loadPairs = useCallback(async () => {
     const keys = await AsyncStorage.getAllKeys();
@@ -207,6 +245,49 @@ export default function BackupExportScreen() {
     }
   }
 
+  async function restoreBackup() {
+    const cleanText = restoreText.trim();
+
+    if (!cleanText) {
+      Alert.alert('Paste backup first', 'Paste the Preggy backup text into the restore box.');
+      return;
+    }
+
+    setRestoring(true);
+
+    try {
+      const parsed = JSON.parse(cleanText);
+      const restorablePairs = getRestorablePairs(parsed);
+
+      if (restorablePairs.length === 0) {
+        Alert.alert('Invalid backup', 'This does not look like a Preggy backup.');
+        return;
+      }
+
+      const shouldRestore = await confirmRestore(restorablePairs.length);
+
+      if (!shouldRestore) {
+        return;
+      }
+
+      await AsyncStorage.multiSet(restorablePairs);
+      await refreshSummary();
+
+      setRestoreText('');
+      setShowRestore(false);
+
+      Alert.alert(
+        'Restore complete',
+        `${restorablePairs.length} Preggy item${restorablePairs.length === 1 ? '' : 's'} restored.`
+      );
+    } catch (error) {
+      console.log('Backup restore error:', error);
+      Alert.alert('Restore failed', 'Please paste a valid Preggy backup.');
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   return (
     <Screen bottomSpace={50}>
       <Header title="Backup & Export" back />
@@ -219,24 +300,79 @@ export default function BackupExportScreen() {
         <Text style={[styles.kicker, { color: palette.onAccent }]}>LOCAL BACKUP</Text>
         <Text style={[styles.title, { color: palette.onAccent }]}>Keep your Preggy journey safe</Text>
         <Text style={[styles.subtitle, { color: palette.onAccent }]}>
-          Export guest mode and local tool data from this phone. Useful before deleting the app or changing devices.
+          Export guest mode and local tool data from this phone. Restore it later by pasting the backup text.
         </Text>
 
-        <AnimatedPressable
-          onPress={exportBackup}
-          disabled={exporting}
-          style={[styles.primaryButton, { backgroundColor: palette.onAccent }]}
-        >
-          {exporting ? (
-            <ActivityIndicator color={palette.accent} />
-          ) : (
-            <>
-              <Ionicons name="share-outline" size={21} color={palette.accent} />
-              <Text style={[styles.primaryText, { color: palette.accent }]}>Export backup</Text>
-            </>
-          )}
-        </AnimatedPressable>
+        <View style={styles.backupActions}>
+          <AnimatedPressable
+            onPress={exportBackup}
+            disabled={exporting || restoring}
+            style={[styles.primaryButton, { backgroundColor: palette.onAccent }]}
+          >
+            {exporting ? (
+              <ActivityIndicator color={palette.accent} />
+            ) : (
+              <>
+                <Ionicons name="share-outline" size={21} color={palette.accent} />
+                <Text style={[styles.primaryText, { color: palette.accent }]}>Export backup</Text>
+              </>
+            )}
+          </AnimatedPressable>
+
+          <AnimatedPressable
+            onPress={() => setShowRestore((value) => !value)}
+            disabled={exporting || restoring}
+            style={[styles.secondaryButton, { borderColor: palette.onAccent }]}
+          >
+            <Ionicons name="clipboard-outline" size={21} color={palette.onAccent} />
+            <Text style={[styles.secondaryText, { color: palette.onAccent }]}>
+              {showRestore ? 'Hide restore' : 'Restore backup'}
+            </Text>
+          </AnimatedPressable>
+        </View>
       </View>
+
+      {showRestore ? (
+        <View style={[styles.restoreCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+          <Text style={[styles.restoreTitle, { color: palette.ink }]}>Restore from backup text</Text>
+          <Text style={[styles.restoreCopy, { color: palette.text }]}>
+            Paste the full Preggy backup you exported, then tap Restore now.
+          </Text>
+
+          <TextInput
+            value={restoreText}
+            onChangeText={setRestoreText}
+            placeholder="Paste Preggy backup here..."
+            placeholderTextColor={palette.muted}
+            multiline
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={[
+              styles.restoreInput,
+              {
+                backgroundColor: palette.canvas,
+                borderColor: palette.line,
+                color: palette.ink,
+              },
+            ]}
+          />
+
+          <AnimatedPressable
+            onPress={restoreBackup}
+            disabled={restoring}
+            style={[styles.restoreButton, { backgroundColor: palette.accent }]}
+          >
+            {restoring ? (
+              <ActivityIndicator color={palette.onAccent} />
+            ) : (
+              <>
+                <Ionicons name="cloud-upload-outline" size={21} color={palette.onAccent} />
+                <Text style={[styles.restoreButtonText, { color: palette.onAccent }]}>Restore now</Text>
+              </>
+            )}
+          </AnimatedPressable>
+        </View>
+      ) : null}
 
       <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.cardTop}>
@@ -285,7 +421,7 @@ export default function BackupExportScreen() {
         <View style={{ flex: 1 }}>
           <Text style={[styles.noteTitle, { color: palette.ink }]}>Important</Text>
           <Text style={[styles.noteCopy, { color: palette.text }]}>
-            This does not sync data online. It creates a shareable text backup of local Preggy data stored on this phone.
+            Restore can overwrite matching local data on this phone, so export first if you want a copy.
           </Text>
         </View>
       </View>
@@ -327,6 +463,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     opacity: 0.86,
   },
+  backupActions: {
+    marginTop: 22,
+    gap: 12,
+  },
   primaryButton: {
     height: 56,
     borderRadius: 28,
@@ -334,9 +474,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 9,
-    marginTop: 22,
   },
   primaryText: {
+    ...type.bodyStrong,
+  },
+  secondaryButton: {
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 9,
+  },
+  secondaryText: {
+    ...type.bodyStrong,
+  },
+  restoreCard: {
+    borderWidth: 1,
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 16,
+  },
+  restoreTitle: {
+    ...type.title,
+    fontSize: 23,
+  },
+  restoreCopy: {
+    ...type.body,
+    lineHeight: 22,
+    marginTop: 6,
+    marginBottom: 14,
+  },
+  restoreInput: {
+    minHeight: 150,
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 14,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlignVertical: 'top',
+  },
+  restoreButton: {
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 14,
+  },
+  restoreButtonText: {
     ...type.bodyStrong,
   },
   card: {
