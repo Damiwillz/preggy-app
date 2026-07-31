@@ -60,6 +60,12 @@ type WeeklySummary = {
   symptomLogs: number;
 };
 
+type DailyStreak = {
+  current: number;
+  best: number;
+  checkedInToday: boolean;
+};
+
 const emptyWeeklySummary: WeeklySummary = {
   careDays: 0,
   careTasks: 0,
@@ -67,6 +73,12 @@ const emptyWeeklySummary: WeeklySummary = {
   kickDays: 0,
   kickTotal: 0,
   symptomLogs: 0,
+};
+
+const emptyDailyStreak: DailyStreak = {
+  current: 0,
+  best: 0,
+  checkedInToday: false,
 };
 
 const DAILY_CARE_TOTAL = 5;
@@ -85,6 +97,14 @@ function getKickStorageKey(dateKey: string) {
   return `preggy:kicks:${dateKey}`;
 }
 
+function getPlanDoneStorageKey(dateKey: string) {
+  return `preggy:daily-plan-done:${dateKey}`;
+}
+
+function getReflectionStorageKey(dateKey: string) {
+  return `preggy:daily-reflection:${dateKey}`;
+}
+
 function buildLastSevenDateKeys() {
   const today = new Date();
 
@@ -94,6 +114,77 @@ function buildLastSevenDateKeys() {
 
     return toDateKey(date);
   });
+}
+
+function buildRecentDateKeys(days = 60) {
+  const today = new Date();
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - index);
+
+    return toDateKey(date);
+  });
+}
+
+async function hasDailyCheckIn(dateKey: string) {
+  const [doneRaw, reflectionRaw, careRaw, waterRaw, kicksRaw] = await Promise.all([
+    AsyncStorage.getItem(getPlanDoneStorageKey(dateKey)),
+    AsyncStorage.getItem(getReflectionStorageKey(dateKey)),
+    AsyncStorage.getItem(getChecklistStorageKey(dateKey)),
+    AsyncStorage.getItem(getWaterStorageKey(dateKey)),
+    AsyncStorage.getItem(getKickStorageKey(dateKey)),
+  ]);
+
+  const manualDone = parseSavedArray(doneRaw).length > 0;
+  const reflectionDone = Boolean(reflectionRaw?.trim());
+  const careDone = parseSavedArray(careRaw).length > 0;
+  const waterCount = waterRaw ? Number.parseInt(waterRaw, 10) : 0;
+  const kickCount = kicksRaw ? Number.parseInt(kicksRaw, 10) : 0;
+
+  return manualDone ||
+    reflectionDone ||
+    careDone ||
+    (Number.isFinite(waterCount) && waterCount > 0) ||
+    (Number.isFinite(kickCount) && kickCount > 0);
+}
+
+async function getDailyStreak(): Promise<DailyStreak> {
+  const dateKeys = buildRecentDateKeys();
+  const statuses = await Promise.all(
+    dateKeys.map(async (dateKey) => ({
+      dateKey,
+      checked: await hasDailyCheckIn(dateKey),
+    }))
+  );
+
+  const checkedInToday = statuses[0]?.checked ?? false;
+  const startIndex = checkedInToday ? 0 : 1;
+
+  let current = 0;
+
+  for (let index = startIndex; index < statuses.length; index += 1) {
+    if (!statuses[index]?.checked) break;
+    current += 1;
+  }
+
+  let best = 0;
+  let running = 0;
+
+  [...statuses].reverse().forEach((item) => {
+    if (item.checked) {
+      running += 1;
+      best = Math.max(best, running);
+    } else {
+      running = 0;
+    }
+  });
+
+  return {
+    current,
+    best: Math.max(best, current),
+    checkedInToday,
+  };
 }
 
 async function getWeeklyLocalSummary(): Promise<WeeklySummary> {
@@ -415,6 +506,7 @@ export default function HomeScreen() {
     weight: 'No weight yet',
   });
   const [weeklySummary, setWeeklySummary] = useState<WeeklySummary>(emptyWeeklySummary);
+  const [dailyStreak, setDailyStreak] = useState<DailyStreak>(emptyDailyStreak);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [dateDraft, setDateDraft] = useState(() => toDateKey(new Date()));
 
@@ -593,8 +685,10 @@ export default function HomeScreen() {
           setTodayKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
 
           const nextWeeklySummary = await getWeeklyLocalSummary();
+          const nextDailyStreak = await getDailyStreak();
           if (!mounted) return;
           setWeeklySummary(nextWeeklySummary);
+          setDailyStreak(nextDailyStreak);
 
           const moods = parseSavedArray(moodRaw);
           const sleeps = parseSavedArray(sleepRaw);
@@ -744,6 +838,30 @@ export default function HomeScreen() {
             <Text style={[styles.babyNoteActionText, { color: palette.accent }]}>{babyNote.action}</Text>
             <Ionicons name="arrow-forward" size={16} color={palette.accent} />
           </View>
+        </View>
+      </AnimatedPressable>
+
+      <AnimatedPressable
+        onPress={() => router.push('/daily-plan' as never)}
+        style={[styles.homeStreakCard, { backgroundColor: palette.surface, borderColor: palette.line }]}
+      >
+        <View style={[styles.homeStreakIcon, { backgroundColor: palette.accentSoft }]}>
+          <Ionicons name="flame-outline" size={24} color={palette.accent} />
+        </View>
+
+        <View style={styles.homeStreakText}>
+          <Text style={[styles.cardLabel, { color: palette.accent }]}>HOME STREAK</Text>
+          <Text style={[styles.homeStreakTitle, { color: palette.ink }]}>
+            {dailyStreak.current} {dailyStreak.current === 1 ? 'day' : 'days'}
+          </Text>
+          <Text style={[styles.homeStreakCopy, { color: palette.text }]}>
+            {dailyStreak.checkedInToday ? 'Checked in today. Keep the glow going.' : 'Open Daily Plan for one tiny check-in.'}
+          </Text>
+        </View>
+
+        <View style={[styles.homeBestPill, { backgroundColor: palette.accentSoft }]}>
+          <Text style={[styles.homeBestValue, { color: palette.accent }]}>{dailyStreak.best}</Text>
+          <Text style={[styles.homeBestLabel, { color: palette.text }]}>best</Text>
         </View>
       </AnimatedPressable>
 
@@ -1144,6 +1262,52 @@ const styles = StyleSheet.create({
   babyNoteActionText: {
     ...type.small,
     fontWeight: '900',
+  },
+  homeStreakCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 14,
+    flexDirection: 'row',
+    gap: 13,
+    alignItems: 'center',
+  },
+  homeStreakIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeStreakText: {
+    flex: 1,
+  },
+  homeStreakTitle: {
+    ...type.bodyStrong,
+    fontSize: 21,
+    lineHeight: 26,
+    marginTop: 3,
+  },
+  homeStreakCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 3,
+  },
+  homeBestPill: {
+    width: 56,
+    height: 56,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeBestValue: {
+    fontSize: 19,
+    lineHeight: 23,
+    fontWeight: '900',
+  },
+  homeBestLabel: {
+    ...type.tiny,
+    marginTop: 1,
   },
   dateCard: {
     borderWidth: 1,
