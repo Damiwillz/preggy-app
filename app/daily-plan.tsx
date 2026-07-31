@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -46,6 +46,10 @@ function getKickStorageKey(dateKey: string) {
 
 function getPlanDoneStorageKey(dateKey: string) {
   return `preggy:daily-plan-done:${dateKey}`;
+}
+
+function getReflectionStorageKey(dateKey: string) {
+  return `preggy:daily-reflection:${dateKey}`;
 }
 
 function parseSavedArray(raw: string | null) {
@@ -117,6 +121,9 @@ export default function DailyPlanScreen() {
   const [waterCups, setWaterCups] = useState(0);
   const [kicks, setKicks] = useState(0);
   const [manualDone, setManualDone] = useState<string[]>([]);
+  const [reflection, setReflection] = useState('');
+  const [savedReflection, setSavedReflection] = useState('');
+  const [savingReflection, setSavingReflection] = useState(false);
 
   const dateKey = useMemo(() => toDateKey(new Date()), []);
 
@@ -128,12 +135,13 @@ export default function DailyPlanScreen() {
         try {
           setLoading(true);
 
-          const [profileData, savedCare, savedWater, savedKicks, savedManualDone] = await Promise.all([
+          const [profileData, savedCare, savedWater, savedKicks, savedManualDone, savedReflectionText] = await Promise.all([
             getMyProfile(),
             AsyncStorage.getItem(getChecklistStorageKey(dateKey)),
             AsyncStorage.getItem(getWaterStorageKey(dateKey)),
             AsyncStorage.getItem(getKickStorageKey(dateKey)),
             AsyncStorage.getItem(getPlanDoneStorageKey(dateKey)),
+            AsyncStorage.getItem(getReflectionStorageKey(dateKey)),
           ]);
 
           if (!mounted) return;
@@ -147,6 +155,8 @@ export default function DailyPlanScreen() {
           setWaterCups(Number.isFinite(parsedWater) ? clamp(parsedWater, 0, WATER_TARGET) : 0);
           setKicks(Number.isFinite(parsedKicks) ? Math.max(parsedKicks, 0) : 0);
           setManualDone(parseSavedArray(savedManualDone).filter((item): item is string => typeof item === 'string'));
+          setReflection(savedReflectionText ?? '');
+          setSavedReflection(savedReflectionText ?? '');
         } catch (error) {
           console.log('Daily plan load error:', error);
         } finally {
@@ -173,6 +183,27 @@ export default function DailyPlanScreen() {
       await AsyncStorage.setItem(getPlanDoneStorageKey(dateKey), JSON.stringify(nextDone));
     } catch (error) {
       console.log('Daily plan save error:', error);
+    }
+  }
+
+  async function saveReflection() {
+    const cleanReflection = reflection.trim();
+
+    setSavingReflection(true);
+
+    try {
+      if (cleanReflection) {
+        await AsyncStorage.setItem(getReflectionStorageKey(dateKey), cleanReflection);
+      } else {
+        await AsyncStorage.removeItem(getReflectionStorageKey(dateKey));
+      }
+
+      setReflection(cleanReflection);
+      setSavedReflection(cleanReflection);
+    } catch (error) {
+      console.log('Reflection save error:', error);
+    } finally {
+      setSavingReflection(false);
     }
   }
 
@@ -325,6 +356,56 @@ export default function DailyPlanScreen() {
             )}
           </View>
         ))}
+      </View>
+
+      <View style={[styles.reflectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+        <View style={styles.reflectionTop}>
+          <View style={[styles.reflectionIcon, { backgroundColor: palette.accentSoft }]}>
+            <Ionicons name="moon-outline" size={23} color={palette.accent} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.cardLabel, { color: palette.accent }]}>END OF DAY</Text>
+            <Text style={[styles.reflectionTitle, { color: palette.ink }]}>Reflection</Text>
+            <Text style={[styles.reflectionCopy, { color: palette.text }]}>
+              Save one small note about today. It stays private on this device.
+            </Text>
+          </View>
+
+          {savedReflection ? (
+            <View style={[styles.savedPill, { backgroundColor: palette.accentSoft }]}>
+              <Text style={[styles.savedPillText, { color: palette.accent }]}>Saved</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <TextInput
+          value={reflection}
+          onChangeText={setReflection}
+          placeholder="Today I noticed..."
+          placeholderTextColor={palette.muted}
+          multiline
+          textAlignVertical="top"
+          style={[
+            styles.reflectionInput,
+            {
+              color: palette.ink,
+              backgroundColor: palette.canvas,
+              borderColor: palette.line,
+            },
+          ]}
+        />
+
+        <AnimatedPressable
+          onPress={saveReflection}
+          disabled={savingReflection}
+          style={[styles.reflectionButton, { backgroundColor: palette.accent, opacity: savingReflection ? 0.72 : 1 }]}
+        >
+          <Text style={[styles.reflectionButtonText, { color: palette.onAccent }]}>
+            {savingReflection ? 'Saving...' : savedReflection ? 'Update reflection' : 'Save reflection'}
+          </Text>
+          <Ionicons name="checkmark" size={18} color={palette.onAccent} />
+        </AnimatedPressable>
       </View>
 
       <View style={[styles.note, { backgroundColor: palette.accentSoft, borderColor: palette.line }]}>
@@ -532,6 +613,65 @@ const styles = StyleSheet.create({
     ...type.small,
     lineHeight: 20,
     marginTop: 3,
+  },
+  reflectionCard: {
+    borderRadius: 28,
+    borderWidth: 1,
+    padding: 18,
+    marginTop: 16,
+  },
+  reflectionTop: {
+    flexDirection: 'row',
+    gap: 13,
+    alignItems: 'flex-start',
+  },
+  reflectionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reflectionTitle: {
+    ...type.bodyStrong,
+    fontSize: 20,
+    lineHeight: 25,
+    marginTop: 3,
+  },
+  reflectionCopy: {
+    ...type.small,
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  savedPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  savedPillText: {
+    ...type.tiny,
+    fontWeight: '900',
+  },
+  reflectionInput: {
+    minHeight: 96,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 14,
+    marginTop: 14,
+    ...type.body,
+    lineHeight: 22,
+  },
+  reflectionButton: {
+    minHeight: 50,
+    borderRadius: 22,
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  reflectionButtonText: {
+    ...type.bodyStrong,
   },
   note: {
     borderRadius: 24,
