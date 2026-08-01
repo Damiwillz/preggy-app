@@ -400,6 +400,14 @@ export default function ProfileScreen() {
 
         <Row
           palette={palette}
+          icon="document-text-outline"
+          label="Birth Preferences"
+          detail="Support, comfort, feeding and first moments"
+          onPress={() => router.push('/birth-preferences' as never)}
+        />
+
+        <Row
+          palette={palette}
           icon="sparkles-outline"
           label="Chat with Preggy AI"
           detail="Ask pregnancy and app questions"

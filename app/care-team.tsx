@@ -262,6 +262,16 @@ export default function CareTeamScreen() {
 
           <HubCard
             palette={palette}
+            icon="document-text-outline"
+            kicker="PREFERENCES"
+            title="Birth preferences"
+            copy="Save support, comfort, feeding, and first-moment wishes."
+            action="Open preferences"
+            onPress={() => router.push('/birth-preferences' as never)}
+          />
+
+          <HubCard
+            palette={palette}
             icon="shield-checkmark-outline"
             kicker="URGENT HELP"
             title="Safety center"
