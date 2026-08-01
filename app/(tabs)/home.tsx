@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -60,6 +60,7 @@ type DailyStreak = {
 const DAILY_CARE_TOTAL = 5;
 const WATER_TARGET = 8;
 const GUEST_SYMPTOM_LOGS_KEY = 'preggy:guest-symptom-logs';
+const homeFoetusImage = require('../../assets/images/home-foetus.png');
 
 const emptyWeeklySummary: WeeklySummary = {
   careDays: 0,
@@ -347,19 +348,24 @@ function BabyVisual({
   week: number;
   palette: ReturnType<typeof useAppTheme>['palette'];
 }) {
-  const scale = 0.76 + clamp(week / 40, 0.35, 1) * 0.18;
+  const development = clamp(week / 40, 0.35, 1);
+  const imageScale = 0.9 + development * 0.12;
 
   return (
     <View style={styles.visualWrap}>
-      <View style={[styles.visualGlowOne, { backgroundColor: withAlpha(palette.accent, 0.18) }]} />
-      <View style={[styles.visualGlowTwo, { backgroundColor: withAlpha(palette.accent, 0.12) }]} />
+      <View style={[styles.visualGlowOne, { backgroundColor: withAlpha(palette.accent, 0.16) }]} />
+      <View style={[styles.visualGlowTwo, { backgroundColor: withAlpha(palette.accent, 0.1) }]} />
 
-      <View style={[styles.babyShape, { transform: [{ scale }] }]}>
-        <View style={[styles.babyHead, { backgroundColor: withAlpha(palette.accent, 0.36) }]} />
-        <View style={[styles.babyBody, { backgroundColor: withAlpha(palette.accent, 0.3) }]} />
-        <View style={[styles.babyBelly, { backgroundColor: withAlpha(palette.accent, 0.18) }]} />
-        <View style={[styles.babyArm, { backgroundColor: withAlpha(palette.accent, 0.26) }]} />
-      </View>
+      <Image
+        source={homeFoetusImage}
+        resizeMode="contain"
+        style={[
+          styles.foetusImage,
+          {
+            transform: [{ scale: imageScale }],
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -901,6 +907,14 @@ const styles = StyleSheet.create({
     inset: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  foetusImage: {
+    width: '112%',
+    height: '112%',
+    zIndex: 3,
+  },
+  fetusSvg: {
+    zIndex: 2,
   },
   visualGlowOne: {
     position: 'absolute',
