@@ -45,6 +45,7 @@ export default function RootLayout() {
           <Stack.Screen name="calculator/result" />
           <Stack.Screen name="medication" />
           <Stack.Screen name="timeline" />
+          <Stack.Screen name="baby-growth" />
           <Stack.Screen name="tips/status" />
           <Stack.Screen name="tips/yoga" />
           <Stack.Screen name="tips/sanctuary" />

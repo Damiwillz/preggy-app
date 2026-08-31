@@ -863,7 +863,7 @@ export default function HomeScreen() {
 
       <CopilotCard suggestions={copilotSuggestions} babyName={babyName} />
 
-      <AnimatedPressable onPress={() => router.push('/timeline' as never)}>
+      <AnimatedPressable onPress={() => router.push('/baby-growth' as never)}>
         <LinearGradient
           colors={[
             palette.surface,
@@ -876,7 +876,7 @@ export default function HomeScreen() {
         >
           <View style={styles.openPill}>
             <Ionicons name="play-circle" size={16} color="#FFFFFF" />
-            <Text style={styles.openText}>Open</Text>
+            <Text style={styles.openText}>Growth</Text>
           </View>
 
           <BabyVisual week={activeWeek} palette={palette} />

@@ -280,11 +280,26 @@ const tools: ToolItem[] = [
     category: 'Memories',
   },
   {
+    icon: 'moon-outline',
+    title: 'Reflection History',
+    copy: 'Review saved daily reflections',
+    route: '/reflection-history',
+    category: 'Memories',
+  },
+  {
     icon: 'mail-outline',
     title: 'Letters to Baby',
     copy: 'Write weekly notes to baby',
     route: '/letters-to-baby',
     category: 'Memories',
+  },
+  {
+    icon: 'leaf-outline',
+    title: 'Baby Growth',
+    copy: 'See baby’s week-by-week growth',
+    route: '/baby-growth',
+    category: 'Tracking',
+    featured: true,
   },
   {
     icon: 'albums-outline',
