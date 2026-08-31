@@ -57,6 +57,13 @@ type DailyStreak = {
   checkedInToday: boolean;
 };
 
+type CopilotSuggestion = {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  detail: string;
+  route: string;
+};
+
 const DAILY_CARE_TOTAL = 5;
 const WATER_TARGET = 8;
 const GUEST_SYMPTOM_LOGS_KEY = 'preggy:guest-symptom-logs';
@@ -341,6 +348,180 @@ function greeting() {
   return 'Evening';
 }
 
+function buildCopilotSuggestions({
+  progress,
+  dailyCareDone,
+  waterCups,
+  todayKicks,
+  medicationTotal,
+  medicationDone,
+  nextAppointment,
+  latestLog,
+  dailyStreak,
+  babyName,
+}: {
+  progress: { week: number; day: number; daysRemaining: number; progress: number };
+  dailyCareDone: number;
+  waterCups: number;
+  todayKicks: number;
+  medicationTotal: number;
+  medicationDone: number;
+  nextAppointment: Appointment | null;
+  latestLog: SymptomLog | null;
+  dailyStreak: DailyStreak;
+  babyName: string;
+}) {
+  const suggestions: CopilotSuggestion[] = [];
+  const careStarted = dailyCareDone > 0 || waterCups > 0;
+
+  if (!careStarted) {
+    suggestions.push({
+      icon: 'list-circle-outline',
+      title: 'Start today gently',
+      detail: 'Open care, water, rest, and small daily tasks.',
+      route: '/daily-plan',
+    });
+  } else if (waterCups < WATER_TARGET) {
+    suggestions.push({
+      icon: 'water-outline',
+      title: 'Top up your water',
+      detail: `${WATER_TARGET - waterCups} cups left for today’s goal.`,
+      route: '/daily-care',
+    });
+  }
+
+  if (progress.week >= 28 && todayKicks === 0) {
+    suggestions.push({
+      icon: 'footsteps-outline',
+      title: 'Check movement',
+      detail: `Log ${babyName}’s kicks when you have a calm moment.`,
+      route: '/kick-counter',
+    });
+  }
+
+  if (progress.week >= 34) {
+    suggestions.push({
+      icon: 'timer-outline',
+      title: 'Open labour tools',
+      detail: 'Time contractions and review saved sessions.',
+      route: '/contraction-timer',
+    });
+  }
+
+  if (medicationTotal > 0 && medicationDone < medicationTotal) {
+    suggestions.push({
+      icon: 'medkit-outline',
+      title: 'Review meds',
+      detail: `${medicationTotal - medicationDone} still marked as not taken.`,
+      route: '/medication',
+    });
+  }
+
+  if (nextAppointment) {
+    const visitTitle = nextAppointment.title || nextAppointment.type || 'Today’s visit';
+    const visitDate = nextAppointment.appointment_date || nextAppointment.date;
+    const visitTime = nextAppointment.appointment_time || nextAppointment.time;
+
+    suggestions.push({
+      icon: 'calendar-outline',
+      title: 'Prep for appointment',
+      detail: `${visitTitle} • ${formatDate(visitDate)}${visitTime ? ` at ${visitTime}` : ''}`,
+      route: '/(tabs)/appointments',
+    });
+  } else if (!latestLog) {
+    suggestions.push({
+      icon: 'pulse-outline',
+      title: 'Log how you feel',
+      detail: 'Save mood, symptoms, and notes for today.',
+      route: '/log-symptoms',
+    });
+  }
+
+  if (suggestions.length < 3 && progress.week >= 32) {
+    suggestions.push({
+      icon: 'bag-handle-outline',
+      title: 'Review birth prep',
+      detail: 'Check plans, hospital info, and important notes.',
+      route: '/birth-preferences',
+    });
+  }
+
+  if (suggestions.length < 3 && dailyStreak.checkedInToday) {
+    suggestions.push({
+      icon: 'stats-chart-outline',
+      title: 'See your weekly pattern',
+      detail: 'Open your soft progress report.',
+      route: '/weekly-report',
+    });
+  }
+
+  if (suggestions.length < 3) {
+    suggestions.push({
+      icon: 'sparkles-outline',
+      title: 'Ask Preggy AI',
+      detail: 'Get help with planning, questions, or reminders.',
+      route: '/ai-chat?fromHome=1',
+    });
+  }
+
+  return suggestions.slice(0, 3);
+}
+
+function CopilotCard({
+  suggestions,
+  babyName,
+}: {
+  suggestions: CopilotSuggestion[];
+  babyName: string;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <View style={[styles.copilotCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
+      <View style={styles.copilotTop}>
+        <View style={styles.copilotTitleWrap}>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGGY COPILOT</Text>
+          <Text style={[styles.copilotTitle, { color: palette.ink }]}>Your next gentle moves</Text>
+          <Text style={[styles.copilotCopy, { color: palette.text }]}>
+            Smart suggestions for today with {babyName}.
+          </Text>
+        </View>
+
+        <AnimatedPressable
+          onPress={() => router.push('/ai-chat?fromHome=1' as never)}
+          style={[styles.copilotAsk, { backgroundColor: palette.accentSoft }]}
+        >
+          <Ionicons name="sparkles-outline" size={16} color={palette.accent} />
+          <Text style={[styles.copilotAskText, { color: palette.accent }]}>Ask</Text>
+        </AnimatedPressable>
+      </View>
+
+      <View style={styles.copilotList}>
+        {suggestions.map((item, index) => (
+          <AnimatedPressable
+            key={`${item.route}-${index}`}
+            onPress={() => router.push(item.route as never)}
+            style={[styles.copilotItem, { backgroundColor: palette.canvas, borderColor: palette.line }]}
+          >
+            <View style={[styles.copilotItemIcon, { backgroundColor: palette.accentSoft }]}>
+              <Ionicons name={item.icon} size={18} color={palette.accent} />
+            </View>
+
+            <View style={styles.copilotItemText}>
+              <Text style={[styles.copilotItemTitle, { color: palette.ink }]}>{item.title}</Text>
+              <Text style={[styles.copilotItemDetail, { color: palette.text }]} numberOfLines={1}>
+                {item.detail}
+              </Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+          </AnimatedPressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function BabyVisual({
   week,
   palette,
@@ -622,6 +803,23 @@ export default function HomeScreen() {
     ? `${formatDate(appointmentDate)}${appointmentTime ? ` • ${appointmentTime}` : ''}`
     : 'Add or review your next visit';
 
+  const copilotSuggestions = useMemo(
+    () =>
+      buildCopilotSuggestions({
+        progress,
+        dailyCareDone,
+        waterCups,
+        todayKicks,
+        medicationTotal,
+        medicationDone,
+        nextAppointment,
+        latestLog,
+        dailyStreak,
+        babyName,
+      }),
+    [progress, dailyCareDone, waterCups, todayKicks, medicationTotal, medicationDone, nextAppointment, latestLog, dailyStreak, babyName]
+  );
+
   return (
     <Screen bottomSpace={118}>
       <Header title="Preggy" />
@@ -662,6 +860,8 @@ export default function HomeScreen() {
           );
         })}
       </ScrollView>
+
+      <CopilotCard suggestions={copilotSuggestions} babyName={babyName} />
 
       <AnimatedPressable onPress={() => router.push('/timeline' as never)}>
         <LinearGradient
@@ -708,24 +908,6 @@ export default function HomeScreen() {
       <View style={[styles.progressTrack, { backgroundColor: palette.accentSoft }]}>
         <View style={[styles.progressFill, { width: percentWidth(activeProgress), backgroundColor: palette.accent }]} />
       </View>
-
-      <AnimatedPressable
-        onPress={() => router.push('/ai-chat?fromHome=1' as never)}
-        style={[styles.aiCard, { backgroundColor: palette.accent }]}
-      >
-        <View style={styles.aiLeft}>
-          <View style={[styles.aiIcon, { backgroundColor: palette.onAccent }]}>
-            <Ionicons name="sparkles-outline" size={20} color={palette.accent} />
-          </View>
-
-          <View>
-            <Text style={[styles.aiTitle, { color: palette.onAccent }]}>Ask Preggy AI</Text>
-            <Text style={[styles.aiDetail, { color: palette.onAccent }]}>Questions, planning, symptoms, reminders</Text>
-          </View>
-        </View>
-
-        <Ionicons name="arrow-forward" size={21} color={palette.onAccent} />
-      </AnimatedPressable>
 
       <View style={styles.metricGrid}>
         <MetricCard
@@ -877,7 +1059,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   babyCard: {
-    height: 330,
+    height: 290,
     borderRadius: 28,
     borderWidth: 1,
     marginBottom: 12,
@@ -1042,6 +1224,73 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 99,
+  },
+  copilotCard: {
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 16,
+    marginBottom: 14,
+  },
+  copilotTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 13,
+  },
+  copilotTitleWrap: {
+    flex: 1,
+  },
+  copilotTitle: {
+    ...type.bodyStrong,
+    fontSize: 19,
+    lineHeight: 23,
+    marginTop: 3,
+  },
+  copilotCopy: {
+    ...type.small,
+    marginTop: 4,
+  },
+  copilotAsk: {
+    minHeight: 38,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  copilotAskText: {
+    ...type.small,
+    fontWeight: '800',
+  },
+  copilotList: {
+    gap: 9,
+  },
+  copilotItem: {
+    minHeight: 58,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  copilotItemIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  copilotItemText: {
+    flex: 1,
+  },
+  copilotItemTitle: {
+    ...type.small,
+    fontWeight: '800',
+  },
+  copilotItemDetail: {
+    ...type.tiny,
+    marginTop: 2,
   },
   aiCard: {
     minHeight: 68,

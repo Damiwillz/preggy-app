@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Header } from '@/components/layout/Header';
@@ -186,6 +187,16 @@ export default function ContractionTimerScreen() {
             {activeStart ? 'Stop contraction' : 'Start contraction'}
           </Text>
         </AnimatedPressable>
+
+        <AnimatedPressable
+          onPress={() => router.push('/contraction-history' as never)}
+          style={[styles.historyLinkButton, { backgroundColor: palette.accentSoft }]}
+        >
+          <Ionicons name="time-outline" size={18} color={palette.accent} />
+          <Text style={[styles.historyLinkText, { color: palette.accent }]}>
+            View contraction history
+          </Text>
+        </AnimatedPressable>
       </View>
 
       <View style={styles.summaryGrid}>
@@ -324,6 +335,21 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   mainButtonText: {
+    ...type.small,
+    fontWeight: '900',
+  },
+  historyLinkButton: {
+    minHeight: 46,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  historyLinkText: {
     ...type.small,
     fontWeight: '900',
   },
