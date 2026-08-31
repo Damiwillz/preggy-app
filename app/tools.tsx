@@ -130,6 +130,14 @@ const tools: ToolItem[] = [
     category: 'Tracking',
   },
   {
+    icon: 'heart-circle-outline',
+    title: 'Labor Mode',
+    copy: 'Timer, contacts and birth prep',
+    route: '/labor-mode',
+    category: 'Tracking',
+    featured: true,
+  },
+  {
     icon: 'timer-outline',
     title: 'Contractions',
     copy: 'Time labour waves',

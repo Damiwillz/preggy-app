@@ -66,6 +66,7 @@ export default function RootLayout() {
           <Stack.Screen name="blood-pressure-tracker" />
           <Stack.Screen name="contraction-timer" />
           <Stack.Screen name="contraction-history" />
+          <Stack.Screen name="labor-mode" />
           <Stack.Screen name="postpartum-plan" />
           <Stack.Screen name="baby-budget" />
           <Stack.Screen name="partner-support" />

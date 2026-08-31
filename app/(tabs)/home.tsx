@@ -403,8 +403,8 @@ function buildCopilotSuggestions({
     suggestions.push({
       icon: 'timer-outline',
       title: 'Open labour tools',
-      detail: 'Time contractions and review saved sessions.',
-      route: '/contraction-timer',
+      detail: 'Timer, contacts, hospital info and birth prep.',
+      route: '/labor-mode',
     });
   }
 
