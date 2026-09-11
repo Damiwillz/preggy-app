@@ -99,6 +99,14 @@ const tools: ToolItem[] = [
     category: 'Support',
   },
   {
+    icon: 'card-outline',
+    title: 'Pregnancy ID',
+    copy: 'Share key pregnancy details fast',
+    route: '/pregnancy-id',
+    category: 'Support',
+    featured: true,
+  },
+  {
     icon: 'list-circle-outline',
     title: 'Daily Plan',
     copy: 'Your calm plan for today',

@@ -83,6 +83,12 @@ const shortcuts: Shortcut[] = [
     route: '/emergency-contacts',
   },
   {
+    icon: 'card-outline',
+    title: 'Pregnancy ID',
+    copy: 'Share key details fast',
+    route: '/pregnancy-id',
+  },
+  {
     icon: 'document-text-outline',
     title: 'Birth Preferences',
     copy: 'Your birth wishes',

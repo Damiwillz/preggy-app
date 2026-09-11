@@ -400,6 +400,14 @@ export default function ProfileScreen() {
 
         <Row
           palette={palette}
+          icon="card-outline"
+          label="Pregnancy ID"
+          detail="Quick card for hospital and emergency info"
+          onPress={() => router.push('/pregnancy-id' as never)}
+        />
+
+        <Row
+          palette={palette}
           icon="document-text-outline"
           label="Birth Preferences"
           detail="Support, comfort, feeding and first moments"
