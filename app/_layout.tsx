@@ -61,6 +61,7 @@ export default function RootLayout() {
           <Stack.Screen name="hospital-info" />
           <Stack.Screen name="emergency-contacts" />
           <Stack.Screen name="doctor-visit-pack" />
+          <Stack.Screen name="appointment-prep" />
           <Stack.Screen name="safety-center" />
           <Stack.Screen name="documents-checklist" />
           <Stack.Screen name="blood-pressure-tracker" />

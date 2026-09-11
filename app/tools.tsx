@@ -254,6 +254,14 @@ const tools: ToolItem[] = [
     featured: true,
   },
   {
+    icon: 'clipboard-outline',
+    title: 'Appointment Prep',
+    copy: 'Questions and notes before visits',
+    route: '/appointment-prep',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'chatbubbles-outline',
     title: 'Doctor Questions',
     copy: 'Prepare for visits',

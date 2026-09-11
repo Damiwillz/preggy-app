@@ -426,7 +426,7 @@ function buildCopilotSuggestions({
       icon: 'calendar-outline',
       title: 'Prep for appointment',
       detail: `${visitTitle} • ${formatDate(visitDate)}${visitTime ? ` at ${visitTime}` : ''}`,
-      route: '/(tabs)/appointments',
+      route: '/appointment-prep',
     });
   } else if (!latestLog) {
     suggestions.push({
