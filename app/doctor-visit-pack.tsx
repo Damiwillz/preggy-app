@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
@@ -10,6 +10,7 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
+import { getGuestAppointments, getGuestMedications, isGuestMode } from '@/services/guest';
 import { getMyProfile, type UserProfile } from '@/services/profile';
 
 type Appointment = {
@@ -120,6 +121,20 @@ function parseQuestions(raw: string | null) {
   }
 }
 
+function parseGuestLogs(raw: string | null): SymptomLog[] {
+  try {
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (log): log is SymptomLog =>
+            typeof log?.id === 'string' && typeof log?.created_at === 'string'
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function DoctorVisitPackScreen() {
   const { palette } = useAppTheme();
 
@@ -133,6 +148,27 @@ export default function DoctorVisitPackScreen() {
   async function loadPack() {
     const profileData = await getMyProfile();
     setProfile(profileData);
+
+    if (await isGuestMode()) {
+      const [appointments, guestMedications, rawLogs, rawQuestions] = await Promise.all([
+        getGuestAppointments(),
+        getGuestMedications(),
+        AsyncStorage.getItem('preggy:guest-symptom-logs'),
+        AsyncStorage.getItem(DOCTOR_QUESTIONS_KEY),
+      ]);
+
+      setAppointment(
+        appointments.find((item) => item.status?.toLowerCase() !== 'cancelled') ?? null
+      );
+      setMedications(guestMedications);
+      setSymptomLogs(
+        parseGuestLogs(rawLogs)
+          .sort((a, b) => b.created_at.localeCompare(a.created_at))
+          .slice(0, 4)
+      );
+      setQuestions(parseQuestions(rawQuestions));
+      return;
+    }
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
 
@@ -213,7 +249,7 @@ export default function DoctorVisitPackScreen() {
           .map((log) => {
             const symptoms = log.symptoms?.length ? log.symptoms.join(', ') : 'No symptom names';
             const mood = log.mood ? `Mood: ${log.mood}` : 'Mood not logged';
-            const intensity = log.intensity ? `Intensity: ${log.intensity}/10` : 'Intensity not logged';
+            const intensity = log.intensity ? `Intensity: ${log.intensity}/5` : 'Intensity not logged';
 
             return `- ${formatLogDate(log.created_at)}: ${symptoms}. ${mood}. ${intensity}.`;
           })
@@ -371,7 +407,7 @@ export default function DoctorVisitPackScreen() {
               </Text>
               <Text style={[styles.logMeta, { color: palette.text }]}>
                 {log.mood ? `Mood: ${log.mood}` : 'Mood not logged'}
-                {log.intensity ? ` • Intensity: ${log.intensity}/10` : ''}
+                {log.intensity ? ` • Intensity: ${log.intensity}/5` : ''}
               </Text>
             </View>
           ))
@@ -419,6 +455,19 @@ export default function DoctorVisitPackScreen() {
             <Text style={[styles.cardLabel, { color: palette.accent }]}>SUMMARY</Text>
             <Text style={[styles.sectionTitle, { color: palette.ink }]}>Read this at your visit</Text>
           </View>
+
+          <AnimatedPressable
+            disabled={loading}
+            onPress={() => {
+              void Share.share({
+                title: 'Preggy Visit Summary',
+                message: visitSummary,
+              }).catch(() => Alert.alert('Could not share', 'Please try again.'));
+            }}
+            style={[styles.smallButton, { backgroundColor: palette.accentSoft }]}
+          >
+            <Text style={[styles.smallButtonText, { color: palette.accent }]}>Share</Text>
+          </AnimatedPressable>
         </View>
 
         <TextInput
