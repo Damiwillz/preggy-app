@@ -315,6 +315,25 @@ export default function AppointmentDetailsScreen() {
             </View>
           ))}
 
+          <AnimatedPressable
+            onPress={() => {
+              if (appointment?.id) {
+                const status = appointment.status || 'Upcoming';
+                router.push(`/appointment/follow-up?id=${appointment.id}&status=${status}` as never);
+              }
+            }}
+            style={[styles.followUpButton, { backgroundColor: palette.surface, borderColor: palette.line }]}
+          >
+            <View style={[styles.followUpIcon, { backgroundColor: palette.accentSoft }]}>
+              <Ionicons name="clipboard-outline" size={23} color={palette.accent} />
+            </View>
+            <View style={styles.followUpText}>
+              <Text style={[styles.followUpTitle, { color: palette.ink }]}>After-visit notes</Text>
+              <Text style={[styles.followUpCopy, { color: palette.text }]}>Advice, results, medication changes, and next steps.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+          </AnimatedPressable>
+
           <View style={styles.actionRow}>
             <AnimatedPressable
               onPress={() => {
@@ -521,6 +540,33 @@ const styles = StyleSheet.create({
     color: colors.ink,
     flex: 1,
     lineHeight: 21,
+  },
+  followUpButton: {
+    minHeight: 82,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  followUpIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  followUpText: {
+    flex: 1,
+  },
+  followUpTitle: {
+    ...type.bodyStrong,
+  },
+  followUpCopy: {
+    ...type.small,
+    marginTop: 2,
   },
   actionRow: {
     flexDirection: 'row',
