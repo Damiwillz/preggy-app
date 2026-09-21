@@ -426,7 +426,7 @@ function buildCopilotSuggestions({
       icon: 'calendar-outline',
       title: 'Prep for appointment',
       detail: `${visitTitle} • ${formatDate(visitDate)}${visitTime ? ` at ${visitTime}` : ''}`,
-      route: '/appointment-prep',
+      route: '/doctor-visit-pack',
     });
   } else if (!latestLog) {
     suggestions.push({
@@ -798,10 +798,10 @@ export default function HomeScreen() {
 
   const appointmentDate = nextAppointment?.appointment_date || nextAppointment?.date;
   const appointmentTime = nextAppointment?.appointment_time || nextAppointment?.time;
-  const appointmentTitle = nextAppointment?.title || nextAppointment?.type || 'No appointment today';
+  const appointmentTitle = nextAppointment?.title || nextAppointment?.type || 'Visit Summary';
   const appointmentDetail = nextAppointment
     ? `${formatDate(appointmentDate)}${appointmentTime ? ` • ${appointmentTime}` : ''}`
-    : 'Add or review your next visit';
+    : 'Review symptoms, medicines, and questions';
 
   const copilotSuggestions = useMemo(
     () =>
@@ -963,7 +963,7 @@ export default function HomeScreen() {
           icon="calendar-outline"
           title={appointmentTitle}
           detail={appointmentDetail}
-          route="/(tabs)/appointments"
+          route="/doctor-visit-pack"
         />
       </View>
 
