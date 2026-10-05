@@ -342,6 +342,14 @@ const tools: ToolItem[] = [
     featured: true,
   },
   {
+    icon: 'megaphone-outline',
+    title: 'Birth Announcement',
+    copy: 'Create and share baby’s arrival',
+    route: '/birth-announcement',
+    category: 'Memories',
+    featured: true,
+  },
+  {
     icon: 'albums-outline',
     title: 'Timeline',
     copy: 'Capture pregnancy moments',
