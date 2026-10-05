@@ -85,6 +85,14 @@ const tools: ToolItem[] = [
     category: 'Tracking',
   },
   {
+    icon: 'calendar-clear-outline',
+    title: 'Care Schedule',
+    copy: 'Track recommended tests and scans',
+    route: '/care-schedule',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'folder-outline',
     title: 'Documents Checklist',
     copy: 'Keep important papers ready',
