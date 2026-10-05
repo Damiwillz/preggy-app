@@ -189,6 +189,14 @@ const tools: ToolItem[] = [
     category: 'Wellness',
   },
   {
+    icon: 'nutrition-outline',
+    title: 'Meal Planner',
+    copy: 'Plan and complete weekly meals',
+    route: '/meal-planner',
+    category: 'Wellness',
+    featured: true,
+  },
+  {
     icon: 'restaurant-outline',
     title: 'Cravings Tracker',
     copy: 'Save cravings and intensity',
