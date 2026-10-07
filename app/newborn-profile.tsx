@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -132,7 +133,13 @@ export default function NewbornProfileScreen() {
 
       Alert.alert(
         'Newborn Mode is ready',
-        `${cleanName}’s profile has been saved.`
+        `${cleanName}’s profile has been saved.`,
+        [
+          {
+            text: 'Open dashboard',
+            onPress: () => router.replace('/newborn-dashboard' as never),
+          },
+        ]
       );
     } catch (error) {
       console.log('Newborn profile save error:', error);
@@ -402,7 +409,26 @@ export default function NewbornProfileScreen() {
           </View>
 
           {newbornMode ? (
-            <AnimatedPressable
+            <>
+              <AnimatedPressable
+                onPress={() => router.push('/newborn-dashboard' as never)}
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: palette.accent },
+                ]}
+              >
+                <Ionicons
+                  name="grid-outline"
+                  size={20}
+                  color="#FFFFFF"
+                />
+
+                <Text style={styles.primaryButtonText}>
+                  Open Newborn Dashboard
+                </Text>
+              </AnimatedPressable>
+
+              <AnimatedPressable
               onPress={pauseNewbornMode}
               style={[
                 styles.secondaryButton,
@@ -422,6 +448,7 @@ export default function NewbornProfileScreen() {
                 Switch to Pregnancy Mode
               </Text>
             </AnimatedPressable>
+            </>
           ) : (
             <AnimatedPressable
               onPress={() => void activateNewbornMode()}
