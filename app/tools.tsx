@@ -57,6 +57,14 @@ const categories: ToolCategory[] = ['Tracking', 'Planning', 'Wellness', 'Memorie
 
 const tools: ToolItem[] = [
   {
+    icon: 'happy-outline',
+    title: 'Newborn Mode',
+    copy: 'Continue tracking after baby arrives',
+    route: '/newborn-profile',
+    category: 'Support',
+    featured: true,
+  },
+  {
     icon: 'home-outline',
     title: 'Postpartum Plan',
     copy: 'Prepare recovery and home support',
