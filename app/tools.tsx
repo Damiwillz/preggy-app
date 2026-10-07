@@ -65,6 +65,14 @@ const tools: ToolItem[] = [
     featured: true,
   },
   {
+    icon: 'grid-outline',
+    title: 'Newborn Dashboard',
+    copy: 'Feeding, diapers, sleep and daily activity',
+    route: '/newborn-dashboard',
+    category: 'Support',
+    featured: true,
+  },
+  {
     icon: 'home-outline',
     title: 'Postpartum Plan',
     copy: 'Prepare recovery and home support',
