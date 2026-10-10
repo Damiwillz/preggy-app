@@ -1,3 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -6,27 +9,27 @@ import {
   ImageSourcePropType,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 
-import { colors } from '@/constants/colors';
-import { type } from '@/constants/typography';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { BackIcon, HeartIcon } from '@/components/ui/icons';
-import { getMyProfile, type UserProfile } from '@/services/profile';
+import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { signOut } from '@/services/auth';
 import { uploadMyAvatar } from '@/services/avatar';
 import { isGuestMode } from '@/services/guest';
+import {
+  getMyProfile,
+  type UserProfile,
+} from '@/services/profile';
 
 type MenuItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
-  subtitle?: string;
+  subtitle: string;
   onPress: () => void;
 };
 
@@ -41,25 +44,32 @@ export function Header({
   back?: boolean;
   showAvatar?: boolean;
 }) {
+  const { palette } = useAppTheme();
+
   const [menuVisible, setMenuVisible] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(-12)).current;
-  const scale = useRef(new Animated.Value(0.96)).current;
+  const translateY = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    if (!showAvatar) return;
+    if (!showAvatar) {
+      return;
+    }
 
     let active = true;
 
     getMyProfile()
       .then((nextProfile) => {
-        if (active) setProfile(nextProfile);
+        if (active) {
+          setProfile(nextProfile);
+        }
       })
       .catch(() => {
-        if (active) setProfile(null);
+        if (active) {
+          setProfile(null);
+        }
       });
 
     return () => {
@@ -68,123 +78,129 @@ export function Header({
   }, [showAvatar]);
 
   useEffect(() => {
-    if (!menuVisible) return;
+    if (!menuVisible) {
+      return;
+    }
 
     opacity.setValue(0);
-    translateY.setValue(-12);
-    scale.setValue(0.96);
+    translateY.setValue(30);
 
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 180,
+        duration: 190,
         useNativeDriver: true,
       }),
       Animated.spring(translateY, {
         toValue: 0,
-        damping: 18,
-        stiffness: 220,
-        mass: 0.8,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scale, {
-        toValue: 1,
-        damping: 18,
-        stiffness: 220,
+        damping: 20,
+        stiffness: 210,
         mass: 0.8,
         useNativeDriver: true,
       }),
     ]).start();
-  }, [menuVisible, opacity, scale, translateY]);
+  }, [menuVisible, opacity, translateY]);
 
-  const displayName = profile?.full_name || 'Sarah Miller';
-  const firstName = displayName.split(' ')[0] || 'Sarah';
+  const displayName = profile?.full_name || 'Your profile';
+  const firstName =
+    displayName === 'Your profile'
+      ? 'your account'
+      : displayName.split(' ')[0];
+
   const week = profile?.pregnancy_week ?? 24;
+  const progress = Math.min(100, Math.max(0, Math.round((week / 40) * 100)));
+  const progressWidth = `${progress}%` as `${number}%`;
 
   const avatarSource: ImageSourcePropType = profile?.avatar_url
     ? { uri: profile.avatar_url }
     : fallbackAvatar;
 
-  const closeMenu = (afterClose?: () => void) => {
+  function closeMenu(afterClose?: () => void) {
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 130,
+        duration: 140,
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
-        toValue: -8,
-        duration: 130,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scale, {
-        toValue: 0.97,
-        duration: 130,
+        toValue: 24,
+        duration: 140,
         useNativeDriver: true,
       }),
     ]).start(() => {
       setMenuVisible(false);
       afterClose?.();
     });
-  };
+  }
 
-  const navigate = (path: string) => {
+  function navigate(path: string) {
     closeMenu(() => router.push(path as never));
-  };
+  }
 
-  const confirmLogout = () => {
+  function confirmLogout() {
     closeMenu(() => {
-      Alert.alert('Log out?', 'You can sign back in anytime using your account.', [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Log out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-              router.replace('/auth/log-in');
-            } catch {
-              Alert.alert('Logout failed', 'Please try again.');
-            }
+      Alert.alert(
+        'Log out?',
+        'You can sign back in anytime using your account.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
           },
-        },
-      ]);
+          {
+            text: 'Log out',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await signOut();
+                router.replace('/auth/log-in');
+              } catch {
+                Alert.alert(
+                  'Logout failed',
+                  'Please try again.'
+                );
+              }
+            },
+          },
+        ]
+      );
     });
-  };
+  }
 
-  const changeProfilePhoto = () => {
+  function changeProfilePhoto() {
     setMenuVisible(false);
 
     setTimeout(async () => {
       try {
         if (await isGuestMode()) {
           Alert.alert(
-            'Create account to save photos',
-            'Guest mode keeps your profile local. Create an account when you want to upload and sync a profile photo.'
+            'Create an account to save photos',
+            'Guest mode keeps your profile local.'
           );
           return;
         }
 
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const permission =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (!permission.granted) {
           Alert.alert(
             'Photo permission needed',
-            'Please allow photo access so you can choose a profile picture.'
+            'Allow photo access to choose a profile picture.'
           );
           return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.85,
-          presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
-        });
+        const result =
+          await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.85,
+            presentationStyle:
+              ImagePicker.UIImagePickerPresentationStyle
+                .FULL_SCREEN,
+          });
 
         if (result.canceled || !result.assets[0]?.uri) {
           return;
@@ -192,7 +208,9 @@ export function Header({
 
         setAvatarUploading(true);
 
-        const avatarUrl = await uploadMyAvatar(result.assets[0].uri);
+        const avatarUrl = await uploadMyAvatar(
+          result.assets[0].uri
+        );
 
         setProfile((current) =>
           current
@@ -203,27 +221,34 @@ export function Header({
             : current
         );
 
-        Alert.alert('Profile photo updated', 'Your new profile photo has been saved.');
+        Alert.alert(
+          'Photo updated',
+          'Your new profile photo has been saved.'
+        );
       } catch (error) {
         console.log('Avatar upload error:', error);
-        Alert.alert('Upload failed', 'We could not update your profile photo. Please try again.');
+
+        Alert.alert(
+          'Upload failed',
+          'We could not update your photo.'
+        );
       } finally {
         setAvatarUploading(false);
       }
-    }, 450);
-  };
+    }, 350);
+  }
 
   const menuItems: MenuItem[] = [
     {
       icon: 'person-outline',
-      label: 'View profile',
-      subtitle: 'Pregnancy details and progress',
+      label: 'Profile',
+      subtitle: 'Personal and pregnancy details',
       onPress: () => navigate('/(tabs)/profile'),
     },
     {
       icon: 'camera-outline',
-      label: avatarUploading ? 'Uploading photo...' : 'Change profile photo',
-      subtitle: 'Upload a real profile picture',
+      label: avatarUploading ? 'Uploading photo...' : 'Profile photo',
+      subtitle: 'Choose a new profile picture',
       onPress: changeProfilePhoto,
     },
     {
@@ -245,21 +270,21 @@ export function Header({
       onPress: () => navigate('/ai-chat'),
     },
     {
-      icon: 'shield-checkmark-outline',
-      label: 'Data privacy',
-      subtitle: 'Security, downloads and permissions',
-      onPress: () => navigate('/privacy'),
-    },
-    {
       icon: 'contrast-outline',
       label: 'Appearance',
-      subtitle: 'Light and dark mode',
+      subtitle: 'Theme and accent color',
       onPress: () => navigate('/appearance'),
     },
     {
+      icon: 'shield-checkmark-outline',
+      label: 'Privacy',
+      subtitle: 'Security and your information',
+      onPress: () => navigate('/privacy'),
+    },
+    {
       icon: 'help-circle-outline',
-      label: 'Help & FAQ',
-      subtitle: 'Support and common questions',
+      label: 'Help and FAQ',
+      subtitle: 'Answers and app support',
       onPress: () => navigate('/support/faq'),
     },
   ];
@@ -268,30 +293,86 @@ export function Header({
     <>
       <View style={styles.header}>
         {back ? (
-          <AnimatedPressable onPress={() => router.back()} style={styles.circle}>
-            <BackIcon />
+          <AnimatedPressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            style={[
+              styles.navigationButton,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={21}
+              color={palette.ink}
+            />
           </AnimatedPressable>
         ) : (
           <View style={styles.logo}>
-            <HeartIcon size={20} />
-            <Text style={styles.brand}>{title}</Text>
+            <View
+              style={[
+                styles.logoMark,
+                { backgroundColor: palette.accentSoft },
+              ]}
+            >
+              <Ionicons
+                name="heart"
+                size={17}
+                color={palette.accent}
+              />
+            </View>
+
+            <Text style={[styles.brand, { color: palette.ink }]}>
+              {title}
+            </Text>
           </View>
         )}
 
-        {back ? <Text style={styles.pageTitle}>{title}</Text> : <View />}
+        {back ? (
+          <Text
+            style={[styles.pageTitle, { color: palette.ink }]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+        ) : null}
 
         {showAvatar ? (
           <Pressable
             onPress={() => setMenuVisible(true)}
-            style={({ pressed }) => [styles.avatarTouchTarget, pressed && styles.avatarPressed]}
-            hitSlop={{ top: 24, bottom: 24, left: 24, right: 24 }}
+            style={({ pressed }) => [
+              styles.avatarTouchTarget,
+              pressed && styles.avatarPressed,
+            ]}
+            hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Open profile menu"
-            accessibilityHint="Opens account shortcuts and settings"
           >
-            <View style={styles.avatarButton} pointerEvents="none">
-              <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
-              <View style={styles.onlineDot} />
+            <View
+              style={[
+                styles.avatarRing,
+                {
+                  backgroundColor: palette.accentSoft,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <Image
+                source={avatarSource}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
+
+              <View
+                style={[
+                  styles.onlineDot,
+                  { borderColor: palette.surface },
+                ]}
+              />
             </View>
           </Pressable>
         ) : (
@@ -307,74 +388,227 @@ export function Header({
         onRequestClose={() => closeMenu()}
       >
         <View style={styles.modalRoot}>
-          <Animated.View style={[styles.backdrop, { opacity }]}>
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => closeMenu()} />
+          <Animated.View
+            style={[
+              styles.backdrop,
+              { opacity },
+            ]}
+          >
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => closeMenu()}
+            />
           </Animated.View>
 
           <Animated.View
             style={[
-              styles.menu,
+              styles.sheet,
               {
+                backgroundColor: palette.elevated,
+                borderColor: palette.line,
+                shadowColor: palette.ink,
                 opacity,
-                transform: [{ translateY }, { scale }],
+                transform: [{ translateY }],
               },
             ]}
           >
-            <View style={styles.menuArrow} />
+            <View
+              style={[
+                styles.sheetHandle,
+                { backgroundColor: palette.line },
+              ]}
+            />
 
             <View style={styles.accountHeader}>
-              <Image source={avatarSource} style={styles.menuAvatar} resizeMode="cover" />
+              <View
+                style={[
+                  styles.menuAvatarRing,
+                  { backgroundColor: palette.accentSoft },
+                ]}
+              >
+                <Image
+                  source={avatarSource}
+                  style={styles.menuAvatar}
+                  resizeMode="cover"
+                />
+              </View>
 
               <View style={styles.accountText}>
-                <Text style={styles.accountName}>{displayName}</Text>
-                <Text style={styles.accountMeta}>{week} weeks pregnant</Text>
+                <Text
+                  style={[
+                    styles.accountName,
+                    { color: palette.ink },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {displayName}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.accountMeta,
+                    { color: palette.text },
+                  ]}
+                >
+                  Week {week} · {progress}% complete
+                </Text>
               </View>
 
               <AnimatedPressable
-                style={styles.closeButton}
                 onPress={() => closeMenu()}
                 accessibilityLabel="Close profile menu"
+                style={[
+                  styles.closeButton,
+                  { backgroundColor: palette.softSurface },
+                ]}
               >
-                <Ionicons name="close" size={20} color={colors.text} />
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={palette.text}
+                />
               </AnimatedPressable>
             </View>
 
-            <View style={styles.progressPill}>
-              <View style={styles.progressIcon}>
-                <Ionicons name="heart" size={16} color={colors.plum} />
+            <View
+              style={[
+                styles.progressCard,
+                {
+                  backgroundColor: palette.accentSoft,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.progressIcon,
+                  { backgroundColor: palette.surface },
+                ]}
+              >
+                <Ionicons
+                  name="heart"
+                  size={17}
+                  color={palette.accent}
+                />
               </View>
 
-              <View style={styles.progressTextWrap}>
-                <Text style={styles.progressTitle}>Week {week} progress</Text>
-                <View style={styles.progressTrack}>
-                  <View style={styles.progressFill} />
+              <View style={styles.progressContent}>
+                <View style={styles.progressHeading}>
+                  <Text
+                    style={[
+                      styles.progressTitle,
+                      { color: palette.ink },
+                    ]}
+                  >
+                    Pregnancy journey
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.progressValue,
+                      { color: palette.accent },
+                    ]}
+                  >
+                    {progress}%
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.progressTrack,
+                    { backgroundColor: palette.surface },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: progressWidth,
+                        backgroundColor: palette.accent,
+                      },
+                    ]}
+                  />
                 </View>
               </View>
-
-              <Text style={styles.progressValue}>62%</Text>
             </View>
 
-            <View style={styles.menuList}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.menuList}
+            >
               {menuItems.map((item) => (
-                <AnimatedPressable key={item.label} onPress={item.onPress} style={styles.menuRow}>
-                  <View style={styles.menuIcon}>
-                    <Ionicons name={item.icon} size={21} color={colors.plum} />
+                <AnimatedPressable
+                  key={item.label}
+                  onPress={item.onPress}
+                  style={[
+                    styles.menuRow,
+                    { borderBottomColor: palette.line },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.menuIcon,
+                      { backgroundColor: palette.accentSoft },
+                    ]}
+                  >
+                    <Ionicons
+                      name={item.icon}
+                      size={20}
+                      color={palette.accent}
+                    />
                   </View>
 
-                  <View style={styles.menuTextWrap}>
-                    <Text style={styles.menuLabel}>{item.label}</Text>
-                    {item.subtitle ? <Text style={styles.menuSubtitle}>{item.subtitle}</Text> : null}
+                  <View style={styles.menuText}>
+                    <Text
+                      style={[
+                        styles.menuLabel,
+                        { color: palette.ink },
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.menuSubtitle,
+                        { color: palette.muted },
+                      ]}
+                    >
+                      {item.subtitle}
+                    </Text>
                   </View>
 
-                  <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={palette.muted}
+                  />
                 </AnimatedPressable>
               ))}
-            </View>
 
-            <AnimatedPressable onPress={confirmLogout} style={styles.logoutButton}>
-              <Ionicons name="log-out-outline" size={20} color={colors.danger} />
-              <Text style={styles.logoutText}>Log out {firstName}</Text>
-            </AnimatedPressable>
+              <AnimatedPressable
+                onPress={confirmLogout}
+                style={[
+                  styles.logoutButton,
+                  { backgroundColor: palette.softSurface },
+                ]}
+              >
+                <Ionicons
+                  name="log-out-outline"
+                  size={20}
+                  color={palette.danger}
+                />
+
+                <Text
+                  style={[
+                    styles.logoutText,
+                    { color: palette.danger },
+                  ]}
+                >
+                  Log out {firstName}
+                </Text>
+              </AnimatedPressable>
+            </ScrollView>
           </Animated.View>
         </View>
       </Modal>
@@ -384,229 +618,223 @@ export function Header({
 
 const styles = StyleSheet.create({
   header: {
-    minHeight: 58,
+    minHeight: 62,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     zIndex: 100,
-    elevation: 12,
   },
   logo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 10,
+  },
+  logoMark: {
+    width: 38,
+    height: 38,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brand: {
     ...type.brand,
-    color: colors.plum,
+    fontSize: 27,
+    lineHeight: 33,
+    letterSpacing: -0.8,
   },
-  circle: {
+  navigationButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
+    borderRadius: 17,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.line,
   },
   pageTitle: {
     ...type.bodyStrong,
-    color: colors.ink,
+    fontSize: 17,
     position: 'absolute',
-    left: 68,
-    right: 68,
+    left: 60,
+    right: 60,
     textAlign: 'center',
   },
   avatarTouchTarget: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 9999,
-    elevation: 9999,
-  },
-  avatarSpacer: {
-    width: 56,
-    height: 56,
   },
   avatarPressed: {
     opacity: 0.72,
-    transform: [{ scale: 0.94 }],
+    transform: [{ scale: 0.95 }],
   },
-  avatarButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  avatarRing: {
+    width: 47,
+    height: 47,
+    borderRadius: 19,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
   },
   avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 2,
-    borderColor: colors.blush,
+    width: 39,
+    height: 39,
+    borderRadius: 16,
   },
   onlineDot: {
     position: 'absolute',
-    right: 2,
-    bottom: 3,
+    right: 1,
+    bottom: 1,
     width: 11,
     height: 11,
     borderRadius: 6,
-    backgroundColor: '#56B884',
+    backgroundColor: '#55B987',
     borderWidth: 2,
-    borderColor: colors.surface,
+  },
+  avatarSpacer: {
+    width: 44,
+    height: 44,
   },
   modalRoot: {
     flex: 1,
+    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(36, 22, 28, 0.38)',
+    backgroundColor: 'rgba(24, 13, 18, 0.48)',
   },
-  menu: {
-    position: 'absolute',
-    top: 88,
-    right: 18,
-    width: '88%',
-    maxWidth: 390,
-    maxHeight: '84%',
-    backgroundColor: colors.elevated,
-    borderRadius: 28,
-    padding: 16,
-    shadowColor: '#2B1720',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.24,
+  sheet: {
+    maxHeight: '88%',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderWidth: 1,
+    paddingTop: 10,
+    paddingHorizontal: 18,
+    paddingBottom: 24,
+    shadowOffset: {
+      width: 0,
+      height: -10,
+    },
+    shadowOpacity: 0.16,
     shadowRadius: 30,
-    elevation: 18,
+    elevation: 22,
   },
-  menuArrow: {
-    position: 'absolute',
-    right: 17,
-    top: -8,
-    width: 18,
-    height: 18,
-    backgroundColor: colors.elevated,
-    transform: [{ rotate: '45deg' }],
-    borderTopLeftRadius: 4,
+  sheetHandle: {
+    width: 42,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   accountHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 6,
-    gap: 12,
+    gap: 13,
+  },
+  menuAvatarRing: {
+    width: 60,
+    height: 60,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuAvatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 2,
-    borderColor: colors.blush,
+    width: 52,
+    height: 52,
+    borderRadius: 19,
   },
   accountText: {
     flex: 1,
   },
   accountName: {
     ...type.bodyStrong,
-    fontSize: 18,
-    color: colors.ink,
+    fontSize: 19,
   },
   accountMeta: {
     ...type.small,
-    color: colors.text,
     marginTop: 2,
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.softSurface,
-  },
-  progressPill: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 18,
-    backgroundColor: colors.softSurface,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  progressIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.surface,
+    width: 39,
+    height: 39,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressTextWrap: {
-    flex: 1,
-  },
-  progressTitle: {
-    ...type.small,
-    color: colors.text,
-    fontWeight: '700',
-  },
-  progressTrack: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.line,
-    marginTop: 6,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    width: '62%',
-    height: '100%',
-    borderRadius: 3,
-    backgroundColor: colors.plum,
-  },
-  progressValue: {
-    ...type.bodyStrong,
-    color: colors.plum,
-  },
-  menuList: {
-    marginTop: 10,
-  },
-  menuRow: {
-    minHeight: 58,
+  progressCard: {
+    borderWidth: 1,
+    borderRadius: 21,
+    padding: 13,
+    marginTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-    paddingVertical: 7,
   },
-  menuIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.softSurface,
+  progressIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuTextWrap: {
+  progressContent: {
+    flex: 1,
+  },
+  progressHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressTitle: {
+    ...type.small,
+  },
+  progressValue: {
+    ...type.small,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  menuList: {
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  menuRow: {
+    minHeight: 66,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  menuIcon: {
+    width: 41,
+    height: 41,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuText: {
     flex: 1,
   },
   menuLabel: {
     ...type.bodyStrong,
-    color: colors.ink,
+    fontSize: 15,
   },
   menuSubtitle: {
     ...type.tiny,
-    color: colors.muted,
-    marginTop: 1,
+    marginTop: 2,
   },
   logoutButton: {
-    marginTop: 14,
-    minHeight: 48,
+    minHeight: 52,
     borderRadius: 17,
-    backgroundColor: colors.softSurface,
+    marginTop: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -614,6 +842,5 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     ...type.bodyStrong,
-    color: colors.danger,
   },
 });

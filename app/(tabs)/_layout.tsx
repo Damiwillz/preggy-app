@@ -1,12 +1,29 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Tabs, router } from 'expo-router';
+import React, { useEffect } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  View,
+} from 'react-native';
 
-import { HomeIcon, CalculatorIcon, GrowthIcon, TipsIcon, ProfileIcon } from '@/components/ui/icons';
+import {
+  CalculatorIcon,
+  GrowthIcon,
+  HomeIcon,
+  ProfileIcon,
+  TipsIcon,
+} from '@/components/ui/icons';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/AppThemeContext';
 
-const icons: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
+const icons: Record<
+  string,
+  React.ComponentType<{
+    size?: number;
+    color?: string;
+  }>
+> = {
   home: HomeIcon,
   calculator: CalculatorIcon,
   growth: GrowthIcon,
@@ -26,7 +43,12 @@ export default function TabLayout() {
 
   if (loading) {
     return (
-      <View style={[styles.loading, { backgroundColor: palette.canvas }]}>
+      <View
+        style={[
+          styles.loading,
+          { backgroundColor: palette.canvas },
+        ]}
+      >
         <ActivityIndicator color={palette.accent} />
       </View>
     );
@@ -43,32 +65,38 @@ export default function TabLayout() {
 
         return {
           headerShown: false,
+          tabBarHideOnKeyboard: true,
           tabBarActiveTintColor: palette.accent,
           tabBarInactiveTintColor: palette.muted,
           tabBarStyle: {
             position: 'absolute',
-            left: 18,
-            right: 18,
-            bottom: 18,
-            height: 76,
-            paddingTop: 10,
-            paddingBottom: 12,
-            paddingHorizontal: 8,
+            left: 14,
+            right: 14,
+            bottom: Platform.OS === 'ios' ? 16 : 12,
+            height: 72,
+            paddingTop: 8,
+            paddingBottom: 9,
+            paddingHorizontal: 7,
             backgroundColor: palette.tab,
             borderTopWidth: 0,
-            borderRadius: 28,
+            borderWidth: 1,
+            borderColor: palette.line,
+            borderRadius: 25,
             shadowColor: palette.ink,
-            shadowOpacity: palette.isDark ? 0.22 : 0.1,
-            shadowRadius: 20,
-            shadowOffset: { width: 0, height: 10 },
-            elevation: 10,
+            shadowOpacity: palette.isDark ? 0.26 : 0.1,
+            shadowRadius: 24,
+            shadowOffset: {
+              width: 0,
+              height: 10,
+            },
+            elevation: 12,
           },
           tabBarItemStyle: {
-            borderRadius: 22,
+            borderRadius: 18,
           },
           tabBarLabelStyle: {
-            fontSize: 10.5,
-            fontWeight: '900',
+            fontSize: 10,
+            fontWeight: '800',
             marginTop: 2,
           },
           tabBarIcon: ({ color, focused }) =>
@@ -77,24 +105,55 @@ export default function TabLayout() {
                 style={[
                   styles.iconWrap,
                   {
-                    backgroundColor: focused ? palette.accentSoft : 'transparent',
-                    borderColor: focused ? palette.line : 'transparent',
+                    backgroundColor: focused
+                      ? palette.accentSoft
+                      : 'transparent',
                   },
                 ]}
               >
-                <Icon color={focused ? palette.accent : color} size={21} />
+                <Icon
+                  color={focused ? palette.accent : color}
+                  size={20}
+                />
               </View>
             ) : null,
         };
       }}
     >
-      <Tabs.Screen name="home" options={{ title: 'Home' }} />
-      <Tabs.Screen name="calculator" options={{ title: 'Due Date' }} />
-      <Tabs.Screen name="growth" options={{ title: 'Growth' }} />
-      <Tabs.Screen name="tips" options={{ title: 'Tips' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
-      <Tabs.Screen name="appointments" options={{ href: null }} />
-      <Tabs.Screen name="log" options={{ href: null }} />
+      <Tabs.Screen
+        name="home"
+        options={{ title: 'Home' }}
+      />
+
+      <Tabs.Screen
+        name="calculator"
+        options={{ title: 'Due Date' }}
+      />
+
+      <Tabs.Screen
+        name="growth"
+        options={{ title: 'Growth' }}
+      />
+
+      <Tabs.Screen
+        name="tips"
+        options={{ title: 'Learn' }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{ title: 'Profile' }}
+      />
+
+      <Tabs.Screen
+        name="appointments"
+        options={{ href: null }}
+      />
+
+      <Tabs.Screen
+        name="log"
+        options={{ href: null }}
+      />
     </Tabs>
   );
 }
@@ -106,10 +165,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrap: {
-    width: 42,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
+    width: 41,
+    height: 31,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
