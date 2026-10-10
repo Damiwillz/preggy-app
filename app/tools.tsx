@@ -57,6 +57,14 @@ const categories: ToolCategory[] = ['Tracking', 'Planning', 'Wellness', 'Memorie
 
 const tools: ToolItem[] = [
   {
+    icon: 'swap-horizontal-outline',
+    title: 'Care Handoff',
+    copy: 'Pass baby care safely between caregivers',
+    route: '/care-handoff',
+    category: 'Support',
+    featured: true,
+  },
+  {
     icon: 'happy-outline',
     title: 'Newborn Mode',
     copy: 'Continue tracking after baby arrives',
