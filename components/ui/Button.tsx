@@ -1,40 +1,99 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleProp,
+  StyleSheet,
+  Text,
+  ViewStyle,
+} from 'react-native';
 
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
-type Variant = 'primary' | 'secondary' | 'danger';
+type Variant = 'primary' | 'secondary' | 'soft' | 'danger';
 
 type Props = {
   label: string;
   onPress?: () => void;
   variant?: Variant;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   disabled?: boolean;
+  loading?: boolean;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
 };
 
-const variants: Record<Variant, ViewStyle> = {
-  primary: { backgroundColor: colors.plum },
-  secondary: { backgroundColor: colors.softSurface, borderWidth: 1, borderColor: colors.line },
-  danger: { backgroundColor: colors.rose },
-};
+export function Button({
+  label,
+  onPress,
+  variant = 'primary',
+  style,
+  disabled = false,
+  loading = false,
+  icon,
+}: Props) {
+  const { palette } = useAppTheme();
 
-const labelColors: Record<Variant, string> = {
-  primary: colors.darkPrimaryText,
-  secondary: colors.plum,
-  danger: colors.darkPrimaryText,
-};
+  const backgroundColor =
+    variant === 'primary'
+      ? palette.accent
+      : variant === 'danger'
+        ? palette.danger
+        : variant === 'soft'
+          ? palette.accentSoft
+          : palette.surface;
 
-export function Button({ label, onPress, variant = 'primary', style, disabled = false }: Props) {
+  const borderColor =
+    variant === 'primary' || variant === 'danger'
+      ? backgroundColor
+      : variant === 'soft'
+        ? palette.accentSoft
+        : palette.line;
+
+  const foregroundColor =
+    variant === 'primary' || variant === 'danger'
+      ? '#FFFFFF'
+      : variant === 'soft'
+        ? palette.accentStrong
+        : palette.ink;
+
   return (
     <AnimatedPressable
       onPress={onPress}
-      disabled={disabled}
-      style={[styles.base, variants[variant], disabled && styles.disabled, style]}
+      disabled={disabled || loading}
+      accessibilityRole="button"
+      style={[
+        styles.base,
+        {
+          backgroundColor,
+          borderColor,
+        },
+        style,
+      ]}
     >
-      <Text style={[styles.label, { color: labelColors[variant] }]}>{label}</Text>
+      {loading ? (
+        <ActivityIndicator color={foregroundColor} />
+      ) : (
+        <>
+          {icon ? (
+            <Ionicons
+              name={icon}
+              size={20}
+              color={foregroundColor}
+            />
+          ) : null}
+
+          <Text
+            style={[
+              styles.label,
+              { color: foregroundColor },
+            ]}
+          >
+            {label}
+          </Text>
+        </>
+      )}
     </AnimatedPressable>
   );
 }
@@ -42,13 +101,13 @@ export function Button({ label, onPress, variant = 'primary', style, disabled = 
 const styles = StyleSheet.create({
   base: {
     minHeight: 56,
-    borderRadius: 22,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 22,
-  },
-  disabled: {
-    opacity: 0.6,
+    gap: 9,
   },
   label: {
     ...type.bodyStrong,

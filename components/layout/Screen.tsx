@@ -8,10 +8,10 @@ import {
   StyleSheet,
   ViewProps,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors } from '@/constants/colors';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { screenPad } from '@/utils/responsive';
 
 type Props = ViewProps & {
@@ -21,7 +21,14 @@ type Props = ViewProps & {
   animate?: boolean;
 };
 
-export function Screen({ children, scroll = true, bottomSpace = 120, style, animate = true }: Props) {
+export function Screen({
+  children,
+  scroll = true,
+  bottomSpace = 120,
+  style,
+  animate = true,
+}: Props) {
+  const { palette } = useAppTheme();
   const entrance = useRef(new Animated.Value(1)).current;
 
   useFocusEffect(
@@ -35,16 +42,14 @@ export function Screen({ children, scroll = true, bottomSpace = 120, style, anim
 
       const animation = Animated.timing(entrance, {
         toValue: 1,
-        duration: 360,
+        duration: 420,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       });
 
       animation.start();
 
-      return () => {
-        animation.stop();
-      };
+      return () => animation.stop();
     }, [animate, entrance])
   );
 
@@ -55,13 +60,13 @@ export function Screen({ children, scroll = true, bottomSpace = 120, style, anim
           {
             translateY: entrance.interpolate({
               inputRange: [0, 1],
-              outputRange: [18, 0],
+              outputRange: [16, 0],
             }),
           },
           {
             scale: entrance.interpolate({
               inputRange: [0, 1],
-              outputRange: [0.985, 1],
+              outputRange: [0.99, 1],
             }),
           },
         ],
@@ -69,13 +74,28 @@ export function Screen({ children, scroll = true, bottomSpace = 120, style, anim
     : null;
 
   const content = (
-    <Animated.View style={[styles.content, { paddingBottom: bottomSpace }, animatedStyle, style]}>
+    <Animated.View
+      style={[
+        styles.content,
+        {
+          paddingBottom: bottomSpace,
+        },
+        animatedStyle,
+        style,
+      ]}
+    >
       {children}
     </Animated.View>
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView
+      style={[
+        styles.safe,
+        { backgroundColor: palette.canvas },
+      ]}
+      edges={['top']}
+    >
       <KeyboardAvoidingView
         style={styles.keyboard}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -84,7 +104,9 @@ export function Screen({ children, scroll = true, bottomSpace = 120, style, anim
           <ScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardDismissMode={
+              Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+            }
             contentContainerStyle={styles.scrollContent}
           >
             {content}
@@ -100,7 +122,6 @@ export function Screen({ children, scroll = true, bottomSpace = 120, style, anim
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.canvas,
   },
   keyboard: {
     flex: 1,
@@ -110,6 +131,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: screenPad,
-    paddingTop: 10,
+    paddingTop: 8,
   },
 });

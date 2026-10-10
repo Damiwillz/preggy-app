@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   Pressable,
@@ -7,9 +8,9 @@ import {
   TextInputProps,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/constants/colors';
+
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 
 type Props = TextInputProps & {
   label: string;
@@ -29,71 +30,151 @@ export function TextField({
   style,
   labelActionText,
   onLabelActionPress,
+  onFocus,
+  onBlur,
+  editable = true,
   ...props
 }: Props) {
+  const { palette } = useAppTheme();
+
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [focused, setFocused] = useState(false);
+
   const shouldHidePassword = enablePasswordToggle
     ? !passwordVisible
     : secureTextEntry;
 
+  const borderColor = error
+    ? palette.danger
+    : focused
+      ? palette.accent
+      : palette.line;
+
   return (
     <View style={styles.wrap}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: palette.ink }]}>
+          {label}
+        </Text>
+
         {labelActionText ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={labelActionText}
             hitSlop={10}
             onPress={onLabelActionPress}
             style={styles.labelAction}
           >
-            <Text style={styles.labelActionText}>{labelActionText}</Text>
+            <Text
+              style={[
+                styles.labelActionText,
+                { color: palette.accent },
+              ]}
+            >
+              {labelActionText}
+            </Text>
           </Pressable>
         ) : null}
       </View>
-      {helper ? <Text style={styles.helper}>{helper}</Text> : null}
 
-      <View style={[styles.inputShell, error ? styles.inputShellError : null]}>
+      {helper ? (
+        <Text style={[styles.helper, { color: palette.muted }]}>
+          {helper}
+        </Text>
+      ) : null}
+
+      <View
+        style={[
+          styles.inputShell,
+          {
+            backgroundColor: editable
+              ? palette.surface
+              : palette.softSurface,
+            borderColor,
+            shadowColor: palette.accent,
+          },
+          focused && styles.inputFocused,
+        ]}
+      >
         <TextInput
-          placeholderTextColor={colors.muted}
-          style={[styles.input, enablePasswordToggle ? styles.inputWithIcon : null, style]}
+          placeholderTextColor={palette.muted}
+          editable={editable}
+          style={[
+            styles.input,
+            { color: palette.ink },
+            enablePasswordToggle && styles.inputWithIcon,
+            style,
+          ]}
           secureTextEntry={shouldHidePassword}
+          onFocus={(event) => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
           {...props}
         />
 
         {enablePasswordToggle ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+            accessibilityLabel={
+              passwordVisible ? 'Hide password' : 'Show password'
+            }
             hitSlop={12}
-            onPress={() => setPasswordVisible((current) => !current)}
+            onPress={() =>
+              setPasswordVisible((current) => !current)
+            }
             style={styles.eyeButton}
           >
             <Ionicons
-              name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
-              size={23}
-              color={colors.plum}
+              name={
+                passwordVisible
+                  ? 'eye-off-outline'
+                  : 'eye-outline'
+              }
+              size={22}
+              color={focused ? palette.accent : palette.muted}
             />
           </Pressable>
         ) : null}
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <View style={styles.errorRow}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={15}
+            color={palette.danger}
+          />
+
+          <Text style={[styles.error, { color: palette.danger }]}>
+            {error}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 7, marginBottom: 16 },
+  wrap: {
+    marginBottom: 17,
+  },
   labelRow: {
-    minHeight: 23,
+    minHeight: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
+    marginBottom: 7,
   },
-  label: { ...type.bodyStrong, color: colors.ink, flexShrink: 0 },
+  label: {
+    ...type.small,
+    fontSize: 14,
+    flexShrink: 0,
+  },
   labelAction: {
     minHeight: 28,
     paddingHorizontal: 2,
@@ -102,33 +183,51 @@ const styles = StyleSheet.create({
   },
   labelActionText: {
     ...type.small,
-    color: colors.plum,
-    fontWeight: '900',
   },
-  helper: { ...type.small, color: colors.muted, marginTop: -2 },
+  helper: {
+    ...type.small,
+    marginTop: -3,
+    marginBottom: 8,
+  },
   inputShell: {
     minHeight: 56,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputShellError: { borderColor: colors.rose },
+  inputFocused: {
+    borderWidth: 1.5,
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
   input: {
     minHeight: 54,
     flex: 1,
-    paddingHorizontal: 18,
-    color: colors.ink,
+    paddingHorizontal: 16,
     ...type.body,
   },
-  inputWithIcon: { paddingRight: 6 },
+  inputWithIcon: {
+    paddingRight: 4,
+  },
   eyeButton: {
     width: 52,
     minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  error: { ...type.small, color: colors.rose },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 7,
+  },
+  error: {
+    ...type.small,
+    flex: 1,
+  },
 });
