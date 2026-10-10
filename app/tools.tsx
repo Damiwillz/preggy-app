@@ -590,7 +590,11 @@ export default function ToolsScreen() {
         <Text style={[styles.sectionTitle, { color: palette.ink }]}>Choose one</Text>
       </View>
 
-      <View style={styles.categoryGrid}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryPillRow}
+      >
         {categories.map((category) => (
           <CategorySelectCard
             key={category}
@@ -603,7 +607,7 @@ export default function ToolsScreen() {
             }}
           />
         ))}
-      </View>
+      </ScrollView>
 
       {visibleTools.length ? (
         <ToolsPanel
@@ -646,43 +650,62 @@ function CategorySelectCard({
     <AnimatedPressable
       onPress={onPress}
       style={[
-        styles.categorySelectCard,
+        styles.categoryPill,
         {
-          backgroundColor: active ? palette.accent : palette.surface,
-          borderColor: active ? palette.accent : palette.line,
+          backgroundColor: active
+            ? palette.accent
+            : palette.surface,
+          borderColor: active
+            ? palette.accent
+            : palette.line,
         },
       ]}
     >
-      <View style={styles.categorySelectTop}>
-        <View
-          style={[
-            styles.categorySelectIcon,
-            {
-              backgroundColor: active ? palette.onAccent : palette.accentSoft,
-            },
-          ]}
-        >
-          <Ionicons name={meta.icon} size={20} color={active ? palette.accent : palette.accent} />
-        </View>
-
-        <View
-          style={[
-            styles.categorySelectCount,
-            {
-              backgroundColor: active ? palette.onAccent : palette.accentSoft,
-            },
-          ]}
-        >
-          <Text style={[styles.categorySelectCountText, { color: palette.accent }]}>{count}</Text>
-        </View>
+      <View
+        style={[
+          styles.categoryPillIcon,
+          {
+            backgroundColor: active
+              ? 'rgba(255,255,255,0.18)'
+              : palette.accentSoft,
+          },
+        ]}
+      >
+        <Ionicons
+          name={meta.icon}
+          size={17}
+          color={active ? '#FFFFFF' : palette.accent}
+        />
       </View>
 
-      <Text style={[styles.categorySelectTitle, { color: active ? palette.onAccent : palette.ink }]}>
+      <Text
+        style={[
+          styles.categoryPillTitle,
+          { color: active ? '#FFFFFF' : palette.ink },
+        ]}
+      >
         {category}
       </Text>
-      <Text style={[styles.categorySelectCopy, { color: active ? palette.onAccent : palette.text }]} numberOfLines={2}>
-        {meta.copy}
-      </Text>
+
+      <View
+        style={[
+          styles.categoryPillCount,
+          {
+            backgroundColor: active
+              ? 'rgba(255,255,255,0.2)'
+              : palette.accentSoft,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.categoryPillCountText,
+            { color: active ? '#FFFFFF' : palette.accent },
+          ]}
+        >
+          {count}
+        </Text>
+      </View>
     </AnimatedPressable>
   );
 }
@@ -749,78 +772,189 @@ function ToolsPanel({
   const { palette } = useAppTheme();
 
   return (
-    <View style={[styles.categoryCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-      <View style={styles.categoryHeader}>
-        <View style={[styles.categoryIcon, { backgroundColor: palette.accentSoft }]}>
-          <Ionicons name={icon} size={22} color={palette.accent} />
+    <View style={styles.modernSection}>
+      <View
+        style={[
+          styles.modernCategoryHero,
+          { backgroundColor: palette.accent },
+        ]}
+      >
+        <View style={styles.modernHeroTop}>
+          <View
+            style={[
+              styles.modernHeroIcon,
+              { backgroundColor: 'rgba(255,255,255,0.18)' },
+            ]}
+          >
+            <Ionicons name={icon} size={26} color="#FFFFFF" />
+          </View>
+
+          <View
+            style={[
+              styles.modernHeroCount,
+              { backgroundColor: 'rgba(255,255,255,0.2)' },
+            ]}
+          >
+            <Text style={styles.modernHeroCountText}>
+              {items.length} tools
+            </Text>
+          </View>
         </View>
 
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.categoryTitle, { color: palette.ink }]}>{title}</Text>
-          <Text style={[styles.categoryCopy, { color: palette.text }]}>{copy}</Text>
-        </View>
+        <Text style={styles.modernHeroEyebrow}>
+          CURRENT COLLECTION
+        </Text>
 
-        <View style={[styles.countBadge, { backgroundColor: palette.accentSoft }]}>
-          <Text style={[styles.countBadgeText, { color: palette.accent }]}>{items.length}</Text>
-        </View>
+        <Text style={styles.modernHeroTitle}>
+          {title}
+        </Text>
+
+        <Text style={styles.modernHeroCopy}>
+          {copy}
+        </Text>
       </View>
 
-      <View style={styles.toolList}>
-        {items.map((item) => (
-          <ToolRow
-            key={item.route}
-            item={item}
-            favorite={favoriteRoutes.includes(item.route)}
-            onFavorite={() => onFavorite(item.route)}
-            onOpen={() => onOpen(item)}
-          />
-        ))}
+      <View style={styles.modernListHeader}>
+        <View>
+          <Text
+            style={[
+              styles.modernListEyebrow,
+              { color: palette.accent },
+            ]}
+          >
+            EXPLORE
+          </Text>
+
+          <Text
+            style={[
+              styles.modernListTitle,
+              { color: palette.ink },
+            ]}
+          >
+            Choose a tool
+          </Text>
+        </View>
+
+        <Text
+          style={[
+            styles.modernListHint,
+            { color: palette.muted },
+          ]}
+        >
+          Tap ♥ to save
+        </Text>
+      </View>
+
+      <View style={styles.modernToolsGrid}>
+        {items.map((item, index) => {
+          const favorite = favoriteRoutes.includes(item.route);
+          const highlighted = item.featured && index < 2;
+
+          return (
+            <AnimatedPressable
+              key={item.route}
+              onPress={() => onOpen(item)}
+              style={[
+                styles.modernToolCard,
+                {
+                  backgroundColor: highlighted
+                    ? palette.accentSoft
+                    : palette.surface,
+                  borderColor: highlighted
+                    ? palette.accent
+                    : palette.line,
+                },
+              ]}
+            >
+              <View style={styles.modernToolTop}>
+                <View
+                  style={[
+                    styles.modernToolIcon,
+                    {
+                      backgroundColor: highlighted
+                        ? palette.surface
+                        : palette.accentSoft,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={item.icon}
+                    size={22}
+                    color={palette.accent}
+                  />
+                </View>
+
+                <AnimatedPressable
+                  onPress={() => onFavorite(item.route)}
+                  style={[
+                    styles.modernFavorite,
+                    {
+                      backgroundColor: favorite
+                        ? palette.accent
+                        : palette.canvas,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={favorite ? 'heart' : 'heart-outline'}
+                    size={17}
+                    color={favorite ? '#FFFFFF' : palette.muted}
+                  />
+                </AnimatedPressable>
+              </View>
+
+              {item.featured ? (
+                <Text
+                  style={[
+                    styles.modernFeatured,
+                    { color: palette.accent },
+                  ]}
+                >
+                  FEATURED
+                </Text>
+              ) : null}
+
+              <Text
+                style={[
+                  styles.modernToolTitle,
+                  { color: palette.ink },
+                ]}
+                numberOfLines={2}
+              >
+                {item.title}
+              </Text>
+
+              <Text
+                style={[
+                  styles.modernToolCopy,
+                  { color: palette.text },
+                ]}
+                numberOfLines={3}
+              >
+                {item.copy}
+              </Text>
+
+              <View style={styles.modernOpenRow}>
+                <Text
+                  style={[
+                    styles.modernOpenText,
+                    { color: palette.accent },
+                  ]}
+                >
+                  Open
+                </Text>
+
+                <Ionicons
+                  name="arrow-forward"
+                  size={16}
+                  color={palette.accent}
+                />
+              </View>
+            </AnimatedPressable>
+          );
+        })}
       </View>
     </View>
-  );
-}
-
-function ToolRow({
-  item,
-  favorite,
-  onFavorite,
-  onOpen,
-}: {
-  item: ToolItem;
-  favorite: boolean;
-  onFavorite: () => void;
-  onOpen: () => void;
-}) {
-  const { palette } = useAppTheme();
-
-  return (
-    <AnimatedPressable
-      onPress={onOpen}
-      style={[styles.toolRow, { backgroundColor: palette.canvas, borderColor: palette.line }]}
-    >
-      <View style={[styles.rowIcon, { backgroundColor: palette.accentSoft }]}>
-        <Ionicons name={item.icon} size={19} color={palette.accent} />
-      </View>
-
-      <View style={styles.rowBody}>
-        <Text style={[styles.rowTitle, { color: palette.ink }]} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={[styles.rowCopy, { color: palette.text }]} numberOfLines={1}>
-          {item.copy}
-        </Text>
-      </View>
-
-      <AnimatedPressable onPress={onFavorite} style={styles.rowFavorite}>
-        <Ionicons
-          name={favorite ? 'heart' : 'heart-outline'}
-          size={19}
-          color={favorite ? palette.accent : palette.muted}
-        />
-      </AnimatedPressable>
-
-      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-    </AnimatedPressable>
   );
 }
 
@@ -1101,6 +1235,175 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  categoryPillRow: {
+    gap: 9,
+    paddingRight: 5,
+    paddingBottom: 20,
+  },
+  categoryPill: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderRadius: 19,
+    paddingLeft: 7,
+    paddingRight: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryPillIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryPillTitle: {
+    ...type.small,
+    marginHorizontal: 9,
+  },
+  categoryPillCount: {
+    minWidth: 27,
+    height: 27,
+    borderRadius: 14,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryPillCountText: {
+    ...type.tiny,
+  },
+  modernSection: {
+    marginTop: 2,
+  },
+  modernCategoryHero: {
+    minHeight: 210,
+    borderRadius: 30,
+    padding: 21,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  modernHeroTop: {
+    position: 'absolute',
+    top: 18,
+    left: 19,
+    right: 19,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modernHeroIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modernHeroCount: {
+    minHeight: 35,
+    borderRadius: 17,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modernHeroCountText: {
+    ...type.tiny,
+    color: '#FFFFFF',
+  },
+  modernHeroEyebrow: {
+    ...type.section,
+    color: 'rgba(255,255,255,0.76)',
+    marginBottom: 5,
+  },
+  modernHeroTitle: {
+    ...type.title,
+    color: '#FFFFFF',
+    fontSize: 31,
+    lineHeight: 37,
+  },
+  modernHeroCopy: {
+    ...type.small,
+    color: 'rgba(255,255,255,0.88)',
+    marginTop: 6,
+    maxWidth: 310,
+  },
+  modernListHeader: {
+    marginTop: 27,
+    marginBottom: 13,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  modernListEyebrow: {
+    ...type.section,
+    marginBottom: 4,
+  },
+  modernListTitle: {
+    ...type.title,
+    fontSize: 23,
+    lineHeight: 29,
+  },
+  modernListHint: {
+    ...type.tiny,
+    marginBottom: 4,
+  },
+  modernToolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  modernToolCard: {
+    width: '48.5%',
+    minHeight: 190,
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 14,
+  },
+  modernToolTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modernToolIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modernFavorite: {
+    width: 35,
+    height: 35,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modernFeatured: {
+    ...type.tiny,
+    fontSize: 9,
+    letterSpacing: 0.8,
+    marginTop: 12,
+  },
+  modernToolTitle: {
+    ...type.bodyStrong,
+    fontSize: 16,
+    lineHeight: 21,
+    marginTop: 10,
+  },
+  modernToolCopy: {
+    ...type.tiny,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  modernOpenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 'auto',
+    paddingTop: 12,
+  },
+  modernOpenText: {
+    ...type.tiny,
+    fontSize: 12,
   },
   emptyCard: {
     borderRadius: 28,
