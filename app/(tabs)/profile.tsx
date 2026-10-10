@@ -148,6 +148,7 @@ export default function ProfileScreen() {
   const nickname = profile?.baby_nickname || 'Peanut';
   const dueDate = formatDueDate(profile?.due_date);
   const progress = getProgress(week, days);
+  const progressWidth = `${progress}%` as `${number}%`;
 
   const avatarSource: ImageSourcePropType = profile?.avatar_url
     ? { uri: profile.avatar_url }
@@ -220,34 +221,204 @@ export default function ProfileScreen() {
     <Screen bottomSpace={105}>
       <Header />
 
-      <AnimatedPressable onPress={openProfileDetails} disabled={openingDetails}>
-        <Animated.View style={[styles.heroCard, heroAnimatedStyle, { backgroundColor: palette.accent }]}>
-          <View style={styles.heroTop}>
-            <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
+      <AnimatedPressable
+        onPress={openProfileDetails}
+        disabled={openingDetails}
+      >
+        <Animated.View
+          style={[
+            styles.profileCard,
+            heroAnimatedStyle,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              shadowColor: palette.ink,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.profileCover,
+              { backgroundColor: palette.accent },
+            ]}
+          >
+            <View style={styles.profileDecorationLarge} />
+            <View style={styles.profileDecorationSmall} />
 
-            <View style={styles.editPill}>
-              <Ionicons name="expand-outline" size={17} color={palette.onAccent} />
-              <Text style={[styles.editPillText, { color: palette.onAccent }]}>Details</Text>
-            </View>
+            <Text style={styles.profileCoverLabel}>
+              MY PREGGY PROFILE
+            </Text>
+
+            <AnimatedPressable
+              onPress={openProfileDetails}
+              style={styles.profileDetailsButton}
+            >
+              <Ionicons
+                name="expand-outline"
+                size={17}
+                color="#FFFFFF"
+              />
+
+              <Text style={styles.profileDetailsText}>
+                Details
+              </Text>
+            </AnimatedPressable>
           </View>
 
-          <Text style={styles.eyebrow}>MY PROFILE</Text>
-          <Text style={[styles.name, { color: palette.onAccent }]}>
-            {loadingProfile ? 'Loading...' : displayName}
-          </Text>
-          <Text style={[styles.pregnant, { color: palette.onAccent }]}>♡ {pregnancyLabel}</Text>
+          <View style={styles.profileBody}>
+            <View
+              style={[
+                styles.profileAvatarRing,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.surface,
+                },
+              ]}
+            >
+              <Image
+                source={avatarSource}
+                style={styles.profileAvatar}
+                resizeMode="cover"
+              />
 
-          <View style={styles.heroStats}>
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatLabel}>BABY</Text>
-              <Text style={[styles.heroStatValue, { color: palette.onAccent }]}>{nickname}</Text>
+              <View
+                style={[
+                  styles.profileOnlineDot,
+                  { borderColor: palette.surface },
+                ]}
+              />
             </View>
 
-            <View style={styles.heroDivider} />
+            <View style={styles.profileIdentityRow}>
+              <View style={styles.profileIdentity}>
+                <Text
+                  style={[
+                    styles.profileName,
+                    { color: palette.ink },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {loadingProfile ? 'Loading...' : displayName}
+                </Text>
 
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatLabel}>DUE DATE</Text>
-              <Text style={[styles.heroStatValue, { color: palette.onAccent }]}>{dueDate}</Text>
+                <Text
+                  style={[
+                    styles.profilePregnancy,
+                    { color: palette.text },
+                  ]}
+                >
+                  {pregnancyLabel}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.profileWeekBadge,
+                  { backgroundColor: palette.accentSoft },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.profileWeekNumber,
+                    { color: palette.accent },
+                  ]}
+                >
+                  {week}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.profileWeekLabel,
+                    { color: palette.accent },
+                  ]}
+                >
+                  WEEKS
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.profileStatus,
+                { backgroundColor: palette.accentSoft },
+              ]}
+            >
+              <Ionicons
+                name={
+                  isGuest
+                    ? 'phone-portrait-outline'
+                    : 'cloud-done-outline'
+                }
+                size={17}
+                color={palette.accent}
+              />
+
+              <Text
+                style={[
+                  styles.profileStatusText,
+                  { color: palette.accentStrong },
+                ]}
+              >
+                {isGuest
+                  ? 'Saved locally on this phone'
+                  : 'Securely synced to your account'}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.profileStats,
+                { borderTopColor: palette.line },
+              ]}
+            >
+              <View style={styles.profileStat}>
+                <Text
+                  style={[
+                    styles.profileStatLabel,
+                    { color: palette.muted },
+                  ]}
+                >
+                  BABY
+                </Text>
+
+                <Text
+                  style={[
+                    styles.profileStatValue,
+                    { color: palette.ink },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {nickname}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.profileStatDivider,
+                  { backgroundColor: palette.line },
+                ]}
+              />
+
+              <View style={styles.profileStat}>
+                <Text
+                  style={[
+                    styles.profileStatLabel,
+                    { color: palette.muted },
+                  ]}
+                >
+                  DUE DATE
+                </Text>
+
+                <Text
+                  style={[
+                    styles.profileStatValue,
+                    { color: palette.ink },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {dueDate}
+                </Text>
+              </View>
             </View>
           </View>
         </Animated.View>
@@ -271,7 +442,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={[styles.track, { backgroundColor: palette.accentSoft }]}>
-          <View style={[styles.fill, { width: `${progress}%`, backgroundColor: palette.accent }]} />
+          <View style={[styles.fill, { width: progressWidth, backgroundColor: palette.accent }]} />
         </View>
       </View>
 
@@ -489,6 +660,164 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  profileCard: {
+    marginTop: 12,
+    borderRadius: 31,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowOffset: {
+      width: 0,
+      height: 12,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+  profileCover: {
+    height: 116,
+    padding: 18,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  profileDecorationLarge: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    right: -55,
+    top: -78,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  profileDecorationSmall: {
+    position: 'absolute',
+    width: 85,
+    height: 85,
+    borderRadius: 43,
+    right: 85,
+    bottom: -55,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+  },
+  profileCoverLabel: {
+    ...type.section,
+    color: 'rgba(255,255,255,0.86)',
+    letterSpacing: 1.25,
+  },
+  profileDetailsButton: {
+    minHeight: 38,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.17)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  profileDetailsText: {
+    ...type.small,
+    color: '#FFFFFF',
+  },
+  profileBody: {
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+  },
+  profileAvatarRing: {
+    width: 92,
+    height: 92,
+    borderRadius: 32,
+    borderWidth: 5,
+    marginTop: -45,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatar: {
+    width: 78,
+    height: 78,
+    borderRadius: 27,
+  },
+  profileOnlineDot: {
+    position: 'absolute',
+    right: 0,
+    bottom: 3,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: '#55B987',
+    borderWidth: 3,
+  },
+  profileIdentityRow: {
+    marginTop: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileIdentity: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  profileName: {
+    ...type.title,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.6,
+  },
+  profilePregnancy: {
+    ...type.small,
+    marginTop: 3,
+  },
+  profileWeekBadge: {
+    width: 65,
+    height: 65,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileWeekNumber: {
+    ...type.bodyStrong,
+    fontSize: 21,
+    lineHeight: 24,
+  },
+  profileWeekLabel: {
+    ...type.tiny,
+    fontSize: 8,
+    letterSpacing: 0.8,
+  },
+  profileStatus: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    borderRadius: 15,
+    paddingHorizontal: 11,
+    marginTop: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  profileStatusText: {
+    ...type.tiny,
+  },
+  profileStats: {
+    borderTopWidth: 1,
+    marginTop: 17,
+    paddingTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileStat: {
+    flex: 1,
+  },
+  profileStatLabel: {
+    ...type.tiny,
+    fontSize: 9,
+    letterSpacing: 0.9,
+  },
+  profileStatValue: {
+    ...type.bodyStrong,
+    marginTop: 4,
+  },
+  profileStatDivider: {
+    width: 1,
+    height: 42,
+    marginHorizontal: 15,
+  },
   heroCard: {
     marginTop: 12,
     borderRadius: 30,
@@ -568,7 +897,7 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     marginTop: 16,
-    borderRadius: 30,
+    borderRadius: 27,
     padding: 18,
     borderWidth: 1,
     shadowColor: '#2A151B',
@@ -684,7 +1013,7 @@ const styles = StyleSheet.create({
   },
   detailsCard: {
     marginTop: 16,
-    borderRadius: 30,
+    borderRadius: 27,
     padding: 18,
     borderWidth: 1,
   },
@@ -750,7 +1079,7 @@ const styles = StyleSheet.create({
     marginBottom: 9,
   },
   card: {
-    borderRadius: 28,
+    borderRadius: 25,
     paddingHorizontal: 16,
     borderWidth: 1,
     overflow: 'hidden',
