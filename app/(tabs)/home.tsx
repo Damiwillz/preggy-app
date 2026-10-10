@@ -824,12 +824,62 @@ export default function HomeScreen() {
     <Screen bottomSpace={118}>
       <Header title="Preggy" />
 
-      <View style={styles.topCenter}>
-        <Text style={[styles.daysTitle, { color: palette.ink }]}>
-          {activeDaysRemaining > 0 ? `${activeDaysRemaining} days to go` : 'Due date window'}
-        </Text>
-        <Text style={[styles.daysSubtitle, { color: palette.text }]}>
-          Week {activeWeek} {activeDay ? `• Day ${activeDay}` : ''} • {stage.label}
+      <View style={styles.welcomeRow}>
+        <View style={styles.welcomeCopy}>
+          <Text style={[styles.welcomeEyebrow, { color: palette.accent }]}>
+            PREGGY TODAY
+          </Text>
+
+          <Text style={[styles.welcomeTitle, { color: palette.ink }]}>
+            {greeting()}, {firstName}
+          </Text>
+
+          <Text style={[styles.welcomeSubtitle, { color: palette.text }]}>
+            {activeDaysRemaining > 0
+              ? `Week ${activeWeek} · ${activeDaysRemaining} days to go`
+              : `Week ${activeWeek} · Due date window`}
+          </Text>
+        </View>
+
+        <AnimatedPressable
+          onPress={() => router.push('/family-care' as never)}
+          style={[
+            styles.welcomeAction,
+            {
+              backgroundColor: palette.accentSoft,
+              borderColor: palette.line,
+            },
+          ]}
+        >
+          <Ionicons
+            name="people-outline"
+            size={22}
+            color={palette.accent}
+          />
+        </AnimatedPressable>
+      </View>
+
+      <View
+        style={[
+          styles.weekNavigation,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.line,
+          },
+        ]}
+      >
+        <View>
+          <Text style={[styles.weekNavigationLabel, { color: palette.muted }]}>
+            VIEWING
+          </Text>
+
+          <Text style={[styles.weekNavigationTitle, { color: palette.ink }]}>
+            Week {activeWeek}
+          </Text>
+        </View>
+
+        <Text style={[styles.weekNavigationStage, { color: palette.accent }]}>
+          {stage.label}
         </Text>
       </View>
 
@@ -860,8 +910,6 @@ export default function HomeScreen() {
           );
         })}
       </ScrollView>
-
-      <CopilotCard suggestions={copilotSuggestions} babyName={babyName} />
 
       <AnimatedPressable onPress={() => router.push('/baby-growth' as never)}>
         <LinearGradient
@@ -909,6 +957,22 @@ export default function HomeScreen() {
         <View style={[styles.progressFill, { width: percentWidth(activeProgress), backgroundColor: palette.accent }]} />
       </View>
 
+      <View style={styles.homeSectionHeading}>
+        <View>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>
+            DAILY RHYTHM
+          </Text>
+
+          <Text style={[styles.homeSectionTitle, { color: palette.ink }]}>
+            Your care today
+          </Text>
+        </View>
+
+        <Text style={[styles.homeSectionHint, { color: palette.muted }]}>
+          Tap to update
+        </Text>
+      </View>
+
       <View style={styles.metricGrid}>
         <MetricCard
           icon="water-outline"
@@ -935,10 +999,15 @@ export default function HomeScreen() {
         />
       </View>
 
+      <CopilotCard
+        suggestions={copilotSuggestions}
+        babyName={babyName}
+      />
+
       <View style={[styles.sectionCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <View style={styles.sectionTop}>
           <View>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>{greeting().toUpperCase()}, {firstName.toUpperCase()}</Text>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>YOUR DAY</Text>
             <Text style={[styles.sectionTitle, { color: palette.ink }]}>Today’s plan</Text>
           </View>
 
@@ -1027,6 +1096,82 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  welcomeRow: {
+    minHeight: 94,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 7,
+    marginBottom: 13,
+  },
+  welcomeCopy: {
+    flex: 1,
+    paddingRight: 14,
+  },
+  welcomeEyebrow: {
+    ...type.section,
+    letterSpacing: 1.35,
+    marginBottom: 4,
+  },
+  welcomeTitle: {
+    ...type.hero,
+    fontSize: 31,
+    lineHeight: 38,
+    letterSpacing: -0.8,
+  },
+  welcomeSubtitle: {
+    ...type.small,
+    marginTop: 4,
+  },
+  welcomeAction: {
+    width: 52,
+    height: 52,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekNavigation: {
+    minHeight: 64,
+    borderRadius: 21,
+    borderWidth: 1,
+    paddingHorizontal: 15,
+    marginBottom: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  weekNavigationLabel: {
+    ...type.tiny,
+    fontSize: 9,
+    letterSpacing: 1.1,
+  },
+  weekNavigationTitle: {
+    ...type.bodyStrong,
+    fontSize: 17,
+    marginTop: 1,
+  },
+  weekNavigationStage: {
+    ...type.small,
+  },
+  homeSectionHeading: {
+    minHeight: 64,
+    marginTop: 3,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  homeSectionTitle: {
+    ...type.title,
+    fontSize: 23,
+    lineHeight: 29,
+    marginTop: 3,
+  },
+  homeSectionHint: {
+    ...type.tiny,
+    marginBottom: 4,
+  },
   topCenter: {
     alignItems: 'center',
     marginTop: 2,
@@ -1059,8 +1204,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   babyCard: {
-    height: 290,
-    borderRadius: 28,
+    height: 320,
+    borderRadius: 32,
     borderWidth: 1,
     marginBottom: 12,
     overflow: 'hidden',
@@ -1330,8 +1475,8 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    minHeight: 126,
-    borderRadius: 22,
+    minHeight: 122,
+    borderRadius: 24,
     borderWidth: 1,
     padding: 12,
   },
@@ -1358,7 +1503,7 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     borderWidth: 1,
-    borderRadius: 26,
+    borderRadius: 28,
     padding: 16,
     marginBottom: 14,
   },
@@ -1405,7 +1550,7 @@ const styles = StyleSheet.create({
   },
   weeklyCard: {
     borderWidth: 1,
-    borderRadius: 26,
+    borderRadius: 28,
     padding: 16,
     marginBottom: 14,
   },
