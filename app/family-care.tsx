@@ -151,19 +151,77 @@ export default function FamilyCareScreen() {
     <Screen bottomSpace={70}>
       <Header title="Family Care" back />
 
-      <View style={styles.intro}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>
-          PREGNANCY TO NEWBORN
-        </Text>
+      <View
+        style={[
+          styles.intro,
+          {
+            backgroundColor: palette.accentSoft,
+            borderColor: palette.line,
+          },
+        ]}
+      >
+        <View style={styles.heroTop}>
+          <View
+            style={[
+              styles.heroLabel,
+              { backgroundColor: palette.surface },
+            ]}
+          >
+            <Ionicons
+              name="people-circle-outline"
+              size={17}
+              color={palette.accent}
+            />
+            <Text style={[styles.heroLabelText, { color: palette.accent }]}>
+              FAMILY CARE
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.heroMark,
+              { backgroundColor: palette.accent },
+            ]}
+          >
+            <Ionicons name="heart" size={24} color={palette.onAccent} />
+          </View>
+        </View>
 
         <Text style={[styles.title, { color: palette.ink }]}>
-          Care, without the clutter
+          One calm place for everyone.
         </Text>
 
         <Text style={[styles.introCopy, { color: palette.text }]}>
-          Everything for baby care, recovery and family support is
-          organized in one calm space.
+          Care for baby, support recovery and keep your family connected
+          through every new stage.
         </Text>
+
+        <View style={styles.journeyRow}>
+          {['Pregnancy', 'Recovery', 'Newborn'].map((label, index) => (
+            <React.Fragment key={label}>
+              <View style={styles.journeyItem}>
+                <View
+                  style={[
+                    styles.journeyDot,
+                    { backgroundColor: palette.accent },
+                  ]}
+                />
+                <Text style={[styles.journeyText, { color: palette.text }]}>
+                  {label}
+                </Text>
+              </View>
+
+              {index < 2 ? (
+                <View
+                  style={[
+                    styles.journeyLine,
+                    { backgroundColor: palette.line },
+                  ]}
+                />
+              ) : null}
+            </React.Fragment>
+          ))}
+        </View>
       </View>
 
       <CareCard item={newbornCare[0]} featured />
@@ -272,7 +330,60 @@ export default function FamilyCareScreen() {
 const styles = StyleSheet.create({
   intro: {
     marginTop: 12,
-    marginBottom: 22,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderRadius: 30,
+    padding: 22,
+    overflow: 'hidden',
+  },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  heroLabel: {
+    minHeight: 38,
+    borderRadius: 19,
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  heroLabelText: {
+    ...type.tiny,
+    letterSpacing: 1.2,
+  },
+  heroMark: {
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '5deg' }],
+  },
+  journeyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 22,
+  },
+  journeyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  journeyDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  journeyText: {
+    ...type.tiny,
+  },
+  journeyLine: {
+    flex: 1,
+    height: 1,
+    marginHorizontal: 8,
   },
   eyebrow: {
     ...type.section,
