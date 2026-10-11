@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
@@ -8,35 +10,36 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
-import { Screen } from '@/components/layout/Screen';
 import { TextField } from '@/components/forms/TextField';
-import { Button } from '@/components/ui/Button';
+import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { colors } from '@/constants/colors';
+import { Button } from '@/components/ui/Button';
 import { type } from '@/constants/typography';
+import { useAppTheme } from '@/context/AppThemeContext';
 import { sendPasswordReset } from '@/services/auth';
 
-const LOGIN_PLUM = '#CE6F79';
-const LOGIN_PLUM_SOFT = '#FFF0F1';
-const LOGIN_TEXT = '#2A151B';
-const LOGIN_MUTED = '#9C7B82';
-const LOGIN_LINE = '#EFDCDD';
-
 export default function ForgotPasswordScreen() {
+  const { palette } = useAppTheme();
+
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const cleanEmail = email.trim().toLowerCase();
-  const canSubmit = useMemo(() => cleanEmail.includes('@'), [cleanEmail]);
+
+  const canSubmit = useMemo(
+    () => cleanEmail.includes('@') && cleanEmail.includes('.'),
+    [cleanEmail]
+  );
 
   async function submit() {
     Keyboard.dismiss();
 
-    if (!cleanEmail.includes('@')) {
-      Alert.alert('Email required', 'Enter the email address linked to your Preggy account.');
+    if (!canSubmit) {
+      Alert.alert(
+        'Check your email',
+        'Enter the email address connected to your Preggy account.'
+      );
       return;
     }
 
@@ -46,17 +49,22 @@ export default function ForgotPasswordScreen() {
       await sendPasswordReset(cleanEmail);
 
       Alert.alert(
-        'Check your email',
-        'We sent a secure password reset link to your email. Open the newest link to create a new password.',
+        'Check your inbox',
+        'We sent a secure password reset link. Open the newest email from Preggy.',
         [
           {
-            text: 'OK',
-            onPress: () => router.replace('/auth/log-in' as never),
+            text: 'Return to login',
+            onPress: () =>
+              router.replace('/auth/log-in' as never),
           },
         ]
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Please try again.';
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Please try again.';
+
       Alert.alert('Reset failed', message);
     } finally {
       setSubmitting(false);
@@ -64,65 +72,202 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <Screen bottomSpace={26} style={styles.screen}>
+    <Screen
+      bottomSpace={35}
+      style={styles.screen}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboard}
       >
         <View style={styles.topBar}>
-          <AnimatedPressable onPress={() => router.back()} style={styles.back} accessibilityLabel="Go back">
-            <Ionicons name="chevron-back" size={24} color={LOGIN_TEXT} />
+          <AnimatedPressable
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={21}
+              color={palette.ink}
+            />
           </AnimatedPressable>
 
-          <Text style={styles.brand}>Preggy</Text>
+          <View style={styles.brand}>
+            <View
+              style={[
+                styles.brandIcon,
+                { backgroundColor: palette.accentSoft },
+              ]}
+            >
+              <Ionicons
+                name="heart"
+                size={15}
+                color={palette.accent}
+              />
+            </View>
+
+            <Text style={[styles.brandText, { color: palette.ink }]}>
+              Preggy
+            </Text>
+          </View>
 
           <View style={styles.topSpacer} />
         </View>
 
-        <View style={styles.hero}>
-          <View style={styles.iconShell}>
-            <View style={styles.iconTint}>
-              <Ionicons name="key-outline" size={30} color={LOGIN_PLUM} />
-            </View>
+        <View
+          style={[
+            styles.hero,
+            {
+              backgroundColor: palette.accentSoft,
+              borderColor: palette.line,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.heroDecorationLarge,
+              {
+                backgroundColor: palette.accent,
+                opacity: 0.08,
+              },
+            ]}
+          />
+
+          <View
+            style={[
+              styles.heroDecorationSmall,
+              {
+                backgroundColor: palette.surface,
+                opacity: 0.55,
+              },
+            ]}
+          />
+
+          <View
+            style={[
+              styles.keyIcon,
+              { backgroundColor: palette.surface },
+            ]}
+          >
+            <Ionicons
+              name="key-outline"
+              size={31}
+              color={palette.accent}
+            />
           </View>
 
-          <Text style={styles.title}>Reset your password</Text>
+          <Text style={[styles.eyebrow, { color: palette.accent }]}>
+            ACCOUNT RECOVERY
+          </Text>
 
-          <Text style={styles.subtitle}>
-            Enter your email and we’ll send a secure link to help you get back in.
+          <Text style={[styles.title, { color: palette.ink }]}>
+            Let’s get you back in
+          </Text>
+
+          <Text style={[styles.subtitle, { color: palette.text }]}>
+            Enter your account email and we’ll send you a secure
+            reset link.
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.note}>
-            <Ionicons name="shield-checkmark-outline" size={20} color={LOGIN_PLUM} />
-            <Text style={styles.noteText}>
-              Reset links expire quickly. Use the newest email link only.
+        <View
+          style={[
+            styles.formCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              shadowColor: palette.ink,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.securityNote,
+              { backgroundColor: palette.accentSoft },
+            ]}
+          >
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={21}
+              color={palette.accent}
+            />
+
+            <Text
+              style={[
+                styles.securityText,
+                { color: palette.text },
+              ]}
+            >
+              For your safety, reset links expire. Always use the
+              newest email link.
             </Text>
           </View>
 
           <TextField
             label="Email address"
+            helper="Use the email connected to your Preggy account"
             placeholder="you@example.com"
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            returnKeyType="send"
             value={email}
             onChangeText={setEmail}
-            onSubmitEditing={submit}
+            onSubmitEditing={() => void submit()}
           />
 
           <Button
-            label={submitting ? 'Sending reset link...' : 'Send Reset Link'}
-            onPress={submit}
-            disabled={submitting}
-            style={!canSubmit ? styles.inactiveButton : styles.primaryButton}
+            label={
+              submitting
+                ? 'Sending reset link...'
+                : 'Send reset link'
+            }
+            onPress={() => void submit()}
+            disabled={!canSubmit || submitting}
+            loading={submitting}
+            icon={submitting ? undefined : 'mail-outline'}
           />
 
-          <AnimatedPressable style={styles.loginLink} onPress={() => router.replace('/auth/log-in' as never)}>
-            <Text style={styles.loginLinkText}>
-              Remembered it? <Text style={styles.loginLinkStrong}>Log in</Text>
+          <AnimatedPressable
+            onPress={() =>
+              router.replace('/auth/log-in' as never)
+            }
+            style={styles.loginLink}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={16}
+              color={palette.accent}
+            />
+
+            <Text
+              style={[
+                styles.loginLinkText,
+                { color: palette.accent },
+              ]}
+            >
+              Return to login
             </Text>
           </AnimatedPressable>
+        </View>
+
+        <View style={styles.helpRow}>
+          <Ionicons
+            name="help-circle-outline"
+            size={18}
+            color={palette.muted}
+          />
+
+          <Text style={[styles.helpText, { color: palette.muted }]}>
+            Didn’t receive it? Check spam or wait a few minutes
+            before requesting another link.
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </Screen>
@@ -131,137 +276,138 @@ export default function ForgotPasswordScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: '#FFF8F5',
     paddingHorizontal: 22,
   },
-  keyboard: {
-    flex: 1,
-  },
   topBar: {
-    height: 58,
+    height: 62,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  back: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#FFFFFF',
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 17,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: LOGIN_LINE,
-    shadowColor: LOGIN_TEXT,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
   },
   brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  brandIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandText: {
     ...type.bodyStrong,
-    color: LOGIN_TEXT,
-    fontSize: 18,
+    fontSize: 17,
   },
   topSpacer: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
   },
   hero: {
-    marginTop: 18,
-    borderRadius: 32,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 26,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    minHeight: 300,
+    borderRadius: 31,
     borderWidth: 1,
-    borderColor: LOGIN_LINE,
-    shadowColor: LOGIN_TEXT,
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    padding: 24,
+    marginTop: 15,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
   },
-  iconShell: {
-    width: 78,
-    height: 78,
-    borderRadius: 28,
-    backgroundColor: LOGIN_PLUM_SOFT,
+  heroDecorationLarge: {
+    position: 'absolute',
+    width: 235,
+    height: 235,
+    borderRadius: 118,
+    right: -75,
+    top: -90,
+  },
+  heroDecorationSmall: {
+    position: 'absolute',
+    width: 125,
+    height: 125,
+    borderRadius: 63,
+    left: -55,
+    bottom: 30,
+  },
+  keyIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
+    marginBottom: 23,
   },
-  iconTint: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#F7D6DA',
-    alignItems: 'center',
-    justifyContent: 'center',
+  eyebrow: {
+    ...type.section,
+    letterSpacing: 1.25,
   },
   title: {
-    ...type.title,
-    color: LOGIN_TEXT,
-    fontSize: 30,
-    lineHeight: 35,
-    textAlign: 'center',
-    letterSpacing: -0.7,
+    ...type.hero,
+    fontSize: 34,
+    lineHeight: 41,
+    letterSpacing: -1,
+    marginTop: 5,
   },
   subtitle: {
     ...type.body,
-    color: LOGIN_MUTED,
-    textAlign: 'center',
-    marginTop: 10,
-    lineHeight: 23,
-    maxWidth: 305,
+    marginTop: 8,
+    maxWidth: 310,
   },
-  card: {
-    marginTop: 18,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 30,
-    padding: 22,
+  formCard: {
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: LOGIN_LINE,
-    shadowColor: LOGIN_TEXT,
+    padding: 19,
+    marginTop: 15,
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
     shadowOpacity: 0.07,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
     elevation: 3,
   },
-  note: {
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: LOGIN_PLUM_SOFT,
+  securityNote: {
     borderRadius: 18,
     padding: 13,
-    marginBottom: 18,
+    marginBottom: 19,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
-  noteText: {
+  securityText: {
     ...type.small,
     flex: 1,
-    color: LOGIN_MUTED,
-    lineHeight: 18,
-    fontWeight: '700',
-  },
-  primaryButton: {
-    backgroundColor: LOGIN_PLUM,
-  },
-  inactiveButton: {
-    backgroundColor: LOGIN_PLUM,
-    opacity: 0.55,
+    marginLeft: 9,
+    lineHeight: 19,
   },
   loginLink: {
+    minHeight: 45,
+    marginTop: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 18,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    gap: 6,
   },
   loginLinkText: {
     ...type.small,
-    color: LOGIN_MUTED,
   },
-  loginLinkStrong: {
-    color: LOGIN_PLUM,
-    fontWeight: '900',
+  helpRow: {
+    marginTop: 17,
+    paddingHorizontal: 9,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  helpText: {
+    ...type.tiny,
+    flex: 1,
+    marginLeft: 7,
+    lineHeight: 17,
   },
 });

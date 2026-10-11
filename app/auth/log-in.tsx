@@ -82,7 +82,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.hero}>
-          <Image source={require('../../assets/images/login-hero.jpg')} style={styles.heroImage} resizeMode="cover" />
+          <Image source={require('../../assets/images/login-hero-clean.jpg')} style={styles.heroImage} resizeMode="cover" />
           <View style={styles.heroShade} />
 
           <View style={[styles.logo, { backgroundColor: palette.surface }]}>
@@ -193,8 +193,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   hero: {
-    height: 230,
-    borderRadius: 34,
+    height: 260,
+    borderRadius: 32,
     overflow: 'hidden',
     marginTop: 26,
   },
@@ -220,10 +220,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    borderRadius: 30,
+    borderRadius: 28,
     borderWidth: 1,
     padding: 20,
-    marginTop: 18,
+    marginTop: -22,
+    marginHorizontal: 8,
   },
   eyebrow: {
     ...type.section,
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     height: 58,
-    borderRadius: 29,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   },
   guestButton: {
     height: 54,
-    borderRadius: 27,
+    borderRadius: 19,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

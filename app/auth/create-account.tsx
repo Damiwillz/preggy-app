@@ -21,7 +21,8 @@ export default function CreateAccountScreen() {
 
   async function handleCreateAccount() {
     if (!fullName.trim() || !email.trim() || !password) {
-      Alert.alert('Missing details', 'Enter your name, email, and password.');
+      Alert.alert(
+        'Missing details', 'Enter your name, email, and password.');
       return;
     }
 
@@ -230,8 +231,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroPanel: {
-    height: 172,
-    borderRadius: 34,
+    height: 190,
+    borderRadius: 31,
     marginTop: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     height: 56,
-    borderRadius: 29,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   },
   guestButton: {
     height: 54,
-    borderRadius: 27,
+    borderRadius: 19,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
