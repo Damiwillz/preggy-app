@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -41,17 +41,42 @@ export default function PersonalGuidanceScreen() {
         <Text style={[styles.step, { color: palette.muted }]}>2 of 3</Text>
       </View>
 
-      <View style={[styles.illustration, { backgroundColor: palette.accentSoft }]}>
-        <View style={[styles.smallBubble, styles.bubbleOne, { backgroundColor: palette.surface }]}>
-          <Ionicons name="heart" size={24} color={palette.accent} />
+      <View
+        style={[
+          styles.modernIllustration,
+          { borderColor: palette.line },
+        ]}
+      >
+        <Image
+          source={require('../../assets/images/onboarding-guidance-photo.jpg')}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        />
+
+        <View style={styles.modernIllustrationShade} />
+
+        <View style={styles.modernIllustrationTop}>
+          <View style={styles.modernIllustrationBadge}>
+            <Ionicons
+              name="sparkles"
+              size={15}
+              color="#FFFFFF"
+            />
+
+            <Text style={styles.modernIllustrationBadgeText}>
+              MADE FOR YOUR JOURNEY
+            </Text>
+          </View>
         </View>
 
-        <View style={[styles.bigCircle, { backgroundColor: palette.surface }]}>
-          <Ionicons name="sparkles" size={54} color={palette.accent} />
-        </View>
+        <View style={styles.modernIllustrationBottom}>
+          <Text style={styles.modernIllustrationTitle}>
+            Guidance that grows with you
+          </Text>
 
-        <View style={[styles.smallBubble, styles.bubbleTwo, { backgroundColor: palette.surface }]}>
-          <Ionicons name="chatbubbles" size={24} color={palette.accent} />
+          <Text style={styles.modernIllustrationCopy}>
+            Week-by-week support in one calm place.
+          </Text>
         </View>
       </View>
 
@@ -122,6 +147,54 @@ const styles = StyleSheet.create({
     ...type.small,
     fontWeight: '900',
   },
+  modernIllustration: {
+    height: 255,
+    borderRadius: 31,
+    borderWidth: 1,
+    marginTop: 16,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+  },
+  modernIllustrationShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(34,18,25,0.32)',
+  },
+  modernIllustrationTop: {
+    zIndex: 2,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  modernIllustrationBadge: {
+    minHeight: 32,
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  modernIllustrationBadgeText: {
+    ...type.tiny,
+    color: '#FFFFFF',
+    fontSize: 9,
+    letterSpacing: 0.7,
+  },
+  modernIllustrationBottom: {
+    zIndex: 2,
+    padding: 19,
+  },
+  modernIllustrationTitle: {
+    ...type.title,
+    color: '#FFFFFF',
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  modernIllustrationCopy: {
+    ...type.small,
+    color: 'rgba(255,255,255,0.88)',
+    marginTop: 4,
+  },
   illustration: {
     height: 150,
     borderRadius: 28,
@@ -155,20 +228,19 @@ const styles = StyleSheet.create({
   },
   dots: {
     flexDirection: 'row',
-    justifyContent: 'center',
     gap: 7,
-    marginTop: 12,
-    marginBottom: 10,
+    marginTop: 14,
+    marginBottom: 15,
   },
   dotActive: {
-    width: 28,
-    height: 8,
-    borderRadius: 999,
+    flex: 2,
+    height: 5,
+    borderRadius: 3,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
   },
   eyebrow: {
     ...type.section,
@@ -176,8 +248,9 @@ const styles = StyleSheet.create({
   },
   title: {
     ...type.title,
-    fontSize: 25,
-    lineHeight: 30,
+    fontSize: 29,
+    lineHeight: 35,
+    letterSpacing: -0.6,
     textAlign: 'center',
     marginTop: 7,
   },
@@ -192,9 +265,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   card: {
-    borderRadius: 22,
+    borderRadius: 23,
     borderWidth: 1,
-    padding: 12,
+    padding: 14,
     flexDirection: 'row',
     gap: 12,
   },
@@ -215,8 +288,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   primaryButton: {
-    height: 60,
-    borderRadius: 30,
+    height: 58,
+    borderRadius: 19,
     marginTop: 16,
     marginBottom: 0,
     alignItems: 'center',

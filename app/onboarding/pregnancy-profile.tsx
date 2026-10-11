@@ -7,7 +7,6 @@ import { TextField } from '@/components/forms/TextField';
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
-import { colors } from '@/constants/colors';
 import { type } from '@/constants/typography';
 import { useAppTheme } from '@/context/AppThemeContext';
 import { updateMyProfile } from '@/services/profile';
@@ -143,7 +142,15 @@ export default function PregnancyProfileScreen() {
     <Screen bottomSpace={48}>
       <Header title="Preggy Setup" back showAvatar={false} />
 
-      <View style={[styles.heroCard, { backgroundColor: palette.accentSoft }]}>
+      <View
+        style={[
+          styles.heroCard,
+          {
+            backgroundColor: palette.accentSoft,
+            borderColor: palette.line,
+          },
+        ]}
+      >
         <View style={[styles.iconBubble, { backgroundColor: palette.surface }]}>
           <Ionicons name="heart" size={34} color={palette.accent} />
         </View>
@@ -242,6 +249,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 16,
     overflow: 'hidden',
+    borderWidth: 1,
   },
   iconBubble: {
     width: 64,
@@ -250,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
-    shadowColor: colors.shadow,
+    shadowColor: '#000000',
     shadowOpacity: 0.12,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -261,7 +269,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    ...type.title,
+    ...type.hero,
+    fontSize: 32,
+    lineHeight: 39,
+    letterSpacing: -0.8,
     marginBottom: 8,
   },
   subtitle: {
@@ -269,7 +280,7 @@ const styles = StyleSheet.create({
   },
   previewCard: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 25,
     padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,7 +310,7 @@ const styles = StyleSheet.create({
   },
   formCard: {
     borderWidth: 1,
-    borderRadius: 26,
+    borderRadius: 28,
     padding: 18,
   },
   dividerText: {
@@ -317,7 +328,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     minHeight: 58,
-    borderRadius: 20,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

@@ -28,7 +28,7 @@ export default function OnboardingScreen() {
 
       <View style={[styles.heroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
         <Image
-          source={require('../../assets/images/login-hero.jpg')}
+          source={require('../../assets/images/onboarding-hero.jpg')}
           style={styles.heroImage}
           resizeMode="cover"
         />
@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroCard: {
-    height: 255,
-    borderRadius: 30,
+    height: 315,
+    borderRadius: 32,
     borderWidth: 1,
     marginTop: 16,
     overflow: 'hidden',
@@ -157,25 +157,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 7,
     marginTop: 16,
-    marginBottom: 12,
+    marginBottom: 15,
   },
   dotActive: {
-    width: 28,
-    height: 8,
-    borderRadius: 999,
+    flex: 2,
+    height: 5,
+    borderRadius: 3,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
   },
   eyebrow: {
     ...type.section,
   },
   title: {
-    ...type.title,
-    fontSize: 32,
-    lineHeight: 36,
+    ...type.hero,
+    fontSize: 35,
+    lineHeight: 42,
+    letterSpacing: -1,
     marginTop: 7,
   },
   subtitle: {
@@ -212,8 +213,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   primaryButton: {
-    height: 54,
-    borderRadius: 27,
+    height: 58,
+    borderRadius: 19,
     marginTop: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -224,8 +225,8 @@ const styles = StyleSheet.create({
     ...type.bodyStrong,
   },
   secondaryButton: {
-    height: 46,
-    borderRadius: 23,
+    height: 50,
+    borderRadius: 18,
     borderWidth: 1,
     marginTop: 8,
     alignItems: 'center',
