@@ -505,17 +505,21 @@ export default function ToolsScreen() {
       >
         <View style={styles.heroTop}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>PREGGY TOOLKIT</Text>
-            <Text style={[styles.heroTitle, { color: palette.ink }]}>Tools</Text>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>
+              YOUR TOOLKIT
+            </Text>
+            <Text style={[styles.heroTitle, { color: palette.ink }]}>
+              What do you need?
+            </Text>
           </View>
 
           <View style={[styles.heroIcon, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="grid-outline" size={25} color={palette.accent} />
+            <Ionicons name="sparkles-outline" size={25} color={palette.accent} />
           </View>
         </View>
 
         <Text style={[styles.heroCopy, { color: palette.text }]}>
-          Quick tools first. Then open one section at a time so the page stays clean.
+          Choose a collection below. We’ll remember where you stopped.
         </Text>
 
         <View style={styles.heroStats}>
@@ -586,8 +590,12 @@ export default function ToolsScreen() {
       </View>
 
       <View style={styles.sectionHeading}>
-        <Text style={[styles.sectionEyebrow, { color: palette.accent }]}>SECTIONS</Text>
-        <Text style={[styles.sectionTitle, { color: palette.ink }]}>Choose one</Text>
+        <Text style={[styles.sectionEyebrow, { color: palette.accent }]}>
+          COLLECTIONS
+        </Text>
+        <Text style={[styles.sectionTitle, { color: palette.ink }]}>
+          Explore by purpose
+        </Text>
       </View>
 
       <ScrollView
