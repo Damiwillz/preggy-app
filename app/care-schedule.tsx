@@ -221,13 +221,59 @@ export default function CareScheduleScreen() {
           </AnimatedPressable>
         </View>
 
+        <Text style={styles.heroKicker}>
+          YOUR CARE PATH
+        </Text>
+
         <Text style={styles.heroTitle}>
-          {upcomingCount} upcoming
+          Stay ready, one step at a time.
         </Text>
 
         <Text style={styles.heroCopy}>
-          {completedCount} completed • {items.length} total care items
+          Keep every recommended test, scan and appointment within reach.
         </Text>
+
+        <View style={styles.heroStats}>
+          <View style={styles.heroStat}>
+            <View style={styles.heroStatIcon}>
+              <Ionicons
+                name="time-outline"
+                size={18}
+                color="#FFFFFF"
+              />
+            </View>
+
+            <View>
+              <Text style={styles.heroStatValue}>
+                {upcomingCount}
+              </Text>
+              <Text style={styles.heroStatLabel}>
+                Upcoming
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.heroDivider} />
+
+          <View style={styles.heroStat}>
+            <View style={styles.heroStatIcon}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color="#FFFFFF"
+              />
+            </View>
+
+            <View>
+              <Text style={styles.heroStatValue}>
+                {completedCount}
+              </Text>
+              <Text style={styles.heroStatLabel}>
+                Completed
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       {showForm ? (
@@ -589,15 +635,66 @@ const styles = StyleSheet.create({
     ...type.small,
     color: '#FFFFFF',
   },
+  heroKicker: {
+    ...type.tiny,
+    color: 'rgba(255,255,255,0.76)',
+    letterSpacing: 1.4,
+    marginTop: 24,
+  },
   heroTitle: {
     ...type.title,
     color: '#FFFFFF',
-    marginTop: 20,
+    fontSize: 27,
+    lineHeight: 33,
+    maxWidth: 300,
+    marginTop: 5,
   },
   heroCopy: {
     ...type.small,
-    color: 'rgba(255,255,255,0.86)',
-    marginTop: 3,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 20,
+    maxWidth: 320,
+    marginTop: 7,
+  },
+  heroStats: {
+    minHeight: 78,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingHorizontal: 15,
+  },
+  heroStat: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  heroStatIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroStatValue: {
+    ...type.bodyStrong,
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 23,
+  },
+  heroStatLabel: {
+    ...type.tiny,
+    color: 'rgba(255,255,255,0.78)',
+    marginTop: 1,
+  },
+  heroDivider: {
+    width: 1,
+    height: 38,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    marginHorizontal: 12,
   },
   formCard: {
     borderWidth: 1,
