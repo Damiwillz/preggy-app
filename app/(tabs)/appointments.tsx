@@ -11,6 +11,8 @@ import { useAppTheme } from '@/context/AppThemeContext';
 import { supabase } from '@/lib/supabase';
 import { getGuestAppointments, isGuestMode } from '@/services/guest';
 
+type AppointmentFilter = 'Upcoming' | 'Past' | 'Cancelled';
+
 type Appointment = {
   id: string;
   user_id: string;
@@ -64,12 +66,29 @@ function displayTime(appointment: Appointment) {
   return appointment.time || appointment.appointment_time || 'Time not set';
 }
 
+function isCancelledAppointment(appointment: Appointment) {
+  return appointment.status?.toLowerCase() === 'cancelled';
+}
+
+function isPastAppointment(appointment: Appointment) {
+  const value = displayDate(appointment);
+
+  if (!value) return false;
+
+  const appointmentDate = new Date(`${value}T23:59:59`);
+
+  if (Number.isNaN(appointmentDate.getTime())) return false;
+
+  return appointmentDate.getTime() < Date.now();
+}
+
 export default function AppointmentsScreen() {
   const { palette } = useAppTheme();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<AppointmentFilter>('Upcoming');
 
   async function getUserId() {
     const { data, error } = await supabase.auth.getUser();
@@ -132,30 +151,186 @@ export default function AppointmentsScreen() {
     router.push('/appointment/add' as never);
   }
 
+  const upcomingAppointments = appointments.filter(
+    (appointment) =>
+      !isCancelledAppointment(appointment) &&
+      !isPastAppointment(appointment)
+  );
+
+  const pastAppointments = appointments.filter(
+    (appointment) =>
+      !isCancelledAppointment(appointment) &&
+      isPastAppointment(appointment)
+  );
+
+  const cancelledAppointments = appointments.filter(
+    isCancelledAppointment
+  );
+
+  const visibleAppointments =
+    filter === 'Upcoming'
+      ? upcomingAppointments
+      : filter === 'Past'
+        ? pastAppointments
+        : cancelledAppointments;
+
+  const filters: AppointmentFilter[] = [
+    'Upcoming',
+    'Past',
+    'Cancelled',
+  ];
+
   return (
     <Screen bottomSpace={120}>
       <Header title="Appointments" back />
 
-      <View style={styles.heading}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.eyebrow, { color: palette.accent }]}>CARE SCHEDULE</Text>
-          <Text style={[styles.title, { color: palette.ink }]}>Appointments</Text>
-          <Text style={[styles.subtitle, { color: palette.text }]}>
-            Keep prenatal visits, doctors, clinics, and appointment notes in one place.
-          </Text>
+      <View
+        style={[
+          styles.scheduleHero,
+          {
+            backgroundColor: palette.accent,
+            borderColor: palette.accent,
+          },
+        ]}
+      >
+        <View style={styles.scheduleHeroTop}>
+          <View style={styles.scheduleLabel}>
+            <Ionicons
+              name="calendar-clear-outline"
+              size={17}
+              color={palette.onAccent}
+            />
+            <Text
+              style={[
+                styles.scheduleLabelText,
+                { color: palette.onAccent },
+              ]}
+            >
+              CARE CALENDAR
+            </Text>
+          </View>
+
+          <AnimatedPressable
+            onPress={addAppointment}
+            disabled={adding}
+            style={styles.heroAddButton}
+          >
+            {adding ? (
+              <ActivityIndicator color={palette.onAccent} />
+            ) : (
+              <>
+                <Ionicons
+                  name="add"
+                  size={20}
+                  color={palette.onAccent}
+                />
+                <Text
+                  style={[
+                    styles.heroAddText,
+                    { color: palette.onAccent },
+                  ]}
+                >
+                  Add visit
+                </Text>
+              </>
+            )}
+          </AnimatedPressable>
         </View>
 
-        <AnimatedPressable
-          onPress={addAppointment}
-          disabled={adding}
-          style={[styles.addButton, { backgroundColor: palette.accent }]}
+        <Text
+          style={[
+            styles.scheduleHeroTitle,
+            { color: palette.onAccent },
+          ]}
         >
-          {adding ? (
-            <ActivityIndicator color={palette.onAccent} />
-          ) : (
-            <Ionicons name="add" size={26} color={palette.onAccent} />
-          )}
-        </AnimatedPressable>
+          Your care, beautifully organised.
+        </Text>
+
+        <Text style={styles.scheduleHeroCopy}>
+          Keep every checkup, scan and maternity visit in one calm place.
+        </Text>
+
+        <View style={styles.scheduleStats}>
+          <View style={styles.scheduleStat}>
+            <Text style={styles.scheduleStatValue}>
+              {upcomingAppointments.length}
+            </Text>
+            <Text style={styles.scheduleStatLabel}>
+              Upcoming
+            </Text>
+          </View>
+
+          <View style={styles.scheduleStatDivider} />
+
+          <View style={styles.scheduleStat}>
+            <Text style={styles.scheduleStatValue}>
+              {pastAppointments.length}
+            </Text>
+            <Text style={styles.scheduleStatLabel}>
+              Completed
+            </Text>
+          </View>
+
+          <View style={styles.scheduleStatDivider} />
+
+          <View style={styles.scheduleStat}>
+            <Text style={styles.scheduleStatValue}>
+              {appointments.length}
+            </Text>
+            <Text style={styles.scheduleStatLabel}>
+              Total
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.filterRow}>
+        {filters.map((item) => {
+          const active = filter === item;
+
+          return (
+            <AnimatedPressable
+              key={item}
+              onPress={() => setFilter(item)}
+              style={[
+                styles.filterButton,
+                {
+                  backgroundColor: active
+                    ? palette.accent
+                    : palette.surface,
+                  borderColor: active
+                    ? palette.accent
+                    : palette.line,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  {
+                    color: active
+                      ? palette.onAccent
+                      : palette.text,
+                  },
+                ]}
+              >
+                {item}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.listHeading}>
+        <View>
+          <Text style={[styles.listTitle, { color: palette.ink }]}>
+            {filter} visits
+          </Text>
+          <Text style={[styles.listCopy, { color: palette.text }]}>
+            {visibleAppointments.length}{' '}
+            {visibleAppointments.length === 1 ? 'appointment' : 'appointments'}
+          </Text>
+        </View>
       </View>
 
       {loading ? (
@@ -163,7 +338,7 @@ export default function AppointmentsScreen() {
           <ActivityIndicator color={palette.accent} />
           <Text style={[styles.emptyTitle, { color: palette.ink }]}>Loading appointments...</Text>
         </View>
-      ) : appointments.length === 0 ? (
+      ) : visibleAppointments.length === 0 ? (
         <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.line }]}>
           <View style={[styles.emptyIcon, { backgroundColor: palette.accentSoft }]}>
             <Ionicons name="calendar-outline" size={34} color={palette.accent} />
@@ -171,12 +346,14 @@ export default function AppointmentsScreen() {
 
           <Text style={[styles.emptyTitle, { color: palette.ink }]}>No appointments yet</Text>
           <Text style={[styles.emptyCopy, { color: palette.text }]}>
-            Tap the plus button to add your next checkup, scan, or maternity visit.
+            {filter === 'Upcoming'
+              ? 'Add your next checkup, scan, or maternity visit.'
+              : `No ${filter.toLowerCase()} appointments to show.`}
           </Text>
         </View>
       ) : (
-        appointments.map((appointment) => {
-          const isCancelled = appointment.status === 'Cancelled';
+        visibleAppointments.map((appointment) => {
+          const isCancelled = isCancelledAppointment(appointment);
 
           return (
             <AnimatedPressable
@@ -244,6 +421,114 @@ export default function AppointmentsScreen() {
 }
 
 const styles = StyleSheet.create({
+  scheduleHero: {
+    borderWidth: 1,
+    borderRadius: 32,
+    padding: 21,
+    marginTop: 18,
+    marginBottom: 18,
+    overflow: 'hidden',
+  },
+  scheduleHeroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  scheduleLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  scheduleLabelText: {
+    ...type.tiny,
+    letterSpacing: 1.2,
+  },
+  heroAddButton: {
+    minHeight: 40,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    backgroundColor: 'rgba(255,255,255,0.17)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  heroAddText: {
+    ...type.small,
+  },
+  scheduleHeroTitle: {
+    ...type.title,
+    fontSize: 29,
+    lineHeight: 35,
+    maxWidth: 310,
+    marginTop: 28,
+  },
+  scheduleHeroCopy: {
+    ...type.small,
+    color: 'rgba(255,255,255,0.82)',
+    lineHeight: 20,
+    maxWidth: 315,
+    marginTop: 7,
+  },
+  scheduleStats: {
+    minHeight: 76,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 21,
+    paddingHorizontal: 10,
+  },
+  scheduleStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  scheduleStatValue: {
+    ...type.bodyStrong,
+    color: '#FFFFFF',
+    fontSize: 21,
+    lineHeight: 25,
+  },
+  scheduleStatLabel: {
+    ...type.tiny,
+    color: 'rgba(255,255,255,0.76)',
+    marginTop: 2,
+  },
+  scheduleStatDivider: {
+    width: 1,
+    height: 35,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 22,
+  },
+  filterButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterText: {
+    ...type.small,
+    fontWeight: '800',
+  },
+  listHeading: {
+    marginBottom: 12,
+  },
+  listTitle: {
+    ...type.title,
+    fontSize: 23,
+    lineHeight: 28,
+  },
+  listCopy: {
+    ...type.small,
+    marginTop: 2,
+  },
   heading: {
     flexDirection: 'row',
     gap: 14,
