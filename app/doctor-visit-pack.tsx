@@ -243,6 +243,13 @@ export default function DoctorVisitPackScreen() {
   const appointmentTitle = appointment?.title || appointment?.type || 'Next appointment';
   const babyName = profile?.baby_nickname || 'Baby';
 
+  const readinessScore = [
+    Boolean(appointment),
+    unansweredQuestions.length > 0,
+    symptomLogs.length > 0,
+    medications.length > 0,
+  ].filter(Boolean).length;
+
   const visitSummary = useMemo(() => {
     const symptomSummary = symptomLogs.length
       ? symptomLogs
@@ -306,20 +313,78 @@ export default function DoctorVisitPackScreen() {
         </Text>
       </View>
 
-      <View style={[styles.heroCard, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-        <View style={[styles.accentRail, { backgroundColor: palette.accent }]} />
-
+      <View
+        style={[
+          styles.heroCard,
+          {
+            backgroundColor: palette.accent,
+            borderColor: palette.accent,
+          },
+        ]}
+      >
         <View style={styles.heroTop}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.cardLabel, { color: palette.accent }]}>PREGNANCY</Text>
-            <Text style={[styles.weekTitle, { color: palette.ink }]}>Week {progress.week}</Text>
-            <Text style={[styles.weekCopy, { color: palette.text }]}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { color: 'rgba(255,255,255,0.76)' },
+              ]}
+            >
+              YOUR VISIT PACK
+            </Text>
+
+            <Text style={styles.weekTitle}>
+              Week {progress.week}
+            </Text>
+
+            <Text style={styles.weekCopy}>
               Day {progress.day} with {babyName} • {progress.daysRemaining} days to go
             </Text>
           </View>
 
-          <View style={[styles.weekBadge, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="document-text-outline" size={24} color={palette.accent} />
+          <View style={styles.weekBadge}>
+            <Ionicons
+              name="document-text-outline"
+              size={26}
+              color="#FFFFFF"
+            />
+          </View>
+        </View>
+
+        <View style={styles.readinessBox}>
+          <View style={styles.readinessTop}>
+            <View>
+              <Text style={styles.readinessLabel}>
+                VISIT READINESS
+              </Text>
+
+              <Text style={styles.readinessTitle}>
+                {readinessScore === 4
+                  ? 'Ready for your visit'
+                  : 'A few things to prepare'}
+              </Text>
+            </View>
+
+            <Text style={styles.readinessScore}>
+              {readinessScore}/4
+            </Text>
+          </View>
+
+          <View style={styles.readinessBars}>
+            {[0, 1, 2, 3].map((step) => (
+              <View
+                key={step}
+                style={[
+                  styles.readinessBar,
+                  {
+                    backgroundColor:
+                      step < readinessScore
+                        ? '#FFFFFF'
+                        : 'rgba(255,255,255,0.22)',
+                  },
+                ]}
+              />
+            ))}
           </View>
         </View>
       </View>
@@ -578,21 +643,14 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderWidth: 1,
-    borderRadius: 24,
-    padding: 16,
+    borderRadius: 30,
+    padding: 20,
     marginBottom: 12,
     overflow: 'hidden',
   },
-  accentRail: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 5,
-  },
   heroTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 14,
   },
   cardLabel: {
@@ -600,21 +658,62 @@ const styles = StyleSheet.create({
     letterSpacing: 1.3,
   },
   weekTitle: {
-    fontSize: 37,
-    lineHeight: 42,
+    fontSize: 39,
+    lineHeight: 44,
     fontWeight: '900',
+    color: '#FFFFFF',
     marginTop: 3,
   },
   weekCopy: {
     ...type.small,
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.84)',
+    marginTop: 3,
   },
   weekBadge: {
-    width: 58,
-    height: 58,
-    borderRadius: 21,
+    width: 56,
+    height: 56,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.17)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  readinessBox: {
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    padding: 15,
+    marginTop: 20,
+  },
+  readinessTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  readinessLabel: {
+    ...type.tiny,
+    color: 'rgba(255,255,255,0.72)',
+    letterSpacing: 1.2,
+  },
+  readinessTitle: {
+    ...type.bodyStrong,
+    color: '#FFFFFF',
+    marginTop: 3,
+  },
+  readinessScore: {
+    ...type.bodyStrong,
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  readinessBars: {
+    flexDirection: 'row',
+    gap: 7,
+    marginTop: 14,
+  },
+  readinessBar: {
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
   },
   quickRow: {
     flexDirection: 'row',
