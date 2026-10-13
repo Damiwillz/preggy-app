@@ -192,22 +192,116 @@ export default function AddAppointmentScreen() {
       <Header title={isEditing ? "Edit Appointment" : "Add Appointment"} back />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={[styles.hero, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-          <View style={[styles.iconCircle, { backgroundColor: palette.accentSoft }]}>
-            <Ionicons name="calendar-outline" size={34} color={palette.accent} />
+        <View
+          style={[
+            styles.hero,
+            {
+              backgroundColor: palette.accentSoft,
+              borderColor: palette.line,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.iconCircle,
+              { backgroundColor: palette.surface },
+            ]}
+          >
+            <Ionicons
+              name={isEditing ? 'create-outline' : 'calendar-outline'}
+              size={27}
+              color={palette.accent}
+            />
           </View>
 
-          <Text style={[styles.title, { color: palette.ink }]}>{isEditing ? 'Edit appointment' : 'New appointment'}</Text>
-          <Text style={[styles.subtitle, { color: palette.text }]}>Save your next checkup, scan, clinic visit, or maternity appointment.</Text>
+          <View style={styles.heroContent}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>
+              {isEditing ? 'UPDATE VISIT' : 'NEW CARE VISIT'}
+            </Text>
+
+            <Text style={[styles.title, { color: palette.ink }]}>
+              {isEditing ? 'Edit appointment' : 'Plan your next visit'}
+            </Text>
+
+            <Text style={[styles.subtitle, { color: palette.text }]}>
+              Keep the important details together and arrive prepared.
+            </Text>
+          </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.line }]}>
-          <Field palette={palette} label="Title" placeholder="Prenatal checkup" value={title} onChangeText={setTitle} />
-          <Field palette={palette} label="Doctor or care team" placeholder="Dr. Grace" value={doctor} onChangeText={setDoctor} />
-          <Field palette={palette} label="Clinic or location" placeholder="Women’s Wellness Clinic" value={clinic} onChangeText={setClinic} />
-          <Field palette={palette} label="Date" placeholder="2026-10-09" value={date} onChangeText={setDate} />
-          <Field palette={palette} label="Time" placeholder="10:00 AM" value={time} onChangeText={setTime} />
-          <Field palette={palette}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionLabel, { color: palette.accent }]}>
+            VISIT INFORMATION
+          </Text>
+
+          <Field
+            palette={palette}
+            icon="medical-outline"
+            label="Appointment title"
+            placeholder="Prenatal checkup"
+            value={title}
+            onChangeText={setTitle}
+          />
+
+          <Field
+            palette={palette}
+            icon="person-outline"
+            label="Doctor or care team"
+            placeholder="Dr. Grace"
+            value={doctor}
+            onChangeText={setDoctor}
+          />
+
+          <Field
+            palette={palette}
+            icon="location-outline"
+            label="Clinic or location"
+            placeholder="Women’s Wellness Clinic"
+            value={clinic}
+            onChangeText={setClinic}
+          />
+
+          <View style={styles.divider} />
+
+          <Text style={[styles.sectionLabel, { color: palette.accent }]}>
+            DATE AND TIME
+          </Text>
+
+          <Field
+            palette={palette}
+            icon="calendar-outline"
+            label="Date"
+            placeholder="2026-10-09"
+            value={date}
+            onChangeText={setDate}
+          />
+
+          <Field
+            palette={palette}
+            icon="time-outline"
+            label="Time"
+            placeholder="10:00 AM"
+            value={time}
+            onChangeText={setTime}
+          />
+
+          <View style={styles.divider} />
+
+          <Text style={[styles.sectionLabel, { color: palette.accent }]}>
+            PREPARATION
+          </Text>
+
+          <Field
+            palette={palette}
+            icon="document-text-outline"
             label="Notes"
             placeholder="Bring questions, reports, or symptom notes"
             value={notes}
@@ -229,10 +323,12 @@ export default function AddAppointmentScreen() {
 }
 
 function Field({
+  icon,
   label,
   palette,
   ...props
 }: {
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   placeholder: string;
   value: string;
@@ -242,16 +338,37 @@ function Field({
 }) {
   return (
     <View style={styles.field}>
-      <Text style={[styles.label, { color: palette.ink }]}>{label}</Text>
-      <TextInput
-        {...props}
-        placeholderTextColor={palette.muted}
+      <Text style={[styles.label, { color: palette.ink }]}>
+        {label}
+      </Text>
+
+      <View
         style={[
-          styles.input,
-          { backgroundColor: palette.canvas, borderColor: palette.line, color: palette.ink },
-          props.multiline && styles.textarea,
+          styles.inputShell,
+          {
+            backgroundColor: palette.canvas,
+            borderColor: palette.line,
+          },
+          props.multiline && styles.textareaShell,
         ]}
-      />
+      >
+        <Ionicons
+          name={icon}
+          size={19}
+          color={palette.accent}
+          style={styles.fieldIcon}
+        />
+
+        <TextInput
+          {...props}
+          placeholderTextColor={palette.muted}
+          style={[
+            styles.input,
+            { color: palette.ink },
+            props.multiline && styles.textarea,
+          ]}
+        />
+      </View>
     </View>
   );
 }
@@ -264,35 +381,38 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   hero: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 30,
-    padding: 24,
+    gap: 15,
+    borderRadius: 28,
+    padding: 18,
     marginTop: 18,
     borderWidth: 1,
-    borderColor: '#EFDCDD',
   },
   iconCircle: {
-    width: 78,
-    height: 78,
-    borderRadius: 28,
-    backgroundColor: '#FFF0F1',
+    width: 58,
+    height: 58,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
+  },
+  heroContent: {
+    flex: 1,
+  },
+  eyebrow: {
+    ...type.tiny,
+    letterSpacing: 1.2,
   },
   title: {
     ...type.title,
-    color: '#2A151B',
-    fontSize: 30,
-    textAlign: 'center',
+    fontSize: 24,
+    lineHeight: 29,
+    marginTop: 2,
   },
   subtitle: {
-    ...type.body,
-    color: '#9C7B82',
-    textAlign: 'center',
-    marginTop: 10,
-    lineHeight: 23,
+    ...type.small,
+    marginTop: 4,
+    lineHeight: 19,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -302,27 +422,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EFDCDD',
   },
-  field: {
+  sectionLabel: {
+    ...type.tiny,
+    letterSpacing: 1.3,
     marginBottom: 16,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(150,120,130,0.18)',
+    marginTop: 2,
+    marginBottom: 20,
+  },
+  field: {
+    marginBottom: 17,
   },
   label: {
     ...type.small,
-    color: '#2A151B',
     fontWeight: '900',
     marginBottom: 8,
   },
-  input: {
-    minHeight: 54,
+  inputShell: {
+    minHeight: 56,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#EFDCDD',
-    backgroundColor: '#FFF8F5',
-    paddingHorizontal: 16,
-    color: '#2A151B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+  },
+  textareaShell: {
+    minHeight: 112,
+    alignItems: 'flex-start',
+  },
+  fieldIcon: {
+    marginRight: 11,
+    marginTop: 1,
+  },
+  input: {
     ...type.body,
+    flex: 1,
+    minHeight: 54,
+    paddingVertical: 11,
   },
   textarea: {
-    minHeight: 104,
+    minHeight: 105,
     paddingTop: 14,
     textAlignVertical: 'top',
   },
