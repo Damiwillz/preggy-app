@@ -134,6 +134,57 @@ export default function AppointmentDetailsScreen() {
     }, [loadAppointment])
   );
 
+  const markAppointmentCompleted = async () => {
+    if (!appointment) return;
+
+    try {
+      if (await isGuestMode()) {
+        await updateGuestAppointment(appointment.id, {
+          status: 'Completed',
+          updated_at: new Date().toISOString(),
+        });
+
+        setAppointment({
+          ...appointment,
+          status: 'Completed',
+        });
+
+        Alert.alert(
+          'Visit completed',
+          'This appointment has been moved to your past visits.'
+        );
+        return;
+      }
+
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'Completed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', appointment.id)
+        .eq('user_id', appointment.user_id);
+
+      if (error) throw error;
+
+      setAppointment({
+        ...appointment,
+        status: 'Completed',
+      });
+
+      Alert.alert(
+        'Visit completed',
+        'This appointment has been moved to your past visits.'
+      );
+    } catch (error) {
+      console.log('Complete appointment error:', error);
+      Alert.alert(
+        'Could not update appointment',
+        'Please try again.'
+      );
+    }
+  };
+
   const cancelAppointment = async () => {
     if (!appointment) return;
 
@@ -238,7 +289,11 @@ export default function AppointmentDetailsScreen() {
     );
   };
 
-  const isCancelled = appointment?.status === 'Cancelled';
+  const isCancelled =
+    appointment?.status?.toLowerCase() === 'cancelled';
+
+  const isCompleted =
+    appointment?.status?.toLowerCase() === 'completed';
 
   return (
     <Screen bottomSpace={44}>
@@ -251,7 +306,18 @@ export default function AppointmentDetailsScreen() {
         </View>
       ) : (
         <>
-          <View style={[styles.heroCard, { backgroundColor: isCancelled ? palette.danger : palette.accent }]}>
+          <View
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: isCancelled
+                  ? palette.danger
+                  : isCompleted
+                    ? palette.success
+                    : palette.accent,
+              },
+            ]}
+          >
             <View style={styles.heroTop}>
               <View style={styles.heroIcon}>
                 <Ionicons name="calendar-outline" size={31} color={palette.onAccent} />
@@ -333,6 +399,78 @@ export default function AppointmentDetailsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color={palette.muted} />
           </AnimatedPressable>
+
+          {!isCancelled && !isCompleted ? (
+            <AnimatedPressable
+              onPress={() => void markAppointmentCompleted()}
+              style={[
+                styles.completeButton,
+                { backgroundColor: palette.success },
+              ]}
+            >
+              <View style={styles.completeIcon}>
+                <Ionicons
+                  name="checkmark"
+                  size={20}
+                  color="#FFFFFF"
+                />
+              </View>
+
+              <View style={styles.completeContent}>
+                <Text style={styles.completeTitle}>
+                  Mark visit as completed
+                </Text>
+
+                <Text style={styles.completeCopy}>
+                  Move this appointment into your past visits
+                </Text>
+              </View>
+
+              <Ionicons
+                name="arrow-forward"
+                size={20}
+                color="#FFFFFF"
+              />
+            </AnimatedPressable>
+          ) : null}
+
+          {isCompleted ? (
+            <View
+              style={[
+                styles.completedMessage,
+                {
+                  backgroundColor: palette.accentSoft,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <Ionicons
+                name="checkmark-circle"
+                size={24}
+                color={palette.success}
+              />
+
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.completedTitle,
+                    { color: palette.ink },
+                  ]}
+                >
+                  Visit completed
+                </Text>
+
+                <Text
+                  style={[
+                    styles.completedCopy,
+                    { color: palette.text },
+                  ]}
+                >
+                  Add your results and next steps in After-visit notes.
+                </Text>
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.actionRow}>
             <AnimatedPressable
@@ -565,6 +703,52 @@ const styles = StyleSheet.create({
     ...type.bodyStrong,
   },
   followUpCopy: {
+    ...type.small,
+    marginTop: 2,
+  },
+  completeButton: {
+    minHeight: 82,
+    borderRadius: 24,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 16,
+  },
+  completeIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completeContent: {
+    flex: 1,
+  },
+  completeTitle: {
+    ...type.bodyStrong,
+    color: '#FFFFFF',
+  },
+  completeCopy: {
+    ...type.small,
+    color: 'rgba(255,255,255,0.82)',
+    marginTop: 2,
+  },
+  completedMessage: {
+    minHeight: 82,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 16,
+  },
+  completedTitle: {
+    ...type.bodyStrong,
+  },
+  completedCopy: {
     ...type.small,
     marginTop: 2,
   },

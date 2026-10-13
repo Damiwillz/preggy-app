@@ -71,6 +71,10 @@ function isCancelledAppointment(appointment: Appointment) {
 }
 
 function isPastAppointment(appointment: Appointment) {
+  if (appointment.status?.toLowerCase() === 'completed') {
+    return true;
+  }
+
   const value = displayDate(appointment);
 
   if (!value) return false;
