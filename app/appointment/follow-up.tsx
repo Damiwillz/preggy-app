@@ -95,6 +95,14 @@ export default function AppointmentFollowUpScreen() {
 
   const storageKey = appointmentId ? `${STORAGE_PREFIX}:${appointmentId}` : null;
 
+  const completedSections = [
+    notes.advice,
+    notes.testResults,
+    notes.medicationChanges,
+    notes.nextSteps,
+    notes.followUpDate,
+  ].filter((value) => value.trim().length > 0).length;
+
   useEffect(() => {
     let active = true;
 
@@ -233,12 +241,70 @@ export default function AppointmentFollowUpScreen() {
       <Header title="After Visit" back />
 
       <View style={[styles.hero, { backgroundColor: palette.accent }]}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="clipboard-outline" size={30} color={palette.onAccent} />
+        <View style={styles.heroTop}>
+          <View style={styles.heroIcon}>
+            <Ionicons
+              name="clipboard-outline"
+              size={28}
+              color={palette.onAccent}
+            />
+          </View>
+
+          <View style={styles.progressScore}>
+            <Text style={styles.progressScoreText}>
+              {completedSections}/5
+            </Text>
+          </View>
         </View>
-        <Text style={[styles.eyebrow, { color: palette.onAccent }]}>AFTER YOUR APPOINTMENT</Text>
-        <Text style={[styles.title, { color: palette.onAccent }]}>Keep the plan from your visit</Text>
-        <Text style={[styles.subtitle, { color: palette.onAccent }]}>Save what your care team explained and what happens next.</Text>
+
+        <Text style={[styles.eyebrow, { color: palette.onAccent }]}>
+          AFTER YOUR APPOINTMENT
+        </Text>
+
+        <Text style={[styles.title, { color: palette.onAccent }]}>
+          Keep the plan from your visit
+        </Text>
+
+        <Text style={[styles.subtitle, { color: palette.onAccent }]}>
+          Save what your care team explained and what happens next.
+        </Text>
+
+        <View style={styles.progressCard}>
+          <View style={styles.progressHeading}>
+            <View>
+              <Text style={styles.progressLabel}>
+                VISIT RECAP
+              </Text>
+
+              <Text style={styles.progressTitle}>
+                {completedSections === 5
+                  ? 'Your recap is complete'
+                  : 'Complete your visit notes'}
+              </Text>
+            </View>
+
+            <Text style={styles.progressPercent}>
+              {completedSections * 20}%
+            </Text>
+          </View>
+
+          <View style={styles.progressBars}>
+            {[0, 1, 2, 3, 4].map((step) => (
+              <View
+                key={step}
+                style={[
+                  styles.progressBar,
+                  {
+                    backgroundColor:
+                      step < completedSections
+                        ? '#FFFFFF'
+                        : 'rgba(255,255,255,0.22)',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        </View>
       </View>
 
       {loading ? (
@@ -288,11 +354,91 @@ export default function AppointmentFollowUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { borderRadius: 32, padding: 22, marginTop: 12, marginBottom: 16 },
-  heroIcon: { width: 54, height: 54, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-  eyebrow: { ...type.section },
-  title: { ...type.title, fontSize: 31, lineHeight: 37, marginTop: 5 },
-  subtitle: { ...type.body, marginTop: 9, opacity: 0.9 },
+  hero: {
+    borderRadius: 32,
+    padding: 22,
+    marginTop: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 21,
+  },
+  heroIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressScore: {
+    minWidth: 52,
+    height: 40,
+    borderRadius: 16,
+    paddingHorizontal: 11,
+    backgroundColor: 'rgba(255,255,255,0.17)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressScoreText: {
+    ...type.bodyStrong,
+    color: '#FFFFFF',
+  },
+  eyebrow: {
+    ...type.section,
+  },
+  title: {
+    ...type.title,
+    fontSize: 31,
+    lineHeight: 37,
+    marginTop: 5,
+  },
+  subtitle: {
+    ...type.body,
+    marginTop: 9,
+    opacity: 0.9,
+  },
+  progressCard: {
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    padding: 15,
+    marginTop: 20,
+  },
+  progressHeading: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  progressLabel: {
+    ...type.tiny,
+    color: 'rgba(255,255,255,0.72)',
+    letterSpacing: 1.2,
+  },
+  progressTitle: {
+    ...type.bodyStrong,
+    color: '#FFFFFF',
+    marginTop: 3,
+  },
+  progressPercent: {
+    ...type.bodyStrong,
+    color: '#FFFFFF',
+    fontSize: 19,
+  },
+  progressBars: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 14,
+  },
+  progressBar: {
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
+  },
   loadingCard: { minHeight: 180, borderRadius: 28, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   loadingText: { ...type.small },
   fieldCard: { borderRadius: 25, borderWidth: 1, padding: 16, marginBottom: 12 },
