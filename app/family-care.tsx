@@ -51,6 +51,12 @@ const familySupport: CareItem[] = [
     route: '/family-decisions',
   },
   {
+    icon: 'shield-checkmark-outline',
+    title: 'Visitor Plan',
+    copy: 'Set and share calm visiting boundaries.',
+    route: '/visitor-plan',
+  },
+  {
     icon: 'swap-horizontal-outline',
     title: 'Care Handoff',
     copy: 'Pass important information to the next caregiver.',
