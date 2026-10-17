@@ -45,6 +45,12 @@ const newbornCare: CareItem[] = [
 
 const familySupport: CareItem[] = [
   {
+    icon: 'git-branch-outline',
+    title: 'Family Decisions',
+    copy: 'Discuss, record and remember important family choices.',
+    route: '/family-decisions',
+  },
+  {
     icon: 'swap-horizontal-outline',
     title: 'Care Handoff',
     copy: 'Pass important information to the next caregiver.',
