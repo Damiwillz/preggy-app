@@ -57,6 +57,12 @@ const familySupport: CareItem[] = [
     route: '/visitor-plan',
   },
   {
+    icon: 'battery-half-outline',
+    title: 'Energy Budget',
+    copy: 'Plan your day around your real energy.',
+    route: '/energy-budget',
+  },
+  {
     icon: 'swap-horizontal-outline',
     title: 'Care Handoff',
     copy: 'Pass important information to the next caregiver.',
