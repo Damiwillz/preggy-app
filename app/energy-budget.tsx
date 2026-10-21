@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -212,6 +213,46 @@ export default function EnergyBudgetScreen() {
           : task
       ),
     });
+  }
+
+  async function shareHelpList() {
+    const delegatedTasks = plan.tasks.filter(
+      (task) =>
+        task.owner === 'Delegate' &&
+        !task.completed
+    );
+
+    if (!delegatedTasks.length) {
+      Alert.alert(
+        'No help requests yet',
+        'Mark a task as Ask for help first.'
+      );
+      return;
+    }
+
+    const message = [
+      'Could you help me with these today?',
+      '',
+      ...delegatedTasks.map(
+        (task) => `• ${task.title}`
+      ),
+      '',
+      'Thank you. Your support helps me protect my energy and rest.',
+    ].join('\n');
+
+    try {
+      await Share.share({
+        title: 'Preggy Help Request',
+        message,
+      });
+    } catch (error) {
+      console.log('Help request share error:', error);
+
+      Alert.alert(
+        'Could not share',
+        'Please try again.'
+      );
+    }
   }
 
   function deleteTask(id: string) {
@@ -831,6 +872,92 @@ export default function EnergyBudgetScreen() {
         </View>
       )}
 
+      {delegatedCount > 0 ? (
+        <View
+          style={[
+            styles.helpCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+            },
+          ]}
+        >
+          <View style={styles.helpTop}>
+            <View
+              style={[
+                styles.helpIcon,
+                { backgroundColor: palette.accentSoft },
+              ]}
+            >
+              <Ionicons
+                name="people-outline"
+                size={23}
+                color={palette.accent}
+              />
+            </View>
+
+            <View style={styles.helpContent}>
+              <Text
+                style={[
+                  styles.helpEyebrow,
+                  { color: palette.accent },
+                ]}
+              >
+                SUPPORT LIST
+              </Text>
+
+              <Text
+                style={[
+                  styles.helpTitle,
+                  { color: palette.ink },
+                ]}
+              >
+                Ask without explaining everything
+              </Text>
+
+              <Text
+                style={[
+                  styles.helpCopy,
+                  { color: palette.text },
+                ]}
+              >
+                {delegatedCount}{' '}
+                {delegatedCount === 1 ? 'task is' : 'tasks are'} ready to share.
+              </Text>
+            </View>
+          </View>
+
+          <AnimatedPressable
+            onPress={() => void shareHelpList()}
+            style={[
+              styles.shareHelpButton,
+              { backgroundColor: palette.accent },
+            ]}
+          >
+            <Ionicons
+              name="share-social-outline"
+              size={20}
+              color={palette.onAccent}
+            />
+
+            <Text
+              style={[
+                styles.shareHelpText,
+                { color: palette.onAccent },
+              ]}
+            >
+              Share help request
+            </Text>
+
+            <Ionicons
+              name="arrow-forward"
+              size={19}
+              color={palette.onAccent}
+            />
+          </AnimatedPressable>
+        </View>
+      ) : null}
+
       <View
         style={[
           styles.restCard,
@@ -1155,6 +1282,54 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 5,
+  },
+  helpCard: {
+    borderWidth: 1,
+    borderRadius: 25,
+    padding: 16,
+    marginTop: 21,
+  },
+  helpTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  helpIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helpContent: {
+    flex: 1,
+  },
+  helpEyebrow: {
+    ...type.tiny,
+    letterSpacing: 1.1,
+  },
+  helpTitle: {
+    ...type.bodyStrong,
+    marginTop: 3,
+  },
+  helpCopy: {
+    ...type.small,
+    marginTop: 3,
+  },
+  shareHelpButton: {
+    minHeight: 54,
+    borderRadius: 19,
+    paddingHorizontal: 15,
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  shareHelpText: {
+    ...type.bodyStrong,
+    flex: 1,
+    textAlign: 'center',
   },
   restCard: {
     borderWidth: 1,
