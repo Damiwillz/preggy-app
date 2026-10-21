@@ -63,6 +63,12 @@ const familySupport: CareItem[] = [
     route: '/energy-budget',
   },
   {
+    icon: 'heart-circle-outline',
+    title: 'Comfort Profile',
+    copy: 'Share what helps you feel safe and supported.',
+    route: '/comfort-profile',
+  },
+  {
     icon: 'swap-horizontal-outline',
     title: 'Care Handoff',
     copy: 'Pass important information to the next caregiver.',
