@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -279,6 +280,58 @@ export default function RecoveryCheckInScreen() {
     );
   }, [recentLogs]);
 
+  async function shareRecoverySummary() {
+    if (!recentLogs.length) {
+      Alert.alert(
+        'No check-ins yet',
+        'Save at least one recovery check-in first.'
+      );
+      return;
+    }
+
+    const lines = [
+      'Preggy Recovery Summary',
+      '',
+      `Recent overall score: ${overallScore}%`,
+      `Check-ins included: ${recentLogs.length}`,
+      '',
+      ...recentLogs.flatMap((log) => {
+        const entry = [
+          formatDate(log.date),
+          `Mood: ${log.mood}/5`,
+          `Energy: ${log.energy}/5`,
+          `Rest: ${log.rest}/5`,
+          `Physical comfort: ${log.comfort}/5`,
+        ];
+
+        if (log.notes) {
+          entry.push(`Notes: ${log.notes}`);
+        }
+
+        entry.push('');
+        return entry;
+      }),
+      'This summary is a personal wellbeing record and does not provide a medical diagnosis.',
+    ];
+
+    try {
+      await Share.share({
+        title: 'Preggy Recovery Summary',
+        message: lines.join('\n'),
+      });
+    } catch (error) {
+      console.log(
+        'Recovery summary share error:',
+        error
+      );
+
+      Alert.alert(
+        'Could not share',
+        'Please try again.'
+      );
+    }
+  }
+
   function updateRating(
     field: RatingField,
     value: Rating
@@ -515,20 +568,52 @@ export default function RecoveryCheckInScreen() {
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.historyCount,
-            { backgroundColor: palette.accentSoft },
-          ]}
-        >
-          <Text
+        <View style={styles.historyActions}>
+          <View
             style={[
-              styles.historyCountText,
-              { color: palette.accent },
+              styles.historyCount,
+              { backgroundColor: palette.accentSoft },
             ]}
           >
-            {recentLogs.length}/7
-          </Text>
+            <Text
+              style={[
+                styles.historyCountText,
+                { color: palette.accent },
+              ]}
+            >
+              {recentLogs.length}/7
+            </Text>
+          </View>
+
+          {recentLogs.length ? (
+            <AnimatedPressable
+              onPress={() =>
+                void shareRecoverySummary()
+              }
+              style={[
+                styles.shareHistoryButton,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <Ionicons
+                name="share-social-outline"
+                size={17}
+                color={palette.accent}
+              />
+
+              <Text
+                style={[
+                  styles.shareHistoryText,
+                  { color: palette.accent },
+                ]}
+              >
+                Share
+              </Text>
+            </AnimatedPressable>
+          ) : null}
         </View>
       </View>
 
@@ -858,6 +943,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 27,
     marginBottom: 12,
+  },
+  historyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  shareHistoryButton: {
+    minHeight: 36,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  shareHistoryText: {
+    ...type.tiny,
   },
   historyCount: {
     borderRadius: 14,
