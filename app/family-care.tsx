@@ -87,6 +87,12 @@ const babyCare: CareItem[] = [
 
 const recoveryCare: CareItem[] = [
   {
+    icon: 'pulse-outline',
+    title: 'Recovery Check-in',
+    copy: 'Notice daily mood, energy, rest and physical comfort.',
+    route: '/recovery-check-in',
+  },
+  {
     icon: 'battery-half-outline',
     title: 'Energy Budget',
     copy: 'Plan your day around your real energy.',
