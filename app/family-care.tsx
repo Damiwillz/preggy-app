@@ -1,6 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Header } from '@/components/layout/Header';
@@ -16,7 +17,42 @@ type CareItem = {
   route: string;
 };
 
-const newbornCare: CareItem[] = [
+type CareMode = 'Baby' | 'My Recovery' | 'Family';
+
+const LAST_MODE_KEY = 'preggy:last-family-care-mode';
+
+const modes: CareMode[] = [
+  'Baby',
+  'My Recovery',
+  'Family',
+];
+
+const modeMeta: Record<
+  CareMode,
+  {
+    icon: React.ComponentProps<typeof Ionicons>['name'];
+    title: string;
+    copy: string;
+  }
+> = {
+  Baby: {
+    icon: 'happy-outline',
+    title: 'Baby care',
+    copy: 'Profiles, feeding, diapers, sleep, and daily newborn tracking.',
+  },
+  'My Recovery': {
+    icon: 'heart-circle-outline',
+    title: 'Your recovery',
+    copy: 'Protect your energy, comfort, rest, and postpartum wellbeing.',
+  },
+  Family: {
+    icon: 'people-outline',
+    title: 'Your care circle',
+    copy: 'Make decisions, set boundaries, and coordinate practical support.',
+  },
+};
+
+const babyCare: CareItem[] = [
   {
     icon: 'grid-outline',
     title: 'Newborn Dashboard',
@@ -41,21 +77,15 @@ const newbornCare: CareItem[] = [
     copy: 'Time naps and review sleep sessions.',
     route: '/newborn-sleep',
   },
+  {
+    icon: 'happy-outline',
+    title: 'Baby Profile',
+    copy: 'Update your baby’s name and birth information.',
+    route: '/newborn-profile',
+  },
 ];
 
-const familySupport: CareItem[] = [
-  {
-    icon: 'git-branch-outline',
-    title: 'Family Decisions',
-    copy: 'Discuss, record and remember important family choices.',
-    route: '/family-decisions',
-  },
-  {
-    icon: 'shield-checkmark-outline',
-    title: 'Visitor Plan',
-    copy: 'Set and share calm visiting boundaries.',
-    route: '/visitor-plan',
-  },
+const recoveryCare: CareItem[] = [
   {
     icon: 'battery-half-outline',
     title: 'Energy Budget',
@@ -69,22 +99,31 @@ const familySupport: CareItem[] = [
     route: '/comfort-profile',
   },
   {
-    icon: 'swap-horizontal-outline',
-    title: 'Care Handoff',
-    copy: 'Pass important information to the next caregiver.',
-    route: '/care-handoff',
-  },
-  {
-    icon: 'happy-outline',
-    title: 'Baby Profile',
-    copy: 'Update your baby’s name and birth information.',
-    route: '/newborn-profile',
-  },
-  {
     icon: 'home-outline',
     title: 'Postpartum Plan',
     copy: 'Prepare recovery, rest and support at home.',
     route: '/postpartum-plan',
+  },
+];
+
+const familyCircle: CareItem[] = [
+  {
+    icon: 'git-branch-outline',
+    title: 'Family Decisions',
+    copy: 'Discuss, record and remember important family choices.',
+    route: '/family-decisions',
+  },
+  {
+    icon: 'shield-checkmark-outline',
+    title: 'Visitor Plan',
+    copy: 'Set and share calm visiting boundaries.',
+    route: '/visitor-plan',
+  },
+  {
+    icon: 'swap-horizontal-outline',
+    title: 'Care Handoff',
+    copy: 'Pass important information to the next caregiver.',
+    route: '/care-handoff',
   },
   {
     icon: 'people-outline',
@@ -170,6 +209,43 @@ function CareCard({
 
 export default function FamilyCareScreen() {
   const { palette } = useAppTheme();
+  const [activeMode, setActiveMode] =
+    useState<CareMode>('Baby');
+
+  useEffect(() => {
+    AsyncStorage.getItem(LAST_MODE_KEY)
+      .then((saved) => {
+        if (
+          saved === 'Baby' ||
+          saved === 'My Recovery' ||
+          saved === 'Family'
+        ) {
+          setActiveMode(saved);
+        }
+      })
+      .catch((error) => {
+        console.log('Family Care mode load error:', error);
+      });
+  }, []);
+
+  function selectMode(mode: CareMode) {
+    setActiveMode(mode);
+
+    AsyncStorage.setItem(LAST_MODE_KEY, mode).catch(
+      (error) => {
+        console.log('Family Care mode save error:', error);
+      }
+    );
+  }
+
+  const activeItems =
+    activeMode === 'Baby'
+      ? babyCare
+      : activeMode === 'My Recovery'
+        ? recoveryCare
+        : familyCircle;
+
+  const activeMeta = modeMeta[activeMode];
 
   return (
     <Screen bottomSpace={70}>
@@ -248,83 +324,158 @@ export default function FamilyCareScreen() {
         </View>
       </View>
 
-      <CareCard item={newbornCare[0]} featured />
+      <View
+        style={[
+          styles.modeSelector,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.line,
+          },
+        ]}
+      >
+        {modes.map((mode) => {
+          const active = activeMode === mode;
+          const meta = modeMeta[mode];
 
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={[styles.eyebrow, { color: palette.accent }]}>
-            BABY CARE
+          return (
+            <AnimatedPressable
+              key={mode}
+              onPress={() => selectMode(mode)}
+              style={[
+                styles.modeButton,
+                {
+                  backgroundColor: active
+                    ? palette.accent
+                    : 'transparent',
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.modeButtonIcon,
+                  {
+                    backgroundColor: active
+                      ? 'rgba(255,255,255,0.18)'
+                      : palette.accentSoft,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={meta.icon}
+                  size={19}
+                  color={
+                    active
+                      ? palette.onAccent
+                      : palette.accent
+                  }
+                />
+              </View>
+
+              <Text
+                style={[
+                  styles.modeButtonText,
+                  {
+                    color: active
+                      ? palette.onAccent
+                      : palette.text,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {mode}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
+
+      <View
+        style={[
+          styles.modeSummary,
+          {
+            backgroundColor: palette.accentSoft,
+            borderColor: palette.line,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.modeSummaryIcon,
+            { backgroundColor: palette.accent },
+          ]}
+        >
+          <Ionicons
+            name={activeMeta.icon}
+            size={25}
+            color={palette.onAccent}
+          />
+        </View>
+
+        <View style={styles.modeSummaryContent}>
+          <Text
+            style={[
+              styles.modeSummaryEyebrow,
+              { color: palette.accent },
+            ]}
+          >
+            {activeMode.toUpperCase()}
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: palette.ink }]}>
-            Quick tracking
+          <Text
+            style={[
+              styles.modeSummaryTitle,
+              { color: palette.ink },
+            ]}
+          >
+            {activeMeta.title}
+          </Text>
+
+          <Text
+            style={[
+              styles.modeSummaryCopy,
+              { color: palette.text },
+            ]}
+          >
+            {activeMeta.copy}
           </Text>
         </View>
 
         <View
           style={[
-            styles.countBadge,
-            { backgroundColor: palette.accentSoft },
+            styles.modeCount,
+            { backgroundColor: palette.surface },
           ]}
         >
-          <Text style={[styles.countText, { color: palette.accent }]}>
-            3 tools
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.grid}>
-        {newbornCare.slice(1).map((item) => (
-          <AnimatedPressable
-            key={item.title}
-            onPress={() => router.push(item.route as never)}
+          <Text
             style={[
-              styles.gridCard,
-              {
-                backgroundColor: palette.surface,
-                borderColor: palette.line,
-              },
+              styles.modeCountValue,
+              { color: palette.accent },
             ]}
           >
-            <View
-              style={[
-                styles.gridIcon,
-                { backgroundColor: palette.accentSoft },
-              ]}
-            >
-              <Ionicons
-                name={item.icon}
-                size={24}
-                color={palette.accent}
-              />
-            </View>
-
-            <Text style={[styles.gridTitle, { color: palette.ink }]}>
-              {item.title}
-            </Text>
-
-            <Text style={[styles.gridCopy, { color: palette.text }]}>
-              {item.copy}
-            </Text>
-          </AnimatedPressable>
-        ))}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={[styles.eyebrow, { color: palette.accent }]}>
-            FAMILY SUPPORT
+            {activeItems.length}
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: palette.ink }]}>
-            Your care circle
+          <Text
+            style={[
+              styles.modeCountLabel,
+              { color: palette.text },
+            ]}
+          >
+            tools
           </Text>
         </View>
       </View>
 
       <View style={styles.list}>
-        {familySupport.map((item) => (
-          <CareCard key={item.title} item={item} />
+        {activeItems.map((item, index) => (
+          <CareCard
+            key={item.route}
+            item={item}
+            featured={
+              activeMode === 'Baby' &&
+              index === 0
+            }
+          />
         ))}
       </View>
 
@@ -408,6 +559,86 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
     marginHorizontal: 8,
+  },
+  modeSelector: {
+    minHeight: 78,
+    borderWidth: 1,
+    borderRadius: 25,
+    padding: 6,
+    flexDirection: 'row',
+    gap: 5,
+    marginBottom: 14,
+  },
+  modeButton: {
+    flex: 1,
+    borderRadius: 20,
+    paddingHorizontal: 5,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  modeButtonIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeButtonText: {
+    ...type.tiny,
+    textAlign: 'center',
+  },
+  modeSummary: {
+    minHeight: 118,
+    borderWidth: 1,
+    borderRadius: 25,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  modeSummaryIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeSummaryContent: {
+    flex: 1,
+  },
+  modeSummaryEyebrow: {
+    ...type.tiny,
+    letterSpacing: 1.1,
+  },
+  modeSummaryTitle: {
+    ...type.bodyStrong,
+    fontSize: 19,
+    lineHeight: 23,
+    marginTop: 2,
+  },
+  modeSummaryCopy: {
+    ...type.small,
+    lineHeight: 19,
+    marginTop: 3,
+  },
+  modeCount: {
+    minWidth: 48,
+    minHeight: 51,
+    borderRadius: 17,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeCountValue: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    lineHeight: 20,
+  },
+  modeCountLabel: {
+    ...type.tiny,
   },
   eyebrow: {
     ...type.section,
