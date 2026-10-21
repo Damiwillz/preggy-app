@@ -114,6 +114,12 @@ const recoveryCare: CareItem[] = [
 
 const familyCircle: CareItem[] = [
   {
+    icon: 'documents-outline',
+    title: 'Care Brief',
+    copy: 'One shareable overview of your family care plan.',
+    route: '/care-brief',
+  },
+  {
     icon: 'git-branch-outline',
     title: 'Family Decisions',
     copy: 'Discuss, record and remember important family choices.',
