@@ -20,6 +20,7 @@ type BackupSummary = {
   dailyPlanDays: number;
   trackerCount: number;
   memoryCount: number;
+  familyCareCount: number;
   lastChecked: string | null;
 };
 
@@ -31,6 +32,7 @@ const emptySummary: BackupSummary = {
   dailyPlanDays: 0,
   trackerCount: 0,
   memoryCount: 0,
+  familyCareCount: 0,
   lastChecked: null,
 };
 
@@ -48,6 +50,18 @@ const trackerHints = [
 
 const memoryHints = ['journal', 'letters', 'bump-gallery', 'reflection'];
 
+const familyCareKeys = [
+  'preggy:visitor-plan',
+  'preggy:comfort-profile',
+  'preggy:energy-budget',
+  'preggy:recovery-check-ins',
+  'preggy:family-decisions',
+  'preggy:newborn-profile',
+  'preggy:feeding',
+  'preggy:diapers',
+  'preggy:sleep',
+];
+
 function isPreggyKey(key: string) {
   return key.startsWith('preggy:') || key.startsWith('@preggy_');
 }
@@ -60,6 +74,7 @@ function makeBackupPayload(pairs: ReadonlyArray<StoragePair>) {
   return {
     app: 'Preggy',
     backup_type: 'local_phone_backup',
+    backup_version: 2,
     exported_at: new Date().toISOString(),
     note: 'This backup contains local Preggy data saved on this phone.',
     item_count: pairs.length,
@@ -171,6 +186,11 @@ export default function BackupExportScreen() {
         dailyPlanDays: keys.filter((key) => key.startsWith('preggy:daily-plan-done:')).length,
         trackerCount: countKeys(keys, trackerHints),
         memoryCount: countKeys(keys, memoryHints),
+        familyCareCount: keys.filter((key) =>
+          familyCareKeys.some(
+            (familyKey) => key === familyKey || key.startsWith(familyKey + ':')
+          )
+        ).length,
         lastChecked: new Date().toISOString(),
       });
     } catch (error) {
@@ -212,6 +232,12 @@ export default function BackupExportScreen() {
         label: 'Memories',
         value: summary.memoryCount,
         detail: `${summary.reflectionCount} reflections`,
+      },
+      {
+        icon: 'people-circle-outline' as const,
+        label: 'Family Care',
+        value: summary.familyCareCount,
+        detail: 'Plans and check-ins',
       },
     ],
     [summary]
@@ -300,7 +326,7 @@ export default function BackupExportScreen() {
         <Text style={[styles.kicker, { color: palette.onAccent }]}>LOCAL BACKUP</Text>
         <Text style={[styles.title, { color: palette.onAccent }]}>Keep your Preggy journey safe</Text>
         <Text style={[styles.subtitle, { color: palette.onAccent }]}>
-          Export guest mode and local tool data from this phone. Restore it later by pasting the backup text.
+          Protect profiles, trackers, memories and Family Care plans. Restore everything later from your backup text.
         </Text>
 
         <View style={styles.backupActions}>
@@ -421,7 +447,7 @@ export default function BackupExportScreen() {
         <View style={{ flex: 1 }}>
           <Text style={[styles.noteTitle, { color: palette.ink }]}>Important</Text>
           <Text style={[styles.noteCopy, { color: palette.text }]}>
-            Restore can overwrite matching local data on this phone, so export first if you want a copy.
+            Family Care plans and check-ins are included automatically. Restore can overwrite matching local data, so export first if you want a copy.
           </Text>
         </View>
       </View>
