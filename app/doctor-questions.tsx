@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
@@ -13,6 +13,7 @@ type DoctorQuestion = {
   id: string;
   text: string;
   answered: boolean;
+  priority?: boolean;
   createdAt: number;
 };
 
@@ -23,6 +24,7 @@ export default function DoctorQuestionsScreen() {
 
   const [questions, setQuestions] = useState<DoctorQuestion[]>([]);
   const [draft, setDraft] = useState('');
+  const [draftPriority, setDraftPriority] = useState(false);
 
   const answeredCount = useMemo(
     () => questions.filter((question) => question.answered).length,
@@ -30,6 +32,30 @@ export default function DoctorQuestionsScreen() {
   );
 
   const progress = questions.length ? Math.round((answeredCount / questions.length) * 100) : 0;
+
+  const displayedQuestions = useMemo(
+    () =>
+      [...questions].sort((first, second) => {
+        if (first.answered !== second.answered) {
+          return first.answered ? 1 : -1;
+        }
+
+        if (Boolean(first.priority) !== Boolean(second.priority)) {
+          return first.priority ? -1 : 1;
+        }
+
+        return second.createdAt - first.createdAt;
+      }),
+    [questions]
+  );
+
+  const priorityCount = useMemo(
+    () =>
+      questions.filter(
+        (question) => question.priority && !question.answered
+      ).length,
+    [questions]
+  );
 
   useEffect(() => {
     async function loadQuestions() {
@@ -69,12 +95,14 @@ export default function DoctorQuestionsScreen() {
         id: String(Date.now()),
         text: clean,
         answered: false,
+        priority: draftPriority,
         createdAt: Date.now(),
       },
       ...questions,
     ];
 
     setDraft('');
+    setDraftPriority(false);
     await saveQuestions(next);
   }
 
@@ -89,6 +117,52 @@ export default function DoctorQuestionsScreen() {
     );
 
     await saveQuestions(next);
+  }
+
+  async function togglePriority(id: string) {
+    const next = questions.map((question) =>
+      question.id === id
+        ? {
+            ...question,
+            priority: !question.priority,
+          }
+        : question
+    );
+
+    await saveQuestions(next);
+  }
+
+  async function shareQuestions() {
+    const openQuestions = displayedQuestions.filter(
+      (question) => !question.answered
+    );
+
+    if (!openQuestions.length) {
+      Alert.alert(
+        'No open questions',
+        'Add a question or reopen an answered question first.'
+      );
+      return;
+    }
+
+    const lines = [
+      'Questions for my next appointment',
+      '',
+      ...openQuestions.map(
+        (question, index) =>
+          String(index + 1) +
+          '. ' +
+          (question.priority ? 'IMPORTANT — ' : '') +
+          question.text
+      ),
+      '',
+      'Prepared with Preggy',
+    ];
+
+    await Share.share({
+      title: 'Questions for my doctor',
+      message: lines.join('\n'),
+    });
   }
 
   async function deleteQuestion(id: string) {
@@ -158,6 +232,64 @@ export default function DoctorQuestionsScreen() {
           />
 
           <AnimatedPressable
+            onPress={() => setDraftPriority((value) => !value)}
+            style={[
+              styles.priorityToggle,
+              {
+                backgroundColor: draftPriority
+                  ? palette.accentSoft
+                  : palette.canvas,
+                borderColor: draftPriority
+                  ? palette.accent
+                  : palette.line,
+              },
+            ]}
+          >
+            <Ionicons
+              name={draftPriority ? 'star' : 'star-outline'}
+              size={20}
+              color={
+                draftPriority
+                  ? palette.accent
+                  : palette.muted
+              }
+            />
+
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[
+                  styles.priorityToggleTitle,
+                  { color: palette.ink },
+                ]}
+              >
+                Mark as important
+              </Text>
+              <Text
+                style={[
+                  styles.priorityToggleCopy,
+                  { color: palette.text },
+                ]}
+              >
+                Important questions appear first.
+              </Text>
+            </View>
+
+            <Ionicons
+              name={
+                draftPriority
+                  ? 'checkmark-circle'
+                  : 'ellipse-outline'
+              }
+              size={22}
+              color={
+                draftPriority
+                  ? palette.accent
+                  : palette.muted
+              }
+            />
+          </AnimatedPressable>
+
+          <AnimatedPressable
             onPress={addQuestion}
             style={[styles.addButton, { backgroundColor: palette.accent, borderColor: palette.accent }]}
           >
@@ -172,20 +304,49 @@ export default function DoctorQuestionsScreen() {
               <Text style={[styles.eyebrow, { color: palette.accent }]}>SAVED QUESTIONS</Text>
               <Text style={[styles.listTitle, { color: palette.ink }]}>
                 {questions.length} total
+                {priorityCount > 0
+                  ? ' • ' + priorityCount + ' important'
+                  : ''}
               </Text>
             </View>
 
-            <AnimatedPressable
-              onPress={clearAnswered}
-              style={[styles.clearButton, { backgroundColor: palette.accentSoft }]}
-            >
-              <Text style={[styles.clearText, { color: palette.accent }]}>Clear answered</Text>
-            </AnimatedPressable>
+            <View style={styles.headerActions}>
+              <AnimatedPressable
+                onPress={shareQuestions}
+                style={[
+                  styles.shareButton,
+                  { backgroundColor: palette.accent },
+                ]}
+              >
+                <Ionicons
+                  name="share-outline"
+                  size={17}
+                  color={palette.onAccent}
+                />
+              </AnimatedPressable>
+
+              <AnimatedPressable
+                onPress={clearAnswered}
+                style={[
+                  styles.clearButton,
+                  { backgroundColor: palette.accentSoft },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.clearText,
+                    { color: palette.accent },
+                  ]}
+                >
+                  Clear
+                </Text>
+              </AnimatedPressable>
+            </View>
           </View>
 
           {questions.length ? (
             <View style={styles.questionList}>
-              {questions.map((question) => (
+              {displayedQuestions.map((question) => (
                 <View
                   key={question.id}
                   style={[
@@ -210,6 +371,32 @@ export default function DoctorQuestionsScreen() {
                       name={question.answered ? 'checkmark' : 'ellipse-outline'}
                       size={18}
                       color={question.answered ? palette.onAccent : palette.accent}
+                    />
+                  </AnimatedPressable>
+
+                  <AnimatedPressable
+                    onPress={() => togglePriority(question.id)}
+                    style={[
+                      styles.priorityButton,
+                      {
+                        backgroundColor: question.priority
+                          ? palette.accentSoft
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={
+                        question.priority
+                          ? 'star'
+                          : 'star-outline'
+                      }
+                      size={18}
+                      color={
+                        question.priority
+                          ? palette.accent
+                          : palette.muted
+                      }
                     />
                   </AnimatedPressable>
 
@@ -338,6 +525,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  priorityToggle: {
+    minHeight: 68,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 13,
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  priorityToggleTitle: {
+    ...type.bodyStrong,
+  },
+  priorityToggleCopy: {
+    ...type.tiny,
+    marginTop: 2,
+  },
   addButton: {
     minHeight: 52,
     borderRadius: 20,
@@ -368,6 +572,18 @@ const styles = StyleSheet.create({
     fontSize: 21,
     marginTop: 5,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  shareButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   clearButton: {
     minHeight: 38,
     borderRadius: 16,
@@ -397,6 +613,13 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 15,
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  priorityButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
