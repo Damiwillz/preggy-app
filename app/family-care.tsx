@@ -133,6 +133,12 @@ const familyCircle: CareItem[] = [
     route: '/visitor-plan',
   },
   {
+    icon: 'moon-outline',
+    title: 'Rest Relay',
+    copy: 'Plan a protected rest shift with a trusted caregiver.',
+    route: '/rest-relay',
+  },
+  {
     icon: 'swap-horizontal-outline',
     title: 'Care Handoff',
     copy: 'Pass important information to the next caregiver.',
