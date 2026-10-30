@@ -20,6 +20,7 @@ type CareItem = {
 type CareMode = 'Baby' | 'My Recovery' | 'Family';
 
 const LAST_MODE_KEY = 'preggy:last-family-care-mode';
+const LAST_ITEM_KEY = 'preggy:last-family-care-item';
 
 const modes: CareMode[] = [
   'Baby',
@@ -145,18 +146,26 @@ const familyCircle: CareItem[] = [
   },
 ];
 
+const allCareItems = [
+  ...babyCare,
+  ...recoveryCare,
+  ...familyCircle,
+];
+
 function CareCard({
   item,
   featured = false,
+  onOpen,
 }: {
   item: CareItem;
   featured?: boolean;
+  onOpen: (item: CareItem) => void;
 }) {
   const { palette } = useAppTheme();
 
   return (
     <AnimatedPressable
-      onPress={() => router.push(item.route as never)}
+      onPress={() => onOpen(item)}
       style={[
         featured ? styles.featuredCard : styles.card,
         {
@@ -223,22 +232,49 @@ export default function FamilyCareScreen() {
   const { palette } = useAppTheme();
   const [activeMode, setActiveMode] =
     useState<CareMode>('Baby');
+  const [lastItem, setLastItem] =
+    useState<CareItem | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(LAST_MODE_KEY)
-      .then((saved) => {
+    Promise.all([
+      AsyncStorage.getItem(LAST_MODE_KEY),
+      AsyncStorage.getItem(LAST_ITEM_KEY),
+    ])
+      .then(([savedMode, savedRoute]) => {
         if (
-          saved === 'Baby' ||
-          saved === 'My Recovery' ||
-          saved === 'Family'
+          savedMode === 'Baby' ||
+          savedMode === 'My Recovery' ||
+          savedMode === 'Family'
         ) {
-          setActiveMode(saved);
+          setActiveMode(savedMode);
+        }
+
+        if (savedRoute) {
+          const savedItem = allCareItems.find(
+            (item) => item.route === savedRoute
+          );
+
+          if (savedItem) {
+            setLastItem(savedItem);
+          }
         }
       })
       .catch((error) => {
-        console.log('Family Care mode load error:', error);
+        console.log('Family Care preferences load error:', error);
       });
   }, []);
+
+  function openCareItem(item: CareItem) {
+    setLastItem(item);
+
+    AsyncStorage.setItem(LAST_ITEM_KEY, item.route).catch(
+      (error) => {
+        console.log('Family Care recent item save error:', error);
+      }
+    );
+
+    router.push(item.route as never);
+  }
 
   function selectMode(mode: CareMode) {
     setActiveMode(mode);
@@ -335,6 +371,75 @@ export default function FamilyCareScreen() {
           ))}
         </View>
       </View>
+
+      {lastItem ? (
+        <AnimatedPressable
+          onPress={() => openCareItem(lastItem)}
+          style={[
+            styles.continueCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.continueIcon,
+              { backgroundColor: palette.accentSoft },
+            ]}
+          >
+            <Ionicons
+              name={lastItem.icon}
+              size={25}
+              color={palette.accent}
+            />
+          </View>
+
+          <View style={styles.continueContent}>
+            <Text
+              style={[
+                styles.continueEyebrow,
+                { color: palette.accent },
+              ]}
+            >
+              CONTINUE WHERE YOU LEFT OFF
+            </Text>
+
+            <Text
+              style={[
+                styles.continueTitle,
+                { color: palette.ink },
+              ]}
+            >
+              {lastItem.title}
+            </Text>
+
+            <Text
+              style={[
+                styles.continueCopy,
+                { color: palette.text },
+              ]}
+              numberOfLines={1}
+            >
+              {lastItem.copy}
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.continueArrow,
+              { backgroundColor: palette.accent },
+            ]}
+          >
+            <Ionicons
+              name="arrow-forward"
+              size={18}
+              color={palette.onAccent}
+            />
+          </View>
+        </AnimatedPressable>
+      ) : null}
 
       <View
         style={[
@@ -483,6 +588,7 @@ export default function FamilyCareScreen() {
           <CareCard
             key={item.route}
             item={item}
+            onOpen={openCareItem}
             featured={
               activeMode === 'Baby' &&
               index === 0
@@ -571,6 +677,47 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
     marginHorizontal: 8,
+  },
+  continueCard: {
+    minHeight: 104,
+    borderWidth: 1,
+    borderRadius: 25,
+    padding: 15,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  continueIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueContent: {
+    flex: 1,
+    marginHorizontal: 13,
+  },
+  continueEyebrow: {
+    ...type.tiny,
+    fontSize: 10,
+    letterSpacing: 0.9,
+  },
+  continueTitle: {
+    ...type.bodyStrong,
+    fontSize: 18,
+    marginTop: 3,
+  },
+  continueCopy: {
+    ...type.small,
+    marginTop: 2,
+  },
+  continueArrow: {
+    width: 39,
+    height: 39,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modeSelector: {
     minHeight: 78,
