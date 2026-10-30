@@ -139,6 +139,12 @@ const familyCircle: CareItem[] = [
     route: '/rest-relay',
   },
   {
+    icon: 'radio-outline',
+    title: 'Care Signal',
+    copy: 'Share what your household needs right now.',
+    route: '/care-signal',
+  },
+  {
     icon: 'swap-horizontal-outline',
     title: 'Care Handoff',
     copy: 'Pass important information to the next caregiver.',
