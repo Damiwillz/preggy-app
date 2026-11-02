@@ -86,6 +86,14 @@ const tools: ToolItem[] = [
     category: 'Support',
   },
   {
+    icon: 'body-outline',
+    title: 'Body Map',
+    copy: 'Record discomfort by body area',
+    route: '/body-map',
+    category: 'Tracking',
+    featured: true,
+  },
+  {
     icon: 'heart-circle-outline',
     title: 'Blood Pressure',
     copy: 'Log pressure, pulse and notes',
