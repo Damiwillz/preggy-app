@@ -117,6 +117,14 @@ const tools: ToolItem[] = [
     featured: true,
   },
   {
+    icon: 'airplane-outline',
+    title: 'Travel Ready',
+    copy: 'Prepare a pregnancy travel plan',
+    route: '/travel-ready',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'folder-outline',
     title: 'Documents Checklist',
     copy: 'Keep important papers ready',
