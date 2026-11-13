@@ -15,3 +15,5 @@ export const PinIcon = (p: Props) => <Ionicons name="location-outline" size={p.s
 export const PlusIcon = (p: Props) => <Ionicons name="add" size={p.size ?? 26} color={p.color ?? colors.surface} />;
 export const HeartIcon = (p: Props) => <Ionicons name="heart-outline" size={p.size ?? 24} color={p.color ?? colors.rose} />;
 export const WaterIcon = (p: Props) => <Ionicons name="water-outline" size={p.size ?? 22} color={p.color ?? colors.plum} />;
+
+export const JourneyIcon = (p: Props) => <Ionicons name="sparkles-outline" size={p.size ?? 22} color={p.color ?? colors.text} />;

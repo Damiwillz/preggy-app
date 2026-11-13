@@ -11,6 +11,7 @@ import {
   CalculatorIcon,
   GrowthIcon,
   HomeIcon,
+  JourneyIcon,
   ProfileIcon,
   TipsIcon,
 } from '@/components/ui/icons';
@@ -25,6 +26,7 @@ const icons: Record<
   }>
 > = {
   home: HomeIcon,
+  journey: JourneyIcon,
   calculator: CalculatorIcon,
   growth: GrowthIcon,
   tips: TipsIcon,
@@ -126,8 +128,8 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="calculator"
-        options={{ title: 'Due Date' }}
+        name="journey"
+        options={{ title: 'Journey' }}
       />
 
       <Tabs.Screen
@@ -143,6 +145,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{ title: 'Profile' }}
+      />
+
+      <Tabs.Screen
+        name="calculator"
+        options={{ href: null }}
       />
 
       <Tabs.Screen
