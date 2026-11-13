@@ -79,6 +79,14 @@ const tools: ToolItem[] = [
     category: 'Planning',
   },
   {
+    icon: 'desktop-outline',
+    title: 'Work Comfort Plan',
+    copy: 'Prepare workplace support requests',
+    route: '/work-comfort-plan',
+    category: 'Planning',
+    featured: true,
+  },
+  {
     icon: 'people-outline',
     title: 'Partner Support',
     copy: 'Plan help from your people',
