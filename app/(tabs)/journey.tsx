@@ -548,6 +548,63 @@ export default function JourneyScreen() {
         </AnimatedPressable>
       </View>
 
+      <AnimatedPressable
+        onPress={() => router.push('/journey-story' as never)}
+        style={[
+          styles.storyButton,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.line,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.storyButtonIcon,
+            { backgroundColor: palette.accentSoft },
+          ]}
+        >
+          <Ionicons
+            name="book-outline"
+            size={25}
+            color={palette.accent}
+          />
+        </View>
+
+        <View style={styles.storyButtonContent}>
+          <Text
+            style={[
+              styles.storyButtonKicker,
+              { color: palette.accent },
+            ]}
+          >
+            MY PREGNANCY STORY
+          </Text>
+          <Text
+            style={[
+              styles.storyButtonTitle,
+              { color: palette.ink },
+            ]}
+          >
+            Read all your weekly chapters
+          </Text>
+          <Text
+            style={[
+              styles.storyButtonCopy,
+              { color: palette.text },
+            ]}
+          >
+            Your Journey reflections, collected in one beautiful timeline.
+          </Text>
+        </View>
+
+        <Ionicons
+          name="chevron-forward"
+          size={21}
+          color={palette.muted}
+        />
+      </AnimatedPressable>
+
       <Text style={[styles.quickTitle, { color: palette.ink }]}>
         Continue your story
       </Text>
@@ -811,6 +868,41 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     ...type.bodyStrong,
+  },
+  storyButton: {
+    minHeight: 112,
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 15,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  storyButtonIcon: {
+    width: 53,
+    height: 53,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  storyButtonContent: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  storyButtonKicker: {
+    ...type.tiny,
+    fontSize: 10,
+    letterSpacing: 0.9,
+  },
+  storyButtonTitle: {
+    ...type.bodyStrong,
+    fontSize: 17,
+    marginTop: 3,
+  },
+  storyButtonCopy: {
+    ...type.tiny,
+    lineHeight: 16,
+    marginTop: 3,
   },
   quickTitle: {
     ...type.title,
